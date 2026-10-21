@@ -297,6 +297,10 @@ private final class ThumbnailView: NSView, NSDraggingSource {
         panel.edit()
     }
 
+    @objc private func copyText() {
+        SmartActions.copyText(from: capture.image)
+    }
+
     private var saveTitle: String { capture.savedURL == nil ? "Save" : "Show in Finder" }
 
     private func updateSaveTitle() {
@@ -311,6 +315,7 @@ private final class ThumbnailView: NSView, NSDraggingSource {
         menu.addItem(withTitle: "Edit", action: #selector(edit), keyEquivalent: "")
         menu.addItem(withTitle: "Open in Preview", action: #selector(openFile), keyEquivalent: "")
         menu.addItem(withTitle: "Pin to Screen", action: #selector(pin), keyEquivalent: "")
+        menu.addItem(withTitle: "Copy Text", action: #selector(copyText), keyEquivalent: "")
         menu.addItem(.separator())
         menu.addItem(withTitle: "Close", action: #selector(close), keyEquivalent: "")
         menu.items.forEach { $0.target = self }

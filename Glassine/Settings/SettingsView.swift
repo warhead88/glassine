@@ -73,6 +73,7 @@ private struct CaptureSettings: View {
     @AppStorage(PrefKey.adjustBeforeCapture) private var adjustBeforeCapture = false
     @AppStorage(PrefKey.windowShadow) private var windowShadow = true
     @AppStorage(PrefKey.timerDelay) private var timerDelay = 5
+    @AppStorage(PrefKey.colorFormat) private var colorFormat = ColorFormat.hex.rawValue
 
     var body: some View {
         Form {
@@ -88,6 +89,9 @@ private struct CaptureSettings: View {
                     Text("5 seconds").tag(5)
                     Text("10 seconds").tag(10)
                 }
+                Picker("Copied color format:", selection: $colorFormat) {
+                    ForEach(ColorFormat.allCases) { Text($0.title).tag($0.rawValue) }
+                }
             }
 
             Section("Tips") {
@@ -98,6 +102,7 @@ private struct CaptureSettings: View {
                     tip("⌥ Option", "select from the center")
                     tip("Space", "hold to move the selection while dragging")
                     tip("M", "show or hide the magnifier")
+                    tip("C", "copy the color under the pointer")
                     tip("Esc", "cancel")
                 }
                 .font(.callout)
@@ -190,6 +195,9 @@ private struct ShortcutSettings: View {
                 KeyboardShortcuts.Recorder("Capture screen:", name: .captureScreen)
                 KeyboardShortcuts.Recorder("Repeat last area:", name: .repeatLastArea)
                 KeyboardShortcuts.Recorder("Capture with timer:", name: .timedCapture)
+                KeyboardShortcuts.Recorder("Copy text from screen:", name: .captureText)
+                KeyboardShortcuts.Recorder("Pick color:", name: .pickColor)
+                KeyboardShortcuts.Recorder("Measure:", name: .measure)
                 KeyboardShortcuts.Recorder("Pin from clipboard:", name: .pinFromClipboard)
                 KeyboardShortcuts.Recorder("Show/hide pins:", name: .togglePins)
                 KeyboardShortcuts.Recorder("Open settings:", name: .openSettings)

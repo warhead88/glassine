@@ -46,6 +46,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         KeyboardShortcuts.onKeyUp(for: .captureScreen) { [weak self] in self?.capture.captureScreen() }
         KeyboardShortcuts.onKeyUp(for: .repeatLastArea) { [weak self] in self?.capture.repeatLastArea() }
         KeyboardShortcuts.onKeyUp(for: .timedCapture) { [weak self] in self?.capture.timedCapture() }
+        KeyboardShortcuts.onKeyUp(for: .captureText) { [weak self] in self?.capture.captureText() }
+        KeyboardShortcuts.onKeyUp(for: .pickColor) { [weak self] in self?.capture.pickColor() }
+        KeyboardShortcuts.onKeyUp(for: .measure) { [weak self] in self?.capture.measure() }
         KeyboardShortcuts.onKeyUp(for: .pinFromClipboard) { [weak self] in self?.pins.pinFromClipboard() }
         KeyboardShortcuts.onKeyUp(for: .togglePins) { [weak self] in self?.pins.toggleVisibility() }
         KeyboardShortcuts.onKeyUp(for: .openSettings) { [weak self] in self?.settings.show() }
@@ -80,6 +83,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func captureScreen() { capture.captureScreen() }
     @objc private func repeatLastArea() { capture.repeatLastArea() }
     @objc private func timedCapture() { capture.timedCapture() }
+    @objc private func captureText() { capture.captureText() }
+    @objc private func pickColor() { capture.pickColor() }
+    @objc private func measure() { capture.measure() }
     @objc private func pinFromClipboard() { pins.pinFromClipboard() }
     @objc private func togglePins() { pins.toggleVisibility() }
     @objc private func closeAllPins() { pins.closeAll() }
@@ -91,6 +97,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             ("Capture Screen", #selector(captureScreen), .captureScreen),
             ("Repeat Last Area", #selector(repeatLastArea), .repeatLastArea),
             ("Capture with Timer", #selector(timedCapture), .timedCapture),
+            ("Copy Text from Screen", #selector(captureText), .captureText),
+            ("Pick Color", #selector(pickColor), .pickColor),
+            ("Measure", #selector(measure), .measure),
             ("Pin from Clipboard", #selector(pinFromClipboard), .pinFromClipboard),
             ("Show/Hide Pins", #selector(togglePins), .togglePins),
             ("Close All Pins", #selector(closeAllPins), nil),

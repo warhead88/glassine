@@ -100,6 +100,7 @@ final class PinPanel: NSPanel {
     @objc func toggleClickThrough() { isClickThrough.toggle() }
     @objc func closePin() { controller.close(self) }
     @objc func closeAllPins() { controller.closeAll() }
+    @objc func copyText() { SmartActions.copyText(from: capture.image) }
     @objc func edit() {
         controller.onEdit(capture)
         controller.close(self)
@@ -114,6 +115,7 @@ final class PinPanel: NSPanel {
         menu.addItem(withTitle: "Copy", action: #selector(copyImage), keyEquivalent: "c")
         menu.addItem(withTitle: "Save As…", action: #selector(saveAs), keyEquivalent: "s")
         menu.addItem(withTitle: "Edit", action: #selector(edit), keyEquivalent: "e")
+        menu.addItem(withTitle: "Copy Text", action: #selector(copyText), keyEquivalent: "")
         menu.addItem(.separator())
         menu.addItem(withTitle: "Actual Size", action: #selector(actualSize), keyEquivalent: "0")
 

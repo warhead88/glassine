@@ -6,6 +6,7 @@ final class CaptureCoordinator {
     private var overlays: [SelectionOverlayWindow] = []
     private var countdown: CountdownHUD?
     private var isCapturing = false
+    private var overlayMode = OverlayMode.capture
     private let quickAccess = QuickAccessController()
 
     /// Called when capture is attempted without Screen Recording access.
@@ -29,14 +30,26 @@ final class CaptureCoordinator {
     }
 
     /// Freeze all screens and let the user select an area or click a window.
-    func captureArea() {
+    func captureArea() { startOverlay(.capture) }
+
+    /// Select an area or click a window; its text (or QR code) goes to the clipboard.
+    func captureText() { startOverlay(.text) }
+
+    /// Click anywhere to copy the color under the pointer.
+    func pickColor() { startOverlay(.color) }
+
+    /// Measure distances on screen.
+    func measure() { startOverlay(.measure) }
+
+    private func startOverlay(_ mode: OverlayMode) {
         guard begin() else { return }
+        overlayMode = mode
         let start = ContinuousClock.now
         Task {
             do {
                 let snapshots = try await ScreenSnapshotter.snapshotAllScreens()
                 let snapshotted = ContinuousClock.now
-                presentOverlays(for: snapshots, windows: WindowList.onScreenWindows())
+                presentOverlays(for: snapshots, windows: mode.selectsAreas ? WindowList.onScreenWindows() : [])
                 Log.capture.notice(
                     "Overlay ready in \(Self.ms(start), privacy: .public) ms (snapshot \(Self.ms(start, snapshotted), privacy: .public) ms, \(snapshots.count, privacy: .public) screens)"
                 )
@@ -122,7 +135,7 @@ final class CaptureCoordinator {
 
     private func presentOverlays(for snapshots: [ScreenSnapshot], windows: [WindowCandidate]) {
         overlays = snapshots.map { snapshot in
-            SelectionOverlayWindow(snapshot: snapshot, windows: windows) { [weak self] result in
+            SelectionOverlayWindow(snapshot: snapshot, windows: windows, mode: overlayMode) { [weak self] result in
                 self?.finish(with: result, from: snapshot)
             }
         }
@@ -147,6 +160,12 @@ final class CaptureCoordinator {
         switch result {
         case .cancelled:
             return
+        case .color(let color):
+            SmartActions.copyColor(color)
+        case .measurement(let text):
+            SmartActions.copyMeasurement(text)
+        case .area(let image, _) where overlayMode == .text:
+            SmartActions.copyText(from: image)
         case .area(let image, let rect):
             if let displayID = snapshot.screen.displayID {
                 lastArea = (displayID, rect)

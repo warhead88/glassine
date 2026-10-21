@@ -9,6 +9,9 @@ extension KeyboardShortcuts.Name {
     static let pinFromClipboard = Self("pinFromClipboard")
     /// Has a default so a click-through pin can always be hidden, even with the menu bar icon off.
     static let togglePins = Self("togglePins", default: .init(.p, modifiers: [.command, .option, .shift]))
+    static let captureText = Self("captureText", default: .init(.t, modifiers: [.command, .option, .shift]))
+    static let pickColor = Self("pickColor", default: .init(.c, modifiers: [.command, .option, .shift]))
+    static let measure = Self("measure", default: .init(.m, modifiers: [.command, .option, .shift]))
     static let openSettings = Self("openSettings", default: .init(.comma, modifiers: [.command, .option, .shift]))
 }
 
@@ -29,6 +32,7 @@ enum PrefKey {
     static let windowShadow = "windowShadow"
     static let timerDelay = "timerDelay"
     static let playSound = "playSound"
+    static let colorFormat = "colorFormat"
 
     static let imageFormat = "imageFormat"
     static let fileNamePrefix = "fileNamePrefix"
@@ -71,6 +75,7 @@ enum Preferences {
             PrefKey.windowShadow: true,
             PrefKey.timerDelay: 5,
             PrefKey.playSound: true,
+            PrefKey.colorFormat: ColorFormat.hex.rawValue,
             PrefKey.imageFormat: ImageFormat.png.rawValue,
             PrefKey.fileNamePrefix: "Glassine",
             PrefKey.saveAtStandardResolution: false,
@@ -82,6 +87,10 @@ enum Preferences {
     static var saveFolder: URL {
         let path = defaults.string(forKey: PrefKey.saveFolder) ?? AppPaths.defaultSaveFolder.path
         return URL(filePath: path, directoryHint: .isDirectory)
+    }
+
+    static var colorFormat: ColorFormat {
+        ColorFormat(rawValue: defaults.string(forKey: PrefKey.colorFormat) ?? "") ?? .hex
     }
 
     static var imageFormat: ImageFormat {

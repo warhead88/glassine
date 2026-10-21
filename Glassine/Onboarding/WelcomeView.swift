@@ -24,6 +24,7 @@ struct WelcomeView: View {
             Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 8) {
                 shortcutRow("Capture area or window", .captureArea)
                 shortcutRow("Capture screen", .captureScreen)
+                shortcutRow("Copy text from screen", .captureText)
                 shortcutRow("Show/hide pins", .togglePins)
                 shortcutRow("Open settings", .openSettings)
             }

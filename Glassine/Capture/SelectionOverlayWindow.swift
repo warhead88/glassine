@@ -4,7 +4,29 @@ enum OverlayResult {
     /// The cropped image and the selected rect in the screen's flipped local points.
     case area(CGImage, rect: NSRect)
     case window(CGWindowID)
+    /// Picked with a click in color mode, or C in any mode.
+    case color(NSColor)
+    /// Ruler readout copied with C.
+    case measurement(String)
     case cancelled
+}
+
+/// What the overlay is for. All modes share the frozen screen and the magnifier.
+enum OverlayMode {
+    case capture, text, color, measure
+
+    /// One line shown at the top of the screen.
+    var hint: String? {
+        switch self {
+        case .capture: nil
+        case .text: "Select text or click a window to copy its text  ·  Esc to cancel"
+        case .color: "Click to copy the color  ·  Esc to cancel"
+        case .measure: "Drag to measure, Shift for straight lines  ·  C to copy  ·  Esc to close"
+        }
+    }
+
+    /// Text and capture select areas and windows; color and measure keep the screen undimmed.
+    var selectsAreas: Bool { self == .capture || self == .text }
 }
 
 /// Borderless full-screen panel showing a frozen snapshot of one screen.
@@ -18,6 +40,7 @@ final class SelectionOverlayWindow: NSPanel {
     init(
         snapshot: ScreenSnapshot,
         windows: [WindowCandidate],
+        mode: OverlayMode = .capture,
         onFinish: @escaping (OverlayResult) -> Void
     ) {
         super.init(
@@ -46,6 +69,7 @@ final class SelectionOverlayWindow: NSPanel {
             windows: windows.map { snapshot.screen.localFlippedRect(fromGlobal: $0.frame) }
                 .enumerated()
                 .map { (id: windows[$0.offset].id, rect: $0.element) },
+            mode: mode,
             onFinish: onFinish
         )
         selection.frame = background.bounds
@@ -68,10 +92,16 @@ private final class SelectionView: NSView {
 
     private let snapshot: ScreenSnapshot
     private let windows: [(id: CGWindowID, rect: NSRect)]
+    private let mode: OverlayMode
     private let onFinish: (OverlayResult) -> Void
 
-    /// Toggled with M in the overlay; the choice is remembered for next time.
-    private var showMagnifier = UserDefaults.standard.bool(forKey: PrefKey.showMagnifier)
+    /// Toggled with M in the overlay; the choice is remembered for next time. Always on for colors.
+    private lazy var showMagnifier = mode == .color || UserDefaults.standard.bool(forKey: PrefKey.showMagnifier)
+    private let colorFormat = Preferences.colorFormat
+
+    // Ruler: the measured segment in view points.
+    private var measureStart: NSPoint?
+    private var measureEnd: NSPoint?
     private let adjustBeforeCapture = UserDefaults.standard.bool(forKey: PrefKey.adjustBeforeCapture)
 
     private var selection: NSRect?
@@ -87,9 +117,11 @@ private final class SelectionView: NSView {
     private var isSpaceMoving = false
     private var lastDragPoint: NSPoint?
 
-    init(snapshot: ScreenSnapshot, windows: [(id: CGWindowID, rect: NSRect)], onFinish: @escaping (OverlayResult) -> Void) {
+    init(snapshot: ScreenSnapshot, windows: [(id: CGWindowID, rect: NSRect)], mode: OverlayMode,
+         onFinish: @escaping (OverlayResult) -> Void) {
         self.snapshot = snapshot
         self.windows = windows
+        self.mode = mode
         self.onFinish = onFinish
         super.init(frame: .zero)
     }
@@ -125,7 +157,8 @@ private final class SelectionView: NSView {
 
     override func draw(_ dirtyRect: NSRect) {
         guard let ctx = NSGraphicsContext.current?.cgContext else { return }
-        let dim = NSColor.black.withAlphaComponent(0.35).cgColor
+        // Colors and distances are judged on the real, undimmed screen.
+        let dim = NSColor.black.withAlphaComponent(mode.selectsAreas ? 0.35 : 0.08).cgColor
 
         let highlight = selection ?? hoveredWindow?.rect.intersection(bounds)
         ctx.setFillColor(dim)
@@ -153,14 +186,49 @@ private final class SelectionView: NSView {
             ctx.stroke(hovered.insetBy(dx: 0.5, dy: 0.5))
         }
 
+        if let measureStart, let measureEnd {
+            drawMeasurement(from: measureStart, to: measureEnd, in: ctx)
+        }
+
         if let cursorPoint, !isAdjusting || dragMode != nil {
-            if selection == nil && hoveredWindow == nil {
+            if selection == nil && hoveredWindow == nil && measureStart == nil {
                 drawCrosshair(at: cursorPoint, in: ctx)
             }
             if showMagnifier {
                 drawMagnifier(at: cursorPoint, in: ctx)
             }
         }
+
+        if let hint = mode.hint {
+            drawHint(hint)
+        }
+    }
+
+    private func drawMeasurement(from a: NSPoint, to b: NSPoint, in ctx: CGContext) {
+        ctx.setStrokeColor(NSColor.systemPink.cgColor)
+        ctx.setLineWidth(1.5)
+        ctx.strokeLineSegments(between: [a, b])
+        // End ticks perpendicular to the line.
+        let length = max(hypot(b.x - a.x, b.y - a.y), 0.001)
+        let nx = -(b.y - a.y) / length * 6, ny = (b.x - a.x) / length * 6
+        ctx.strokeLineSegments(between: [
+            CGPoint(x: a.x - nx, y: a.y - ny), CGPoint(x: a.x + nx, y: a.y + ny),
+            CGPoint(x: b.x - nx, y: b.y - ny), CGPoint(x: b.x + nx, y: b.y + ny),
+        ])
+        let text = Measurement.describe(from: a, to: b, scale: snapshot.scale)
+        drawLabel(text, at: NSPoint(x: (a.x + b.x) / 2 + 10, y: (a.y + b.y) / 2 + 10), width: nil)
+    }
+
+    private func drawHint(_ text: String) {
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: 13, weight: .medium),
+            .foregroundColor: NSColor.white,
+        ]
+        let size = (text as NSString).size(withAttributes: attributes)
+        let box = NSRect(x: bounds.midX - size.width / 2 - 14, y: 44, width: size.width + 28, height: size.height + 12)
+        NSColor.black.withAlphaComponent(0.7).setFill()
+        NSBezierPath(roundedRect: box, xRadius: box.height / 2, yRadius: box.height / 2).fill()
+        (text as NSString).draw(at: NSPoint(x: box.minX + 14, y: box.minY + 6), withAttributes: attributes)
     }
 
     private func drawCrosshair(at point: NSPoint, in ctx: CGContext) {
@@ -240,7 +308,7 @@ private final class SelectionView: NSView {
         clip.stroke()
 
         var lines = ["\(Int(center.x)), \(Int(center.y)) px"]
-        if let cursorColor { lines.append(cursorColor.hexString) }
+        if let cursorColor { lines.append(cursorColor.formatted(colorFormat)) }
         drawLabel(lines.joined(separator: "\n"), at: NSPoint(x: loupe.minX, y: loupe.maxY + 4), width: side)
     }
 
@@ -286,6 +354,19 @@ private final class SelectionView: NSView {
         lastDragPoint = point
         didDrag = false
 
+        switch mode {
+        case .color:
+            if let cursorColor { onFinish(.color(cursorColor)) }
+            return
+        case .measure:
+            measureStart = point
+            measureEnd = point
+            needsDisplay = true
+            return
+        case .capture, .text:
+            break
+        }
+
         if isAdjusting, let selection {
             if event.clickCount == 2, selection.contains(point) {
                 captureSelection()
@@ -305,6 +386,13 @@ private final class SelectionView: NSView {
 
     override func mouseDragged(with event: NSEvent) {
         let point = clamped(convert(event.locationInWindow, from: nil))
+        if mode == .measure, let measureStart {
+            measureEnd = event.modifierFlags.contains(.shift) ? Measurement.snapped(point, from: measureStart) : point
+            cursorPoint = point
+            updateCursorColor()
+            needsDisplay = true
+            return
+        }
         if let start = mouseDownPoint, !didDrag {
             guard hypot(point.x - start.x, point.y - start.y) > 3 else { return }
             didDrag = true
@@ -317,6 +405,7 @@ private final class SelectionView: NSView {
     }
 
     override func mouseUp(with event: NSEvent) {
+        guard mode.selectsAreas else { return }
         defer {
             dragMode = nil
             mouseDownPoint = nil
@@ -330,7 +419,13 @@ private final class SelectionView: NSView {
                 if case .create = dragMode { selection = nil; isAdjusting = false }
                 return
             }
-            if let hoveredWindow {
+            if let hoveredWindow, mode == .text {
+                // Text comes from what's visible, so crop the frozen screen to the window.
+                let rect = hoveredWindow.rect.intersection(bounds)
+                if let image = snapshot.image.cropping(to: pixelRect(for: rect)) {
+                    onFinish(.area(image, rect: rect))
+                }
+            } else if let hoveredWindow {
                 onFinish(.window(hoveredWindow.id))
             } else {
                 onFinish(.area(snapshot.image, rect: bounds))
@@ -390,7 +485,14 @@ private final class SelectionView: NSView {
             if isAdjusting { captureSelection() }
         case 49: // Space
             if case .create = dragMode, selection != nil { isSpaceMoving = true }
+        case 8: // C: copy the color under the pointer, or the ruler reading
+            if mode == .measure, let measureStart, let measureEnd {
+                onFinish(.measurement(Measurement.describe(from: measureStart, to: measureEnd, scale: snapshot.scale)))
+            } else if let cursorColor {
+                onFinish(.color(cursorColor))
+            }
         case 46: // M
+            guard mode != .color else { return }
             showMagnifier.toggle()
             UserDefaults.standard.set(showMagnifier, forKey: PrefKey.showMagnifier)
             updateCursorColor()
@@ -430,7 +532,7 @@ private final class SelectionView: NSView {
 
     private func updateHover(at point: NSPoint) {
         cursorPoint = point
-        if !isAdjusting && dragMode == nil {
+        if !isAdjusting && dragMode == nil && mode.selectsAreas {
             hoveredWindow = windows.first { $0.rect.contains(point) }
         }
         updateCursorColor()
@@ -452,7 +554,7 @@ private final class SelectionView: NSView {
     }
 
     private func updateCursorColor() {
-        guard showMagnifier, let cursorPoint else { return }
+        guard let cursorPoint else { return }
         let pixel = pixelPoint(for: cursorPoint)
         cursorColor = snapshot.image.cropping(to: CGRect(x: pixel.x, y: pixel.y, width: 1, height: 1))
             .flatMap { NSBitmapImageRep(cgImage: $0).colorAt(x: 0, y: 0) }
@@ -477,6 +579,11 @@ private final class SelectionView: NSView {
 }
 
 extension NSColor {
+    func formatted(_ format: ColorFormat) -> String {
+        guard let rgb = usingColorSpace(.sRGB) else { return "" }
+        return format.string(red: rgb.redComponent, green: rgb.greenComponent, blue: rgb.blueComponent)
+    }
+
     /// "#RRGGBB" in sRGB, as shown in the magnifier.
     var hexString: String {
         guard let rgb = usingColorSpace(.sRGB) else { return "" }
