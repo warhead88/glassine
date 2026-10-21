@@ -17,6 +17,9 @@ final class CapturedImage {
 
     private(set) var savedURL: URL?
     private var temporaryURL: URL?
+    /// Where the captured content was on screen (global Cocoa coordinates), so a pin
+    /// can appear exactly over it. Nil for images that didn't come from the screen.
+    var sourceFrame: NSRect?
 
     init(image: CGImage, scale: CGFloat, date: Date = .now) throws {
         if UserDefaults.standard.bool(forKey: PrefKey.saveAtStandardResolution), scale > 1,

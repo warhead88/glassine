@@ -6,6 +6,8 @@ extension KeyboardShortcuts.Name {
     static let captureScreen = Self("captureScreen", default: .init(.one, modifiers: [.command, .shift]))
     static let repeatLastArea = Self("repeatLastArea")
     static let timedCapture = Self("timedCapture")
+    static let pinFromClipboard = Self("pinFromClipboard")
+    static let togglePins = Self("togglePins")
     static let openSettings = Self("openSettings", default: .init(.comma, modifiers: [.command, .option, .shift]))
 }
 

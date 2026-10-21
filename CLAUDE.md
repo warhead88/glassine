@@ -26,4 +26,4 @@ Builds go to `build.noindex/` so Spotlight doesn't show duplicate copies of the 
 - Plan and priorities live in `ROADMAP.md`; tick items off there when they ship.
 - Manual QA checklist: `TESTING.md` — extend it when a feature ships.
 - Logs: `/usr/bin/log stream --predicate 'subsystem == "com.warhead88.glassine"'` (plain `log` is a zsh builtin).
-- Debug builds: `open /Applications/Glassine.app --args --debug-preview` shows sample previews without the hotkey.
+- Debug builds: `open /Applications/Glassine.app --args --debug-preview` (sample previews) or `--debug-pins` (sample pins) — checks without the hotkey or synthetic input.

@@ -26,6 +26,16 @@ enum WindowList {
             return WindowCandidate(id: id, frame: frame)
         }
     }
+
+    /// A window's current frame in global Cocoa coordinates (bottom-left origin).
+    static func frame(of id: CGWindowID) -> NSRect? {
+        guard let entry = (CGWindowListCopyWindowInfo(.optionIncludingWindow, id) as? [[String: Any]])?.first,
+              let bounds = entry[kCGWindowBounds as String] as? NSDictionary,
+              let frame = CGRect(dictionaryRepresentation: bounds)
+        else { return nil }
+        let primaryHeight = NSScreen.screens.first?.frame.height ?? 0
+        return NSRect(x: frame.minX, y: primaryHeight - frame.maxY, width: frame.width, height: frame.height)
+    }
 }
 
 extension NSScreen {
@@ -35,5 +45,11 @@ extension NSScreen {
         let primaryHeight = NSScreen.screens.first?.frame.height ?? frame.height
         let screenTop = primaryHeight - frame.maxY
         return rect.offsetBy(dx: -frame.minX, dy: -screenTop)
+    }
+
+    /// Converts a rect in this screen's flipped local coordinates (as used by the overlay)
+    /// into global Cocoa coordinates with a bottom-left origin.
+    func globalRect(fromLocalFlipped rect: CGRect) -> NSRect {
+        NSRect(x: frame.minX + rect.minX, y: frame.maxY - rect.maxY, width: rect.width, height: rect.height)
     }
 }

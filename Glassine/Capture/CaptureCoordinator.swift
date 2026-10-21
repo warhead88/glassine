@@ -16,6 +16,12 @@ final class CaptureCoordinator {
 
     var canRepeatLastArea: Bool { lastArea != nil }
 
+    /// Called when the user pins a capture from its preview.
+    var onPin: (CapturedImage) -> Void {
+        get { quickAccess.onPin }
+        set { quickAccess.onPin = newValue }
+    }
+
     /// Freeze all screens and let the user select an area or click a window.
     func captureArea() {
         guard begin() else { return }
@@ -41,7 +47,7 @@ final class CaptureCoordinator {
                     return
                 }
                 isCapturing = false
-                deliver(snapshot.image, scale: snapshot.scale, on: snapshot.screen)
+                deliver(snapshot.image, scale: snapshot.scale, on: snapshot.screen, sourceFrame: snapshot.screen.frame)
             } catch {
                 fail(error)
             }
@@ -65,7 +71,10 @@ final class CaptureCoordinator {
                     NSSound.beep()
                     return
                 }
-                deliver(image, scale: snapshot.scale, on: snapshot.screen)
+                deliver(
+                    image, scale: snapshot.scale, on: snapshot.screen,
+                    sourceFrame: snapshot.screen.globalRect(fromLocalFlipped: lastArea.rect)
+                )
             } catch {
                 fail(error)
             }
@@ -131,13 +140,16 @@ final class CaptureCoordinator {
             if let displayID = snapshot.screen.displayID {
                 lastArea = (displayID, rect)
             }
-            deliver(image, scale: snapshot.scale, on: snapshot.screen)
+            deliver(
+                image, scale: snapshot.scale, on: snapshot.screen,
+                sourceFrame: snapshot.screen.globalRect(fromLocalFlipped: rect)
+            )
         case .window(let id):
             Task {
                 do {
                     let includeShadow = UserDefaults.standard.bool(forKey: PrefKey.windowShadow)
                     let (image, scale) = try await ScreenSnapshotter.captureWindow(id: id, includeShadow: includeShadow)
-                    deliver(image, scale: scale, on: snapshot.screen)
+                    deliver(image, scale: scale, on: snapshot.screen, sourceFrame: WindowList.frame(of: id))
                 } catch {
                     presentError(error)
                 }
@@ -145,9 +157,10 @@ final class CaptureCoordinator {
         }
     }
 
-    private func deliver(_ image: CGImage, scale: CGFloat, on screen: NSScreen) {
+    private func deliver(_ image: CGImage, scale: CGFloat, on screen: NSScreen, sourceFrame: NSRect?) {
         do {
             let capture = try CapturedImage(image: image, scale: scale)
+            capture.sourceFrame = sourceFrame
             try CaptureOutput.deliver(capture)
             if UserDefaults.standard.bool(forKey: PrefKey.showQuickAccess) {
                 quickAccess.show(capture, on: screen)

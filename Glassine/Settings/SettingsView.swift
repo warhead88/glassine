@@ -190,6 +190,8 @@ private struct ShortcutSettings: View {
                 KeyboardShortcuts.Recorder("Capture screen:", name: .captureScreen)
                 KeyboardShortcuts.Recorder("Repeat last area:", name: .repeatLastArea)
                 KeyboardShortcuts.Recorder("Capture with timer:", name: .timedCapture)
+                KeyboardShortcuts.Recorder("Pin from clipboard:", name: .pinFromClipboard)
+                KeyboardShortcuts.Recorder("Show/hide pins:", name: .togglePins)
                 KeyboardShortcuts.Recorder("Open settings:", name: .openSettings)
             }
             Section {

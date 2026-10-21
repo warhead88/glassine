@@ -4,6 +4,7 @@ import KeyboardShortcuts
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let capture = CaptureCoordinator()
+    private let pins = PinController()
     private let settings = HostingWindowController(title: "Glassine Settings") { SettingsView() }
     private lazy var welcome: HostingWindowController<WelcomeView> = HostingWindowController(
         title: "Welcome to Glassine"
@@ -23,10 +24,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         NSApp.mainMenu = MainMenu.make(target: self)
         capture.onMissingPermission = { [weak self] in self?.welcome.show() }
+        capture.onPin = { [weak self] in self?.pins.pin($0) }
 
         #if DEBUG
         if CommandLine.arguments.contains("--debug-preview") {
             capture.showDebugPreviews()
+        }
+        if CommandLine.arguments.contains("--debug-pins") {
+            pins.showDebugPins()
         }
         #endif
 
@@ -34,6 +39,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         KeyboardShortcuts.onKeyUp(for: .captureScreen) { [weak self] in self?.capture.captureScreen() }
         KeyboardShortcuts.onKeyUp(for: .repeatLastArea) { [weak self] in self?.capture.repeatLastArea() }
         KeyboardShortcuts.onKeyUp(for: .timedCapture) { [weak self] in self?.capture.timedCapture() }
+        KeyboardShortcuts.onKeyUp(for: .pinFromClipboard) { [weak self] in self?.pins.pinFromClipboard() }
+        KeyboardShortcuts.onKeyUp(for: .togglePins) { [weak self] in self?.pins.toggleVisibility() }
         KeyboardShortcuts.onKeyUp(for: .openSettings) { [weak self] in self?.settings.show() }
 
         syncStatusItem()
@@ -66,6 +73,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func captureScreen() { capture.captureScreen() }
     @objc private func repeatLastArea() { capture.repeatLastArea() }
     @objc private func timedCapture() { capture.timedCapture() }
+    @objc private func pinFromClipboard() { pins.pinFromClipboard() }
+    @objc private func togglePins() { pins.toggleVisibility() }
+    @objc private func closeAllPins() { pins.closeAll() }
 
     private func makeCaptureMenu() -> NSMenu {
         let menu = NSMenu()
@@ -74,6 +84,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             ("Capture Screen", #selector(captureScreen), .captureScreen),
             ("Repeat Last Area", #selector(repeatLastArea), .repeatLastArea),
             ("Capture with Timer", #selector(timedCapture), .timedCapture),
+            ("Pin from Clipboard", #selector(pinFromClipboard), .pinFromClipboard),
+            ("Show/Hide Pins", #selector(togglePins), .togglePins),
+            ("Close All Pins", #selector(closeAllPins), nil),
         ]
         for (title, action, shortcut) in items {
             let item = menu.addItem(withTitle: title, action: action, keyEquivalent: "")

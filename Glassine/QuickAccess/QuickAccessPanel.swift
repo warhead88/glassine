@@ -8,12 +8,19 @@ final class QuickAccessPanel: NSPanel {
     let capture: CapturedImage
     private let autoClose: Duration?
     private let onClose: (QuickAccessPanel) -> Void
+    private let onPin: (CapturedImage) -> Void
     private var closeTask: Task<Void, Never>?
     private var isDismissing = false
 
-    init(capture: CapturedImage, autoClose: Duration?, onClose: @escaping (QuickAccessPanel) -> Void) {
+    init(
+        capture: CapturedImage,
+        autoClose: Duration?,
+        onPin: @escaping (CapturedImage) -> Void,
+        onClose: @escaping (QuickAccessPanel) -> Void
+    ) {
         self.capture = capture
         self.autoClose = autoClose
+        self.onPin = onPin
         self.onClose = onClose
         super.init(
             contentRect: NSRect(origin: .zero, size: Self.thumbnailSize(for: capture.pointSize)),
@@ -43,6 +50,12 @@ final class QuickAccessPanel: NSPanel {
         } else {
             scheduleAutoClose()
         }
+    }
+
+    /// Turns the preview into a pin that stays on screen.
+    func pin() {
+        onPin(capture)
+        dismiss()
     }
 
     func dismiss() {
@@ -94,6 +107,10 @@ private final class ThumbnailView: NSView, NSDraggingSource {
         image: NSImage(systemSymbolName: "xmark.circle.fill", accessibilityDescription: "Close")!,
         target: self, action: #selector(close)
     )
+    private lazy var pinButton = FirstMouseButton(
+        image: NSImage(systemSymbolName: "pin.circle.fill", accessibilityDescription: "Pin")!,
+        target: self, action: #selector(pin)
+    )
 
     private var mouseDownPoint: NSPoint?
     private var resetCopyTitle: Task<Void, Never>?
@@ -141,11 +158,14 @@ private final class ThumbnailView: NSView, NSDraggingSource {
         stack.translatesAutoresizingMaskIntoConstraints = false
         overlay.addSubview(stack)
 
-        closeButton.isBordered = false
-        closeButton.contentTintColor = .white
-        closeButton.symbolConfiguration = .init(pointSize: 16, weight: .regular)
-        closeButton.translatesAutoresizingMaskIntoConstraints = false
-        overlay.addSubview(closeButton)
+        for button in [closeButton, pinButton] {
+            button.isBordered = false
+            button.contentTintColor = .white
+            button.symbolConfiguration = .init(pointSize: 16, weight: .regular)
+            button.translatesAutoresizingMaskIntoConstraints = false
+            overlay.addSubview(button)
+        }
+        pinButton.toolTip = "Pin to screen"
 
         NSLayoutConstraint.activate([
             stack.centerXAnchor.constraint(equalTo: overlay.centerXAnchor),
@@ -153,6 +173,8 @@ private final class ThumbnailView: NSView, NSDraggingSource {
             copyButton.widthAnchor.constraint(equalTo: saveButton.widthAnchor),
             closeButton.topAnchor.constraint(equalTo: overlay.topAnchor, constant: 6),
             closeButton.leadingAnchor.constraint(equalTo: overlay.leadingAnchor, constant: 6),
+            pinButton.topAnchor.constraint(equalTo: overlay.topAnchor, constant: 6),
+            pinButton.trailingAnchor.constraint(equalTo: overlay.trailingAnchor, constant: -6),
         ])
     }
 
@@ -269,6 +291,10 @@ private final class ThumbnailView: NSView, NSDraggingSource {
         panel.dismiss()
     }
 
+    @objc private func pin() {
+        panel.pin()
+    }
+
     private var saveTitle: String { capture.savedURL == nil ? "Save" : "Show in Finder" }
 
     private func updateSaveTitle() {
@@ -281,46 +307,10 @@ private final class ThumbnailView: NSView, NSDraggingSource {
         menu.addItem(withTitle: saveTitle, action: #selector(saveOrReveal), keyEquivalent: "")
         menu.addItem(withTitle: "Save As…", action: #selector(saveAs), keyEquivalent: "")
         menu.addItem(withTitle: "Open", action: #selector(openFile), keyEquivalent: "")
+        menu.addItem(withTitle: "Pin to Screen", action: #selector(pin), keyEquivalent: "")
         menu.addItem(.separator())
         menu.addItem(withTitle: "Close", action: #selector(close), keyEquivalent: "")
         menu.items.forEach { $0.target = self }
         return menu
-    }
-}
-
-/// Buttons in a non-key panel must respond to the very first click.
-private class FirstMouseButton: NSButton {
-    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
-}
-
-/// High-contrast button drawn by hand: system bezels render faded in a panel
-/// that never becomes active, which is exactly how the preview works.
-private final class PillButton: FirstMouseButton {
-    convenience init(label: String, target: AnyObject, action: Selector) {
-        self.init(frame: .zero)
-        self.target = target
-        self.action = action
-        isBordered = false
-        wantsLayer = true
-        layer?.cornerRadius = 7
-        layer?.cornerCurve = .continuous
-        setLabel(label)
-        highlight(false)
-    }
-
-    func setLabel(_ label: String) {
-        attributedTitle = NSAttributedString(string: label, attributes: [
-            .font: NSFont.systemFont(ofSize: 12, weight: .semibold),
-            .foregroundColor: NSColor.black.withAlphaComponent(0.85),
-        ])
-        invalidateIntrinsicContentSize()
-    }
-
-    override func highlight(_ flag: Bool) {
-        layer?.backgroundColor = NSColor.white.withAlphaComponent(flag ? 0.7 : 0.92).cgColor
-    }
-
-    override var intrinsicContentSize: NSSize {
-        NSSize(width: super.intrinsicContentSize.width + 24, height: 24)
     }
 }

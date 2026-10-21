@@ -1,0 +1,279 @@
+import AppKit
+import UniformTypeIdentifiers
+
+/// A capture floating above all windows.
+///
+/// Drag to move, scroll or pinch to zoom, ⌥-scroll for opacity, double-click for 100%.
+/// Right-click for copy, save, opacity, lock, click-through and close.
+@MainActor
+final class PinPanel: NSPanel {
+    let capture: CapturedImage
+    private unowned let controller: PinController
+    private(set) var zoom: CGFloat
+
+    /// Position can't be changed by dragging.
+    var isLocked = false
+
+    /// Clicks go to the windows underneath. Hold ⌥⌘ to interact with the pin again.
+    var isClickThrough = false {
+        didSet {
+            ignoresMouseEvents = isClickThrough
+            if !isClickThrough { setHighlighted(false) }
+            controller.clickThroughDidChange()
+        }
+    }
+
+    init(capture: CapturedImage, center: NSPoint, zoom: CGFloat, controller: PinController) {
+        self.capture = capture
+        self.controller = controller
+        self.zoom = zoom
+        let size = Self.size(for: capture, zoom: zoom)
+        super.init(
+            contentRect: NSRect(x: center.x - size.width / 2, y: center.y - size.height / 2, width: size.width, height: size.height),
+            styleMask: [.borderless, .nonactivatingPanel],
+            backing: .buffered,
+            defer: false
+        )
+        level = .floating
+        collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .ignoresCycle]
+        isOpaque = false
+        backgroundColor = .clear
+        hasShadow = true
+        hidesOnDeactivate = false
+        isReleasedWhenClosed = false
+        contentView = PinView(capture: capture, panel: self)
+        makeFirstResponder(contentView)
+    }
+
+    override var canBecomeKey: Bool { true }
+
+    // MARK: Zoom & opacity
+
+    /// Zooms around `anchor` (a screen point) so the pixel under the pointer stays put.
+    func setZoom(_ newZoom: CGFloat, anchor: NSPoint? = nil) {
+        let natural = capture.pointSize
+        let minZoom = max(40 / natural.width, 40 / natural.height, 0.05)
+        let clamped = min(max(newZoom, minZoom), 8)
+        guard clamped != zoom else { return }
+
+        let anchor = anchor ?? NSPoint(x: frame.midX, y: frame.midY)
+        let fx = (anchor.x - frame.minX) / frame.width
+        let fy = (anchor.y - frame.minY) / frame.height
+        let size = Self.size(for: capture, zoom: clamped)
+        zoom = clamped
+        setFrame(NSRect(x: anchor.x - fx * size.width, y: anchor.y - fy * size.height, width: size.width, height: size.height), display: true)
+        (contentView as? PinView)?.showBadge("\(Int((clamped * 100).rounded()))%")
+    }
+
+    func setOpacity(_ opacity: CGFloat) {
+        alphaValue = min(max(opacity, 0.2), 1)
+        (contentView as? PinView)?.showBadge("Opacity \(Int((alphaValue * 100).rounded()))%")
+    }
+
+    private static func size(for capture: CapturedImage, zoom: CGFloat) -> NSSize {
+        NSSize(width: (capture.pointSize.width * zoom).rounded(), height: (capture.pointSize.height * zoom).rounded())
+    }
+
+    // MARK: Actions
+
+    @objc func copyImage() {
+        capture.copyToClipboard()
+        (contentView as? PinView)?.showBadge("Copied")
+    }
+
+    @objc func saveAs() {
+        let savePanel = NSSavePanel()
+        savePanel.nameFieldStringValue = "\(capture.baseName).\(capture.fileExtension)"
+        savePanel.allowedContentTypes = [UTType(filenameExtension: capture.fileExtension) ?? .png]
+        savePanel.directoryURL = Preferences.saveFolder
+        NSApp.activate()
+        guard savePanel.runModal() == .OK, let url = savePanel.url else { return }
+        do {
+            try capture.save(to: url)
+        } catch {
+            Alerts.present(error)
+        }
+    }
+
+    @objc func actualSize() { setZoom(1) }
+    @objc func toggleLock() { isLocked.toggle() }
+    @objc func toggleClickThrough() { isClickThrough.toggle() }
+    @objc func closePin() { controller.close(self) }
+    @objc func closeAllPins() { controller.closeAll() }
+
+    @objc func setOpacityFromMenu(_ sender: NSMenuItem) {
+        setOpacity(CGFloat(sender.tag) / 100)
+    }
+
+    func makeMenu() -> NSMenu {
+        let menu = NSMenu()
+        menu.addItem(withTitle: "Copy", action: #selector(copyImage), keyEquivalent: "c")
+        menu.addItem(withTitle: "Save As…", action: #selector(saveAs), keyEquivalent: "s")
+        menu.addItem(.separator())
+        menu.addItem(withTitle: "Actual Size", action: #selector(actualSize), keyEquivalent: "0")
+
+        let opacity = NSMenu()
+        for percent in [100, 75, 50, 25] {
+            let item = opacity.addItem(withTitle: "\(percent)%", action: #selector(setOpacityFromMenu(_:)), keyEquivalent: "")
+            item.tag = percent
+            item.target = self
+            item.state = Int((alphaValue * 100).rounded()) == percent ? .on : .off
+        }
+        menu.addItem(withTitle: "Opacity", action: nil, keyEquivalent: "").submenu = opacity
+
+        menu.addItem(withTitle: "Lock Position", action: #selector(toggleLock), keyEquivalent: "").state = isLocked ? .on : .off
+        let clickThrough = menu.addItem(withTitle: "Click Through", action: #selector(toggleClickThrough), keyEquivalent: "")
+        clickThrough.state = isClickThrough ? .on : .off
+        clickThrough.toolTip = "Clicks pass to the windows below. Hold ⌥⌘ to use the pin again."
+        menu.addItem(.separator())
+        menu.addItem(withTitle: "Close", action: #selector(closePin), keyEquivalent: "w")
+        menu.addItem(withTitle: "Close All Pins", action: #selector(closeAllPins), keyEquivalent: "")
+        for item in menu.items where item.action != nil {
+            item.target = self
+        }
+        return menu
+    }
+}
+
+@MainActor
+private final class PinView: NSView {
+    private let capture: CapturedImage
+    private unowned let panel: PinPanel
+
+    private let closeButton = FirstMouseButton(
+        image: NSImage(systemSymbolName: "xmark.circle.fill", accessibilityDescription: "Close pin")!,
+        target: nil, action: nil
+    )
+    private let badge = NSTextField(labelWithString: "")
+    private var hideBadge: Task<Void, Never>?
+
+    init(capture: CapturedImage, panel: PinPanel) {
+        self.capture = capture
+        self.panel = panel
+        super.init(frame: NSRect(origin: .zero, size: panel.frame.size))
+
+        wantsLayer = true
+        layer?.contents = capture.image
+        layer?.contentsGravity = .resize
+        layer?.minificationFilter = .trilinear
+        layer?.cornerRadius = 6
+        layer?.cornerCurve = .continuous
+        layer?.masksToBounds = true
+        layer?.borderWidth = 1
+        layer?.borderColor = NSColor.white.withAlphaComponent(0.15).cgColor
+
+        closeButton.target = panel
+        closeButton.action = #selector(PinPanel.closePin)
+        closeButton.isBordered = false
+        closeButton.contentTintColor = .white
+        closeButton.symbolConfiguration = .init(pointSize: 16, weight: .regular)
+        closeButton.alphaValue = 0
+        closeButton.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(closeButton)
+
+        badge.font = .monospacedDigitSystemFont(ofSize: 11, weight: .semibold)
+        badge.textColor = .white
+        badge.alignment = .center
+        badge.wantsLayer = true
+        badge.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.7).cgColor
+        badge.layer?.cornerRadius = 5
+        badge.alphaValue = 0
+        badge.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(badge)
+
+        NSLayoutConstraint.activate([
+            closeButton.topAnchor.constraint(equalTo: topAnchor, constant: 5),
+            closeButton.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 5),
+            badge.centerXAnchor.constraint(equalTo: centerXAnchor),
+            badge.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -8),
+        ])
+
+        addTrackingArea(NSTrackingArea(
+            rect: .zero,
+            options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect],
+            owner: self
+        ))
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError() }
+
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+    override var acceptsFirstResponder: Bool { true }
+
+    func showBadge(_ text: String) {
+        badge.stringValue = "  \(text)  "
+        badge.alphaValue = 1
+        hideBadge?.cancel()
+        hideBadge = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(1))
+            guard !Task.isCancelled, let self else { return }
+            self.badge.animator().alphaValue = 0
+        }
+    }
+
+    /// Shown while ⌥⌘ makes a click-through pin interactive.
+    func setHighlighted(_ highlighted: Bool) {
+        layer?.borderWidth = highlighted ? 2 : 1
+        layer?.borderColor = NSColor.white.withAlphaComponent(highlighted ? 0.8 : 0.15).cgColor
+    }
+
+    // MARK: Mouse
+
+    override func mouseEntered(with event: NSEvent) { setControlsVisible(true) }
+    override func mouseExited(with event: NSEvent) { setControlsVisible(false) }
+
+    private func setControlsVisible(_ visible: Bool) {
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.15
+            closeButton.animator().alphaValue = visible ? 1 : 0
+        }
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        window?.makeKey()
+        if event.clickCount == 2 {
+            panel.actualSize()
+        } else if !panel.isLocked {
+            window?.performDrag(with: event)
+        }
+    }
+
+    override func scrollWheel(with event: NSEvent) {
+        let delta = event.hasPreciseScrollingDeltas ? event.scrollingDeltaY * 0.01 : event.scrollingDeltaY * 0.1
+        guard delta != 0 else { return }
+        if event.modifierFlags.contains(.option) {
+            panel.setOpacity(panel.alphaValue + delta)
+        } else {
+            panel.setZoom(panel.zoom * exp(delta), anchor: NSEvent.mouseLocation)
+        }
+    }
+
+    override func magnify(with event: NSEvent) {
+        panel.setZoom(panel.zoom * (1 + event.magnification), anchor: NSEvent.mouseLocation)
+    }
+
+    override func menu(for event: NSEvent) -> NSMenu? { panel.makeMenu() }
+
+    // MARK: Keyboard
+
+    override func keyDown(with event: NSEvent) {
+        let command = event.modifierFlags.contains(.command)
+        switch (event.keyCode, command) {
+        case (53, _): panel.closePin()                  // Esc
+        case (13, true): panel.closePin()               // ⌘W
+        case (8, true): panel.copyImage()               // ⌘C
+        case (1, true): panel.saveAs()                  // ⌘S
+        case (29, true): panel.actualSize()             // ⌘0
+        case (24, true): panel.setZoom(panel.zoom * 1.25)  // ⌘=
+        case (27, true): panel.setZoom(panel.zoom / 1.25)  // ⌘-
+        default: super.keyDown(with: event)
+        }
+    }
+}
+
+extension PinPanel {
+    func setHighlighted(_ highlighted: Bool) {
+        (contentView as? PinView)?.setHighlighted(highlighted)
+    }
+}
