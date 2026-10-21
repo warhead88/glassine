@@ -33,18 +33,10 @@ final class CapturedImage {
         self.format = Preferences.imageFormat
         self.png = try Self.encode(self.image, scale: self.scale, as: .png)
 
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd 'at' HH.mm.ss"
-        self.baseName = "\(Preferences.fileNamePrefix) \(formatter.string(from: date))"
+        self.baseName = FileNaming.baseName(prefix: Preferences.fileNamePrefix, date: date)
     }
 
-    var fileExtension: String {
-        switch format {
-        case .png: "png"
-        case .jpeg: "jpg"
-        case .heic: "heic"
-        }
-    }
+    var fileExtension: String { format.fileExtension }
 
     /// Size in points, i.e. how big the capture looked on screen.
     var pointSize: NSSize {
@@ -84,11 +76,8 @@ final class CapturedImage {
 
     private func write(into folder: URL) throws -> URL {
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        var url = folder.appending(path: "\(baseName).\(fileExtension)")
-        var index = 2
-        while FileManager.default.fileExists(atPath: url.path) {
-            url = folder.appending(path: "\(baseName) (\(index)).\(fileExtension)")
-            index += 1
+        let url = FileNaming.uniqueURL(in: folder, baseName: baseName, fileExtension: fileExtension) {
+            FileManager.default.fileExists(atPath: $0.path)
         }
         try fileData().write(to: url, options: .atomic)
         return url
@@ -103,7 +92,7 @@ final class CapturedImage {
     }
 
     /// Encodes with DPI metadata, so a 2x capture opens at its on-screen size.
-    private static func encode(_ image: CGImage, scale: CGFloat, as format: ImageFormat) throws -> Data {
+    static func encode(_ image: CGImage, scale: CGFloat, as format: ImageFormat) throws -> Data {
         let type: UTType = switch format {
         case .png: .png
         case .jpeg: .jpeg
@@ -123,7 +112,7 @@ final class CapturedImage {
         return data as Data
     }
 
-    private static func downscale(_ image: CGImage, by scale: CGFloat) -> CGImage? {
+    static func downscale(_ image: CGImage, by scale: CGFloat) -> CGImage? {
         let width = Int((CGFloat(image.width) / scale).rounded())
         let height = Int((CGFloat(image.height) / scale).rounded())
         guard width > 0, height > 0,

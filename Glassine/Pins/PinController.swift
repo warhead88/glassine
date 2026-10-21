@@ -14,17 +14,10 @@ final class PinController {
         let screen = screenForNewPin(capture)
         let visible = screen?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
 
-        // Start at actual size over where the content was, scaled down if it can't fit.
-        let natural = capture.pointSize
-        let fit = min(visible.width * 0.9 / natural.width, visible.height * 0.9 / natural.height, 1)
-        let size = NSSize(width: natural.width * fit, height: natural.height * fit)
-        var center = capture.sourceFrame.map { NSPoint(x: $0.midX, y: $0.midY) }
-            ?? NSPoint(x: visible.midX, y: visible.midY)
-        center.x = min(max(center.x, visible.minX + size.width / 2), visible.maxX - size.width / 2)
-        center.y = min(max(center.y, visible.minY + size.height / 2), visible.maxY - size.height / 2)
+        let placement = PinGeometry.initialPlacement(natural: capture.pointSize, source: capture.sourceFrame, visible: visible)
 
         if areHidden { setHidden(false) }
-        let panel = PinPanel(capture: capture, center: center, zoom: fit, controller: self)
+        let panel = PinPanel(capture: capture, center: placement.center, zoom: placement.zoom, controller: self)
         pins.append(panel)
         panel.alphaValue = 0
         panel.orderFrontRegardless()

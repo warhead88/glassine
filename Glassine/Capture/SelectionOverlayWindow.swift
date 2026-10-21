@@ -58,9 +58,7 @@ final class SelectionOverlayWindow: NSPanel {
 
 @MainActor
 private final class SelectionView: NSView {
-    private enum Handle: CaseIterable {
-        case topLeft, top, topRight, right, bottomRight, bottom, bottomLeft, left
-    }
+    private typealias Handle = SelectionGeometry.Handle
 
     private enum DragMode {
         case create(anchor: NSPoint)
@@ -369,7 +367,7 @@ private final class SelectionView: NSView {
                 ))
                 selection = moved
             } else {
-                selection = Self.rect(
+                selection = SelectionGeometry.rect(
                     anchor: anchor, point: point,
                     square: modifiers.contains(.shift), fromCenter: modifiers.contains(.option)
                 ).intersection(bounds)
@@ -377,7 +375,7 @@ private final class SelectionView: NSView {
         case .move(let start, let original):
             selection = fitted(original.offsetBy(dx: point.x - start.x, dy: point.y - start.y))
         case .resize(let handle, let start, let original):
-            selection = Self.resized(original, handle: handle, dx: point.x - start.x, dy: point.y - start.y)
+            selection = SelectionGeometry.resized(original, handle: handle, dx: point.x - start.x, dy: point.y - start.y)
                 .intersection(bounds)
         }
     }
@@ -461,81 +459,25 @@ private final class SelectionView: NSView {
     }
 
     private func pixelPoint(for point: NSPoint) -> CGPoint {
-        let sx = CGFloat(snapshot.image.width) / bounds.width
-        let sy = CGFloat(snapshot.image.height) / bounds.height
-        return CGPoint(
-            x: min(max(floor(point.x * sx), 0), CGFloat(snapshot.image.width - 1)),
-            y: min(max(floor(point.y * sy), 0), CGFloat(snapshot.image.height - 1))
-        )
+        SelectionGeometry.pixelPoint(point, viewSize: bounds.size, imageSize: imageSize)
     }
 
     private func pixelRect(for rect: NSRect) -> CGRect {
-        let sx = CGFloat(snapshot.image.width) / bounds.width
-        let sy = CGFloat(snapshot.image.height) / bounds.height
-        return CGRect(x: rect.minX * sx, y: rect.minY * sy, width: rect.width * sx, height: rect.height * sy).integral
+        SelectionGeometry.pixelRect(rect, viewSize: bounds.size, imageSize: imageSize)
     }
 
-    private func clamped(_ point: NSPoint) -> NSPoint {
-        NSPoint(x: min(max(point.x, bounds.minX), bounds.maxX), y: min(max(point.y, bounds.minY), bounds.maxY))
+    private var imageSize: CGSize {
+        CGSize(width: snapshot.image.width, height: snapshot.image.height)
     }
 
-    /// Keeps a moved rect inside the screen without changing its size.
-    private func fitted(_ rect: NSRect) -> NSRect {
-        var rect = rect
-        rect.origin.x = min(max(rect.minX, bounds.minX), bounds.maxX - rect.width)
-        rect.origin.y = min(max(rect.minY, bounds.minY), bounds.maxY - rect.height)
-        return rect
-    }
-
-    private func handlePoint(_ handle: Handle, of rect: NSRect) -> NSPoint {
-        switch handle {
-        case .topLeft: NSPoint(x: rect.minX, y: rect.minY)
-        case .top: NSPoint(x: rect.midX, y: rect.minY)
-        case .topRight: NSPoint(x: rect.maxX, y: rect.minY)
-        case .right: NSPoint(x: rect.maxX, y: rect.midY)
-        case .bottomRight: NSPoint(x: rect.maxX, y: rect.maxY)
-        case .bottom: NSPoint(x: rect.midX, y: rect.maxY)
-        case .bottomLeft: NSPoint(x: rect.minX, y: rect.maxY)
-        case .left: NSPoint(x: rect.minX, y: rect.midY)
-        }
-    }
-
-    private func handle(at point: NSPoint, of rect: NSRect) -> Handle? {
-        Handle.allCases.first { hypot(handlePoint($0, of: rect).x - point.x, handlePoint($0, of: rect).y - point.y) <= 8 }
-    }
-
-    static func rect(anchor: NSPoint, point: NSPoint, square: Bool, fromCenter: Bool) -> NSRect {
-        var dx = point.x - anchor.x
-        var dy = point.y - anchor.y
-        if square {
-            let side = max(abs(dx), abs(dy))
-            dx = dx < 0 ? -side : side
-            dy = dy < 0 ? -side : side
-        }
-        if fromCenter {
-            return NSRect(x: anchor.x - abs(dx), y: anchor.y - abs(dy), width: abs(dx) * 2, height: abs(dy) * 2)
-        }
-        return NSRect(x: min(anchor.x, anchor.x + dx), y: min(anchor.y, anchor.y + dy), width: abs(dx), height: abs(dy))
-    }
-
-    /// Moves the edges a handle controls; dragging past the opposite edge flips the rect.
-    private static func resized(_ rect: NSRect, handle: Handle, dx: CGFloat, dy: CGFloat) -> NSRect {
-        var minX = rect.minX, maxX = rect.maxX, minY = rect.minY, maxY = rect.maxY
-        switch handle {
-        case .topLeft: minX += dx; minY += dy
-        case .top: minY += dy
-        case .topRight: maxX += dx; minY += dy
-        case .right: maxX += dx
-        case .bottomRight: maxX += dx; maxY += dy
-        case .bottom: maxY += dy
-        case .bottomLeft: minX += dx; maxY += dy
-        case .left: minX += dx
-        }
-        return NSRect(x: min(minX, maxX), y: min(minY, maxY), width: abs(maxX - minX), height: abs(maxY - minY))
-    }
+    private func clamped(_ point: NSPoint) -> NSPoint { SelectionGeometry.clamped(point, to: bounds) }
+    private func fitted(_ rect: NSRect) -> NSRect { SelectionGeometry.fitted(rect, in: bounds) }
+    private func handlePoint(_ handle: Handle, of rect: NSRect) -> NSPoint { SelectionGeometry.handlePoint(handle, of: rect) }
+    private func handle(at point: NSPoint, of rect: NSRect) -> Handle? { SelectionGeometry.handle(at: point, of: rect) }
 }
 
-private extension NSColor {
+extension NSColor {
+    /// "#RRGGBB" in sRGB, as shown in the magnifier.
     var hexString: String {
         guard let rgb = usingColorSpace(.sRGB) else { return "" }
         return String(

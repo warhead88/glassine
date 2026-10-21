@@ -176,9 +176,10 @@ final class CaptureCoordinator {
     }
 
     private static func pixelRect(_ rect: NSRect, in snapshot: ScreenSnapshot) -> CGRect {
-        let sx = CGFloat(snapshot.image.width) / snapshot.screen.frame.width
-        let sy = CGFloat(snapshot.image.height) / snapshot.screen.frame.height
-        return CGRect(x: rect.minX * sx, y: rect.minY * sy, width: rect.width * sx, height: rect.height * sy).integral
+        SelectionGeometry.pixelRect(
+            rect, viewSize: snapshot.screen.frame.size,
+            imageSize: CGSize(width: snapshot.image.width, height: snapshot.image.height)
+        )
     }
 
     #if DEBUG

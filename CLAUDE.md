@@ -13,6 +13,15 @@ scripts/install.sh            # Debug; pass Release for a release build
 
 Builds go to `build.noindex/` so Spotlight doesn't show duplicate copies of the app.
 
+Unit tests (Swift Testing, `Tests/`), run before every commit that touches logic:
+
+```bash
+scripts/test.sh
+```
+
+Keep testable logic as pure functions (`Glassine/Core/Geometry.swift`) and call them from the views;
+the test host starts the app bare (no delegate), so tests never touch hotkeys, windows or user files.
+
 ## Conventions
 
 - Agent app (`LSUIElement`): no Dock icon. Menu bar icon is optional and off by default.

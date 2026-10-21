@@ -63,15 +63,9 @@ final class QuickAccessController {
 
     private func targetFrames() -> [ObjectIdentifier: NSRect] {
         guard let visible = (screen ?? NSScreen.main)?.visibleFrame else { return [:] }
-        var frames: [ObjectIdentifier: NSRect] = [:]
-        var y = visible.minY + margin
-        for panel in panels.reversed() {
-            let size = panel.frame.size
-            frames[ObjectIdentifier(panel)] = NSRect(
-                x: visible.maxX - margin - size.width, y: y, width: size.width, height: size.height
-            )
-            y += size.height + spacing
-        }
-        return frames
+        let frames = QuickAccessLayout.stackFrames(
+            sizes: panels.map(\.frame.size), in: visible, margin: margin, spacing: spacing
+        )
+        return Dictionary(uniqueKeysWithValues: zip(panels.map(ObjectIdentifier.init), frames))
     }
 }

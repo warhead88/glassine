@@ -23,7 +23,7 @@ final class QuickAccessPanel: NSPanel {
         self.onPin = onPin
         self.onClose = onClose
         super.init(
-            contentRect: NSRect(origin: .zero, size: Self.thumbnailSize(for: capture.pointSize)),
+            contentRect: NSRect(origin: .zero, size: QuickAccessLayout.thumbnailSize(for: capture.pointSize)),
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
@@ -81,17 +81,6 @@ final class QuickAccessPanel: NSPanel {
             guard !Task.isCancelled else { return }
             self?.dismiss()
         }
-    }
-
-    /// Fits the capture into a 220×150 pt box, but never smaller than the controls need.
-    private static func thumbnailSize(for size: NSSize) -> NSSize {
-        let maxSize = NSSize(width: 220, height: 150)
-        let minSize = NSSize(width: 140, height: 90)
-        let fit = min(maxSize.width / max(size.width, 1), maxSize.height / max(size.height, 1), 1)
-        return NSSize(
-            width: max((size.width * fit).rounded(), minSize.width),
-            height: max((size.height * fit).rounded(), minSize.height)
-        )
     }
 }
 

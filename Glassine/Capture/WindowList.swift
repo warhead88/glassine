@@ -33,8 +33,7 @@ enum WindowList {
               let bounds = entry[kCGWindowBounds as String] as? NSDictionary,
               let frame = CGRect(dictionaryRepresentation: bounds)
         else { return nil }
-        let primaryHeight = NSScreen.screens.first?.frame.height ?? 0
-        return NSRect(x: frame.minX, y: primaryHeight - frame.maxY, width: frame.width, height: frame.height)
+        return ScreenGeometry.globalCocoa(fromGlobalTopLeft: frame, primaryHeight: NSScreen.screens.first?.frame.height ?? 0)
     }
 }
 
@@ -42,14 +41,15 @@ extension NSScreen {
     /// Converts a rect in global display coordinates (top-left origin) into this screen's
     /// local coordinates with a top-left origin, as used by the flipped overlay view.
     func localFlippedRect(fromGlobal rect: CGRect) -> CGRect {
-        let primaryHeight = NSScreen.screens.first?.frame.height ?? frame.height
-        let screenTop = primaryHeight - frame.maxY
-        return rect.offsetBy(dx: -frame.minX, dy: -screenTop)
+        ScreenGeometry.localFlipped(
+            fromGlobalTopLeft: rect, screenFrame: frame,
+            primaryHeight: NSScreen.screens.first?.frame.height ?? frame.height
+        )
     }
 
     /// Converts a rect in this screen's flipped local coordinates (as used by the overlay)
     /// into global Cocoa coordinates with a bottom-left origin.
     func globalRect(fromLocalFlipped rect: CGRect) -> NSRect {
-        NSRect(x: frame.minX + rect.minX, y: frame.maxY - rect.maxY, width: rect.width, height: rect.height)
+        ScreenGeometry.globalCocoa(fromLocalFlipped: rect, screenFrame: frame)
     }
 }

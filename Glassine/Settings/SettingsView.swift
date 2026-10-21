@@ -166,7 +166,7 @@ private struct OutputSettings: View {
     }
 
     private var exampleName: String {
-        let ext = imageFormat == ImageFormat.jpeg.rawValue ? "jpg" : imageFormat
+        let ext = (ImageFormat(rawValue: imageFormat) ?? .png).fileExtension
         return "\(Preferences.fileNamePrefix) 2026-10-21 at 19.53.06.\(ext)"
     }
 

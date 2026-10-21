@@ -40,6 +40,14 @@ enum ImageFormat: String, CaseIterable, Identifiable {
     case png, jpeg, heic
 
     var id: Self { self }
+
+    var fileExtension: String {
+        switch self {
+        case .png: "png"
+        case .jpeg: "jpg"
+        case .heic: "heic"
+        }
+    }
     var title: String {
         switch self {
         case .png: "PNG"
@@ -81,9 +89,6 @@ enum Preferences {
     }
 
     static var fileNamePrefix: String {
-        let prefix = defaults.string(forKey: PrefKey.fileNamePrefix)?.trimmingCharacters(in: .whitespaces) ?? ""
-        // Keep names valid on disk: no path separators or Finder-hostile colons.
-        let cleaned = prefix.replacingOccurrences(of: "/", with: "-").replacingOccurrences(of: ":", with: "-")
-        return cleaned.isEmpty ? "Glassine" : cleaned
+        FileNaming.sanitizedPrefix(defaults.string(forKey: PrefKey.fileNamePrefix))
     }
 }

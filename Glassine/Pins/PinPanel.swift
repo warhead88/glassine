@@ -56,17 +56,12 @@ final class PinPanel: NSPanel {
 
     /// Zooms around `anchor` (a screen point) so the pixel under the pointer stays put.
     func setZoom(_ newZoom: CGFloat, anchor: NSPoint? = nil) {
-        let natural = capture.pointSize
-        let minZoom = max(40 / natural.width, 40 / natural.height, 0.05)
-        let clamped = min(max(newZoom, minZoom), 8)
+        let clamped = PinGeometry.clampedZoom(newZoom, natural: capture.pointSize)
         guard clamped != zoom else { return }
 
         let anchor = anchor ?? NSPoint(x: frame.midX, y: frame.midY)
-        let fx = (anchor.x - frame.minX) / frame.width
-        let fy = (anchor.y - frame.minY) / frame.height
-        let size = Self.size(for: capture, zoom: clamped)
         zoom = clamped
-        setFrame(NSRect(x: anchor.x - fx * size.width, y: anchor.y - fy * size.height, width: size.width, height: size.height), display: true)
+        setFrame(PinGeometry.zoomedFrame(frame, to: Self.size(for: capture, zoom: clamped), anchor: anchor), display: true)
         (contentView as? PinView)?.showBadge("\(Int((clamped * 100).rounded()))%")
     }
 
