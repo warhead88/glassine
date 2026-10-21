@@ -53,16 +53,30 @@ final class EditorCanvasView: NSView, NSTextFieldDelegate, NSMenuItemValidation 
                height: bounds.height - insets.top - insets.bottom)
     }
 
-    /// Fits the image between the bars; small captures may grow up to 2× so they're easy to annotate.
+    /// The document area being fitted: the canvas (image + padding + overflowing annotations).
+    /// Frozen while dragging, so the view doesn't rescale under the pointer as the canvas grows.
+    private var layoutRect: CGRect { frozenLayout ?? model.canvasRect }
+    private var frozenLayout: CGRect?
+
+    /// Fits the document between the bars; small captures may grow up to 2× so they're easy to annotate.
     private var zoom: CGFloat {
-        let size = model.imageSize
+        let size = layoutRect.size
         return max(min(available.width / size.width, available.height / size.height, 2), 0.05)
     }
 
-    private var imageRect: CGRect {
-        let size = CGSize(width: model.imageSize.width * zoom, height: model.imageSize.height * zoom)
+    /// Where the layout rect sits in the view.
+    private var documentRect: CGRect {
+        let size = CGSize(width: layoutRect.width * zoom, height: layoutRect.height * zoom)
         return CGRect(x: available.midX - size.width / 2, y: available.midY - size.height / 2,
                       width: size.width, height: size.height).integral
+    }
+
+    /// The canvas including the shape being drawn, so the background grows while drawing.
+    private var liveCanvas: CGRect {
+        guard let draft else { return model.canvasRect }
+        return model.canvasRect.union(
+            CanvasLayout.canvasRect(image: model.imageBounds, annotationBounds: [renderer.bounds(of: draft)], padding: 0)
+        )
     }
 
     private func imagePoint(_ event: NSEvent) -> CGPoint {
@@ -70,16 +84,18 @@ final class EditorCanvasView: NSView, NSTextFieldDelegate, NSMenuItemValidation 
     }
 
     private func imagePoint(_ p: CGPoint) -> CGPoint {
-        CGPoint(x: (p.x - imageRect.minX) / zoom, y: (p.y - imageRect.minY) / zoom)
+        let doc = documentRect
+        return CGPoint(x: layoutRect.minX + (p.x - doc.minX) / zoom, y: layoutRect.minY + (p.y - doc.minY) / zoom)
     }
 
     private func viewPoint(_ p: CGPoint) -> CGPoint {
-        CGPoint(x: imageRect.minX + p.x * zoom, y: imageRect.minY + p.y * zoom)
+        let doc = documentRect
+        return CGPoint(x: doc.minX + (p.x - layoutRect.minX) * zoom, y: doc.minY + (p.y - layoutRect.minY) * zoom)
     }
 
     private func viewRect(_ rect: CGRect) -> CGRect {
-        CGRect(x: imageRect.minX + rect.minX * zoom, y: imageRect.minY + rect.minY * zoom,
-               width: rect.width * zoom, height: rect.height * zoom)
+        let origin = viewPoint(rect.origin)
+        return CGRect(x: origin.x, y: origin.y, width: rect.width * zoom, height: rect.height * zoom)
     }
 
     override func setFrameSize(_ newSize: NSSize) {
@@ -93,24 +109,34 @@ final class EditorCanvasView: NSView, NSTextFieldDelegate, NSMenuItemValidation 
         NSGradient(starting: NSColor(white: 0.17, alpha: 1), ending: NSColor(white: 0.09, alpha: 1))?
             .draw(in: bounds, angle: -90)
 
-        // The capture floats on the backdrop with a soft shadow.
-        NSGraphicsContext.saveGraphicsState()
-        let shadow = NSShadow()
-        shadow.shadowColor = NSColor.black.withAlphaComponent(0.45)
-        shadow.shadowBlurRadius = 24
-        shadow.shadowOffset = NSSize(width: 0, height: -6)
-        shadow.set()
-        NSColor.black.setFill()
-        imageRect.fill()
-        NSGraphicsContext.restoreGraphicsState()
+        let canvas = liveCanvas
+        let canvasInView = viewRect(canvas)
+        let transparent = model.background.fill == .none && canvas != model.imageBounds
+        if transparent {
+            drawCheckerboard(in: canvasInView)
+        } else {
+            // The document floats on the backdrop with a soft shadow.
+            NSGraphicsContext.saveGraphicsState()
+            let shadow = NSShadow()
+            shadow.shadowColor = NSColor.black.withAlphaComponent(0.45)
+            shadow.shadowBlurRadius = 24
+            shadow.shadowOffset = NSSize(width: 0, height: -6)
+            shadow.set()
+            NSColor.black.setFill()
+            let radius = canvas == model.imageBounds ? model.background.cornerRadius * zoom : 0
+            NSBezierPath(roundedRect: canvasInView, xRadius: radius, yRadius: radius).fill()
+            NSGraphicsContext.restoreGraphicsState()
+        }
 
         NSGraphicsContext.saveGraphicsState()
         let transform = NSAffineTransform()
-        transform.translateX(by: imageRect.minX, yBy: imageRect.minY)
+        let doc = documentRect
+        transform.translateX(by: doc.minX, yBy: doc.minY)
         transform.scale(by: zoom)
+        transform.translateX(by: -layoutRect.minX, yBy: -layoutRect.minY)
         transform.concat()
-        NSBezierPath(rect: renderer.imageBounds).addClip()
-        renderer.drawImage()
+        NSBezierPath(rect: canvas).addClip()
+        renderer.drawBase(canvas: canvas, background: model.background)
         let numbers = model.stepNumbers
         renderer.draw(model.annotations.filter { $0.id != editingText?.id }, stepNumbers: numbers)
         if let draft {
@@ -120,7 +146,7 @@ final class EditorCanvasView: NSView, NSTextFieldDelegate, NSMenuItemValidation 
 
         if let crop = cropDraft ?? model.crop {
             let visible = viewRect(crop)
-            let dim = NSBezierPath(rect: imageRect)
+            let dim = NSBezierPath(rect: canvasInView)
             dim.append(NSBezierPath(rect: visible))
             dim.windingRule = .evenOdd
             NSColor.black.withAlphaComponent(0.55).setFill()
@@ -132,6 +158,27 @@ final class EditorCanvasView: NSView, NSTextFieldDelegate, NSMenuItemValidation 
         if let selected = model.selected, editingText == nil {
             drawSelection(selected)
         }
+    }
+
+    private func drawCheckerboard(in rect: CGRect) {
+        NSGraphicsContext.saveGraphicsState()
+        NSBezierPath(rect: rect).addClip()
+        NSColor(white: 0.85, alpha: 1).setFill()
+        rect.fill()
+        NSColor(white: 0.7, alpha: 1).setFill()
+        let cell: CGFloat = 8
+        var y = rect.minY
+        var row = 0
+        while y < rect.maxY {
+            var x = rect.minX + (row.isMultiple(of: 2) ? 0 : cell)
+            while x < rect.maxX {
+                CGRect(x: x, y: y, width: cell, height: cell).fill()
+                x += cell * 2
+            }
+            y += cell
+            row += 1
+        }
+        NSGraphicsContext.restoreGraphicsState()
     }
 
     private func drawSelection(_ annotation: Annotation) {
@@ -161,7 +208,7 @@ final class EditorCanvasView: NSView, NSTextFieldDelegate, NSMenuItemValidation 
         case .text: .iBeam
         default: .crosshair
         }
-        addCursorRect(imageRect, cursor: cursor)
+        addCursorRect(bounds, cursor: cursor)
         if model.tool == .select, let selected = model.selected {
             for (handle, point) in selected.handles() {
                 let c = viewPoint(point)
@@ -193,6 +240,7 @@ final class EditorCanvasView: NSView, NSTextFieldDelegate, NSMenuItemValidation 
     override func mouseDown(with event: NSEvent) {
         commitTextEditing()
         window?.makeFirstResponder(self)
+        frozenLayout = model.canvasRect
         let location = convert(event.locationInWindow, from: nil)
         let point = imagePoint(location)
 
@@ -249,7 +297,7 @@ final class EditorCanvasView: NSView, NSTextFieldDelegate, NSMenuItemValidation 
             }
             model.previewEdit(original.resized(handle, by: CGVector(dx: target.x - start.x, dy: target.y - start.y)))
         case .crop(let start):
-            cropDraft = AnnotationGeometry.rect(from: start, to: point, square: shift).intersection(renderer.imageBounds)
+            cropDraft = AnnotationGeometry.rect(from: start, to: point, square: shift).intersection(model.canvasRect)
         case .draw(let start):
             switch draft?.shape {
             case .pen(let points): draft?.shape = .pen(points: points + [point])
@@ -265,6 +313,8 @@ final class EditorCanvasView: NSView, NSTextFieldDelegate, NSMenuItemValidation 
             drag = nil
             draft = nil
             cropDraft = nil
+            frozenLayout = nil
+            window?.invalidateCursorRects(for: self)
             needsDisplay = true
         }
         switch drag {
@@ -323,7 +373,8 @@ final class EditorCanvasView: NSView, NSTextFieldDelegate, NSMenuItemValidation 
         field.textColor = NSColor(cgColor: annotation.color.cgColor)
         field.delegate = self
         field.placeholderString = "Text"
-        let fieldOrigin = CGPoint(x: imageRect.minX + origin.x * zoom - 2, y: imageRect.minY + origin.y * zoom - 1)
+        let start = viewPoint(origin)
+        let fieldOrigin = CGPoint(x: start.x - 2, y: start.y - 1)
         field.frame = CGRect(origin: fieldOrigin, size: CGSize(width: max(bounds.maxX - fieldOrigin.x - 8, 60),
                                                                 height: annotation.fontSize * zoom * 1.35))
         addSubview(field)
@@ -385,6 +436,7 @@ final class EditorCanvasView: NSView, NSTextFieldDelegate, NSMenuItemValidation 
                 drag = nil
                 draft = nil
                 cropDraft = nil
+                frozenLayout = nil
                 needsDisplay = true
             } else {
                 model.selectedID = nil

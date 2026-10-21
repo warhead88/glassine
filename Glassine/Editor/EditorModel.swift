@@ -11,11 +11,22 @@ final class EditorModel {
 
     private(set) var annotations: [Annotation] = []
     private(set) var crop: CGRect?
+
+    /// Padding, corners, shadow and fill around the capture. Sliders update it live;
+    /// `endBackgroundChange` records the change as one undo step.
+    var background: BackgroundSettings = EditorPrefs.background {
+        didSet {
+            if persistsPreferences { EditorPrefs.background = background }
+            if backgroundEditOriginal == nil { backgroundEditOriginal = oldValue }
+            changed()
+        }
+    }
+    @ObservationIgnored private var backgroundEditOriginal: BackgroundSettings?
     var selectedID: UUID? { didSet { changed() } }
 
     var tool: EditorTool = EditorPrefs.tool {
         didSet {
-            if tool.isDrawingTool { EditorPrefs.tool = tool }
+            if tool.isDrawingTool && persistsPreferences { EditorPrefs.tool = tool }
             if tool != .select { selectedID = nil }
             changed()
         }
@@ -23,7 +34,7 @@ final class EditorModel {
 
     var color: RGBA = EditorPrefs.color {
         didSet {
-            EditorPrefs.color = color
+            if persistsPreferences { EditorPrefs.color = color }
             restyleSelection { $0.color = color }
         }
     }
@@ -32,7 +43,7 @@ final class EditorModel {
     /// `endWidthChange` records the whole drag as one undo step.
     var width: CGFloat = EditorPrefs.width {
         didSet {
-            EditorPrefs.width = width
+            if persistsPreferences { EditorPrefs.width = width }
             guard var annotation = selected else { return }
             if widthEditOriginal == nil { widthEditOriginal = annotation }
             annotation.width = width
@@ -51,12 +62,25 @@ final class EditorModel {
     /// Lets the canvas redraw after any change.
     @ObservationIgnored var onChange: (() -> Void)?
 
-    init(capture: CapturedImage) {
+    /// Off in tests, so they never overwrite the user's remembered editor settings.
+    @ObservationIgnored private let persistsPreferences: Bool
+
+    init(capture: CapturedImage, persistsPreferences: Bool = true) {
+        self.persistsPreferences = persistsPreferences
         self.capture = capture
         self.renderer = AnnotationRenderer(image: capture.image, pointSize: capture.pointSize)
     }
 
     var imageSize: CGSize { capture.pointSize }
+
+    var imageBounds: CGRect { CGRect(origin: .zero, size: imageSize) }
+
+    /// Everything that gets exported (before cropping): the image, its padding, and any
+    /// annotation reaching past the image — the background grows to fit them.
+    var canvasRect: CGRect {
+        CanvasLayout.canvasRect(image: imageBounds, annotationBounds: annotations.map(renderer.bounds(of:)),
+                                padding: background.padding)
+    }
 
     var selected: Annotation? { annotations.first { $0.id == selectedID } }
 
@@ -95,7 +119,7 @@ final class EditorModel {
     }
 
     func setCrop(_ rect: CGRect?) {
-        let bounds = CGRect(origin: .zero, size: imageSize)
+        let bounds = canvasRect
         let clipped = rect.map { $0.intersection(bounds).integral }
         commit(clipped == nil ? "Reset Crop" : "Crop") {
             $0.crop = (clipped?.isEmpty ?? true) || clipped == bounds ? nil : clipped
@@ -116,6 +140,14 @@ final class EditorModel {
         replace(edited, actionName: actionName)
     }
 
+    /// Called when a background slider is released or a fill is picked.
+    func endBackgroundChange() {
+        guard let original = backgroundEditOriginal else { return }
+        backgroundEditOriginal = nil
+        guard original != background else { return }
+        registerUndo(restoring: State(annotations: annotations, crop: crop, background: original), actionName: "Change Background")
+    }
+
     /// Called when the width slider is released.
     func endWidthChange() {
         guard let original = widthEditOriginal else { return }
@@ -134,18 +166,30 @@ final class EditorModel {
         onChange?()
     }
 
+    /// Everything undo restores.
+    private struct State {
+        var annotations: [Annotation]
+        var crop: CGRect?
+        var background: BackgroundSettings
+    }
+
+    private var state: State { State(annotations: annotations, crop: crop, background: background) }
+
     private func commit(_ actionName: String, _ change: (EditorModel) -> Void) {
-        let before = (annotations, crop)
+        let before = state
         change(self)
         registerUndo(restoring: before, actionName: actionName)
         changed()
     }
 
-    private func registerUndo(restoring state: ([Annotation], CGRect?), actionName: String) {
+    private func registerUndo(restoring state: State, actionName: String) {
         undoManager.registerUndo(withTarget: self) { model in
             MainActor.assumeIsolated {
-                let current = (model.annotations, model.crop)
-                (model.annotations, model.crop) = state
+                let current = model.state
+                model.annotations = state.annotations
+                model.crop = state.crop
+                model.background = state.background
+                model.backgroundEditOriginal = nil
                 if let selected = model.selectedID, !model.annotations.contains(where: { $0.id == selected }) {
                     model.selectedID = nil
                 }
@@ -160,7 +204,8 @@ final class EditorModel {
 
     /// The final image: capture, annotations and crop, at the capture's full resolution.
     func renderedImage() -> CGImage? {
-        renderer.render(annotations: annotations, stepNumbers: stepNumbers, crop: crop, scale: capture.scale)
+        renderer.render(annotations: annotations, stepNumbers: stepNumbers, area: crop ?? canvasRect,
+                        canvas: canvasRect, background: background, scale: capture.scale)
     }
 
     /// A new capture of the edited image, keeping the original's screen position (for pins).
@@ -168,7 +213,7 @@ final class EditorModel {
         guard let image = renderedImage() else { throw CocoaError(.fileWriteUnknown) }
         let result = try CapturedImage(image: image, scale: capture.scale)
         if let source = capture.sourceFrame {
-            let area = crop ?? CGRect(origin: .zero, size: imageSize)
+            let area = crop ?? canvasRect
             result.sourceFrame = CGRect(
                 x: source.minX + area.minX, y: source.maxY - area.maxY,
                 width: area.width, height: area.height
@@ -211,6 +256,35 @@ enum EditorPrefs {
             return RGBA(red: c[0], green: c[1], blue: c[2])
         }
         set { defaults.set([newValue.red, newValue.green, newValue.blue].map(Double.init), forKey: "editorColor") }
+    }
+
+    static var background: BackgroundSettings {
+        get {
+            guard let d = defaults.dictionary(forKey: "editorBackground") else { return BackgroundSettings() }
+            var b = BackgroundSettings()
+            b.padding = d["padding"] as? Double ?? 0
+            b.cornerRadius = d["cornerRadius"] as? Double ?? 0
+            b.shadow = d["shadow"] as? Bool ?? true
+            switch d["fill"] as? String {
+            case "none": b.fill = .none
+            case "color":
+                if let c = d["color"] as? [Double], c.count == 3 { b.fill = .color(RGBA(red: c[0], green: c[1], blue: c[2])) }
+            case "gradient": b.fill = .gradient(min(max(d["gradient"] as? Int ?? 0, 0), BackgroundSettings.gradients.count - 1))
+            default: b.fill = .extend
+            }
+            return b
+        }
+        set {
+            var d: [String: Any] = ["padding": Double(newValue.padding), "cornerRadius": Double(newValue.cornerRadius),
+                                    "shadow": newValue.shadow]
+            switch newValue.fill {
+            case .extend: d["fill"] = "extend"
+            case .none: d["fill"] = "none"
+            case .color(let c): d["fill"] = "color"; d["color"] = [c.red, c.green, c.blue].map(Double.init)
+            case .gradient(let i): d["fill"] = "gradient"; d["gradient"] = i
+            }
+            defaults.set(d, forKey: "editorBackground")
+        }
     }
 
     static var width: CGFloat {

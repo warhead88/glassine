@@ -9,11 +9,11 @@ final class EditorController {
 
     var onPin: (CapturedImage) -> Void = { _ in }
 
-    func open(_ capture: CapturedImage) {
+    func open(_ capture: CapturedImage, persistsPreferences: Bool = true) {
         if windows.isEmpty {
             NSApp.setActivationPolicy(.regular)
         }
-        let controller = EditorWindowController(capture: capture, editor: self)
+        let controller = EditorWindowController(capture: capture, editor: self, persistsPreferences: persistsPreferences)
         windows.append(controller)
         controller.show()
     }
@@ -27,7 +27,7 @@ final class EditorController {
                   let image = snapshot.image.cropping(to: CGRect(x: 0, y: 0, width: snapshot.image.width / 2, height: snapshot.image.height / 2)),
                   let capture = try? CapturedImage(image: image, scale: snapshot.scale)
             else { return }
-            open(capture)
+            open(capture, persistsPreferences: false)
             windows.last?.addDebugAnnotations()
         }
     }
@@ -51,8 +51,8 @@ private final class EditorWindowController: NSObject, NSWindowDelegate {
     private unowned let editor: EditorController
     private var clearStatus: Task<Void, Never>?
 
-    init(capture: CapturedImage, editor: EditorController) {
-        self.model = EditorModel(capture: capture)
+    init(capture: CapturedImage, editor: EditorController, persistsPreferences: Bool) {
+        self.model = EditorModel(capture: capture, persistsPreferences: persistsPreferences)
         self.canvas = EditorCanvasView(model: model)
         self.editor = editor
         self.window = NSWindow(
@@ -156,6 +156,10 @@ private final class EditorWindowController: NSObject, NSWindowDelegate {
             Annotation(shape: .redact(CGRect(x: s.width * 0.4, y: s.height * 0.3, width: s.width * 0.15, height: s.height * 0.05)), color: RGBA.palette[6]),
         ]
         samples.forEach(model.add)
+        // Past the right edge: the background grows to fit it.
+        model.add(Annotation(shape: .arrow(from: CGPoint(x: s.width * 0.9, y: s.height * 0.35), to: CGPoint(x: s.width + 70, y: s.height * 0.2)), color: blue, width: 5))
+        model.background = BackgroundSettings(fill: .gradient(0), padding: 48, cornerRadius: 14, shadow: true)
+        model.endBackgroundChange()
         model.tool = .select
         model.selectedID = samples[1].id
     }

@@ -12,6 +12,7 @@ struct EditorView: View {
     @Bindable var model: EditorModel
     let canvas: EditorCanvasView
     let actions: EditorActions
+    @State private var showsBackground = false
 
     private static let toolGroups: [[EditorTool]] = [
         [.select],
@@ -76,6 +77,14 @@ struct EditorView: View {
                 colors
                 GlassDivider()
                 widthControl
+                GlassDivider()
+                IconButton(symbol: "photo.artframe") { showsBackground.toggle() }
+                    .background(Circle().fill(Color.accentColor.opacity(model.background != BackgroundSettings(fill: model.background.fill) ? 0.3 : 0)))
+                    .tooltip("Background", "Padding, rounded corners, shadow and a background that continues the screenshot.",
+                             placement: .above)
+                    .popover(isPresented: $showsBackground, arrowEdge: .top) {
+                        BackgroundPanel(model: model)
+                    }
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
@@ -158,6 +167,109 @@ struct EditorView: View {
         case (true, false): return "Copy to the clipboard, then close (saving is off in Settings)."
         case (false, true): return "Save to \(folder), then close (copying is off in Settings)."
         case (false, false): return "Close. Copy and save are both off in Settings → Output."
+        }
+    }
+}
+
+// MARK: - Background
+
+private struct BackgroundPanel: View {
+    @Bindable var model: EditorModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Background").font(.headline)
+
+            HStack(spacing: 8) {
+                FillSwatch(fill: .extend, current: model.background.fill, help: "Continue the screenshot's edge color") {
+                    RoundedRectangle(cornerRadius: 6).fill(Color(cgColor: model.renderer.edgeColor.cgColor))
+                        .overlay(Image(systemName: "arrow.up.left.and.arrow.down.right").font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(model.renderer.edgeColor.isLight ? Color.black.opacity(0.6) : Color.white.opacity(0.8)))
+                } select: { select($0) }
+                FillSwatch(fill: .none, current: model.background.fill, help: "Transparent (PNG)") {
+                    Checkerboard().clipShape(RoundedRectangle(cornerRadius: 6))
+                } select: { select($0) }
+                ForEach(BackgroundSettings.solidColors, id: \.self) { color in
+                    FillSwatch(fill: .color(color), current: model.background.fill, help: "Solid color") {
+                        RoundedRectangle(cornerRadius: 6).fill(Color(cgColor: color.cgColor))
+                    } select: { select($0) }
+                }
+            }
+            HStack(spacing: 8) {
+                ForEach(BackgroundSettings.gradients.indices, id: \.self) { index in
+                    let preset = BackgroundSettings.gradients[index]
+                    FillSwatch(fill: .gradient(index), current: model.background.fill, help: preset.name) {
+                        RoundedRectangle(cornerRadius: 6).fill(LinearGradient(
+                            colors: [Color(cgColor: preset.from.cgColor), Color(cgColor: preset.to.cgColor)],
+                            startPoint: .topLeading, endPoint: .bottomTrailing))
+                    } select: { select($0) }
+                }
+            }
+
+            slider("Padding", value: $model.background.padding, in: BackgroundSettings.paddingRange)
+            slider("Corners", value: $model.background.cornerRadius, in: BackgroundSettings.cornerRange)
+            Toggle("Shadow", isOn: $model.background.shadow)
+                .onChange(of: model.background.shadow) { model.endBackgroundChange() }
+
+            Text("The background also grows by itself when arrows, text or drawings go past the edge.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(16)
+        .frame(width: 300)
+    }
+
+    private func select(_ fill: BackgroundSettings.Fill) {
+        model.background.fill = fill
+        model.endBackgroundChange()
+    }
+
+    private func slider(_ title: String, value: Binding<CGFloat>, in range: ClosedRange<CGFloat>) -> some View {
+        HStack {
+            Text(title).frame(width: 64, alignment: .leading)
+            Slider(value: value, in: range) { editing in
+                if !editing { model.endBackgroundChange() }
+            }
+            Text("\(Int(value.wrappedValue.rounded()))")
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(.secondary)
+                .frame(width: 28, alignment: .trailing)
+        }
+    }
+}
+
+private struct FillSwatch<Preview: View>: View {
+    let fill: BackgroundSettings.Fill
+    let current: BackgroundSettings.Fill
+    let help: String
+    @ViewBuilder let preview: Preview
+    let select: (BackgroundSettings.Fill) -> Void
+
+    var body: some View {
+        Button { select(fill) } label: {
+            preview
+                .frame(width: 30, height: 30)
+                .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(Color.primary.opacity(0.2), lineWidth: 0.5))
+                .padding(2)
+                .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(fill == current ? Color.accentColor : .clear, lineWidth: 2))
+        }
+        .buttonStyle(.plain)
+        .help(help)
+    }
+}
+
+private struct Checkerboard: View {
+    var body: some View {
+        Canvas { context, size in
+            context.fill(Path(CGRect(origin: .zero, size: size)), with: .color(white: 0.9))
+            let cell: CGFloat = 5
+            for row in 0..<Int(size.height / cell) + 1 {
+                for col in 0..<Int(size.width / cell) + 1 where (row + col).isMultiple(of: 2) {
+                    context.fill(Path(CGRect(x: CGFloat(col) * cell, y: CGFloat(row) * cell, width: cell, height: cell)),
+                                 with: .color(white: 0.72))
+                }
+            }
         }
     }
 }

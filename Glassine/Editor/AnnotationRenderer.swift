@@ -28,8 +28,53 @@ final class AnnotationRenderer {
 
     var imageBounds: CGRect { CGRect(origin: .zero, size: pointSize) }
 
+    /// The capture's edge color, used to continue it into the background.
+    lazy var edgeColor: RGBA = EdgeColor.of(image)
+
     func drawImage() {
         nsImage.draw(in: imageBounds, from: .zero, operation: .copy, fraction: 1, respectFlipped: true, hints: nil)
+    }
+
+    /// Everything under the annotations: background around the capture (when there is
+    /// space around it), the capture's shadow, and the capture with rounded corners.
+    func drawBase(canvas: CGRect, background: BackgroundSettings) {
+        let radius = min(background.cornerRadius, min(imageBounds.width, imageBounds.height) / 2)
+        let imagePath = NSBezierPath(roundedRect: imageBounds, xRadius: radius, yRadius: radius)
+        let hasSpace = canvas != imageBounds
+
+        if hasSpace {
+            switch background.fill {
+            case .extend:
+                NSColor(cgColor: edgeColor.cgColor)?.setFill()
+                canvas.fill()
+            case .none:
+                break
+            case .color(let color):
+                NSColor(cgColor: color.cgColor)?.setFill()
+                canvas.fill()
+            case .gradient(let index):
+                let preset = BackgroundSettings.gradients[index]
+                NSGradient(starting: NSColor(cgColor: preset.from.cgColor)!, ending: NSColor(cgColor: preset.to.cgColor)!)?
+                    .draw(in: canvas, angle: 45)
+            }
+
+            if background.shadow {
+                NSGraphicsContext.saveGraphicsState()
+                let shadow = NSShadow()
+                shadow.shadowColor = NSColor.black.withAlphaComponent(0.35)
+                shadow.shadowBlurRadius = 18
+                shadow.shadowOffset = NSSize(width: 0, height: -6)
+                shadow.set()
+                NSColor.black.setFill()
+                imagePath.fill()
+                NSGraphicsContext.restoreGraphicsState()
+            }
+        }
+
+        NSGraphicsContext.saveGraphicsState()
+        imagePath.addClip()
+        drawImage()
+        NSGraphicsContext.restoreGraphicsState()
     }
 
     func draw(_ annotations: [Annotation], stepNumbers: [UUID: Int]) {
@@ -145,9 +190,10 @@ final class AnnotationRenderer {
         annotations.last { AnnotationGeometry.hits($0, at: point, textBounds: textBounds) }
     }
 
-    /// Renders the final image at `scale` pixels per point, cropped to `crop` (image points).
-    func render(annotations: [Annotation], stepNumbers: [UUID: Int], crop: CGRect?, scale: CGFloat) -> CGImage? {
-        let area = crop ?? imageBounds
+    /// Renders `area` (image points) of the document — background, capture and annotations —
+    /// at `scale` pixels per point.
+    func render(annotations: [Annotation], stepNumbers: [UUID: Int], area: CGRect, canvas: CGRect,
+                background: BackgroundSettings, scale: CGFloat) -> CGImage? {
         let width = Int((area.width * scale).rounded()), height = Int((area.height * scale).rounded())
         let space = image.colorSpace.flatMap { $0.model == .rgb ? $0 : nil } ?? CGColorSpace(name: CGColorSpace.sRGB)!
         guard width > 0, height > 0,
@@ -162,7 +208,7 @@ final class AnnotationRenderer {
 
         NSGraphicsContext.saveGraphicsState()
         NSGraphicsContext.current = NSGraphicsContext(cgContext: context, flipped: true)
-        drawImage()
+        drawBase(canvas: canvas, background: background)
         draw(annotations, stepNumbers: stepNumbers)
         NSGraphicsContext.restoreGraphicsState()
         return context.makeImage()

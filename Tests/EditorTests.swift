@@ -122,6 +122,38 @@ struct AnnotationGeometryTests {
     }
 }
 
+@Suite("Canvas layout")
+struct CanvasLayoutTests {
+    private let image = CGRect(x: 0, y: 0, width: 200, height: 100)
+
+    @Test func paddingGrowsEveryEdge() {
+        #expect(CanvasLayout.canvasRect(image: image, annotationBounds: [], padding: 10) == CGRect(x: -10, y: -10, width: 220, height: 120))
+    }
+
+    @Test func annotationsInsideDontChangeTheCanvas() {
+        #expect(CanvasLayout.canvasRect(image: image, annotationBounds: [CGRect(x: 10, y: 10, width: 50, height: 50)], padding: 0) == image)
+    }
+
+    @Test func annotationPastTheEdgeAddsItsBoundsAndAMargin() {
+        let canvas = CanvasLayout.canvasRect(image: image, annotationBounds: [CGRect(x: -30, y: 20, width: 40, height: 10)], padding: 0)
+        #expect(canvas == CGRect(x: -46, y: 0, width: 246, height: 100))
+    }
+}
+
+@Suite("Edge color")
+struct EdgeColorTests {
+    @Test func uniformEdgeGivesThatColor() {
+        let gray = RGBA(red: 0.2, green: 0.2, blue: 0.2)
+        let color = EdgeColor.dominant(Array(repeating: gray, count: 90) + Array(repeating: RGBA(red: 1, green: 0, blue: 0), count: 10))
+        #expect(abs(color.red - 0.2) < 0.001 && abs(color.green - 0.2) < 0.001)
+    }
+
+    @Test func mixedEdgeGivesTheAverage() {
+        let color = EdgeColor.dominant([RGBA(red: 1, green: 1, blue: 1), RGBA(red: 0, green: 0, blue: 0)])
+        #expect(abs(color.red - 0.5) < 0.001)
+    }
+}
+
 @Suite("Editor model")
 @MainActor
 struct EditorModelTests {
@@ -135,7 +167,11 @@ struct EditorModelTests {
         context.fill(CGRect(x: 0, y: 0, width: 400, height: 200))
         let capture = try CapturedImage(image: try #require(context.makeImage()), scale: 2)
         capture.sourceFrame = CGRect(x: 100, y: 300, width: 200, height: 100)
-        return EditorModel(capture: capture)
+        let model = EditorModel(capture: capture, persistsPreferences: false)
+        model.background = BackgroundSettings() // independent of the user's remembered background
+        model.endBackgroundChange()
+        model.undoManager.removeAllActions()
+        return model
     }
 
     /// Tests have no event loop, so close an undo group per user action like AppKit does per event.
@@ -201,6 +237,48 @@ struct EditorModelTests {
         let source = try #require(NSBitmapImageRep(cgImage: model.capture.image).colorAt(x: 300, y: 150)?.usingColorSpace(.sRGB))
         #expect(inside.brightnessComponent < 0.05)
         #expect(abs(outside.brightnessComponent - source.brightnessComponent) < 0.01)
+    }
+
+    // MARK: Background
+
+    @Test func annotationPastTheEdgeGrowsTheExport() throws {
+        let model = try makeModel()
+        model.add(redact(CGRect(x: 180, y: 40, width: 60, height: 20))) // 40 pt past the right edge
+        // 240 + 16 pt margin = 256 pt wide at 2×; height unchanged.
+        let image = try #require(model.renderedImage())
+        #expect(image.width == 512 && image.height == 200)
+    }
+
+    @Test func paddingSurroundsTheImageWithTheEdgeColor() throws {
+        let model = try makeModel()
+        model.background.padding = 20
+        let image = try #require(model.renderedImage())
+        #expect(image.width == 480 && image.height == 280)
+        let rep = NSBitmapImageRep(cgImage: image)
+        let corner = try #require(rep.colorAt(x: 2, y: 2)?.usingColorSpace(.sRGB))
+        let source = try #require(NSBitmapImageRep(cgImage: model.capture.image).colorAt(x: 10, y: 10)?.usingColorSpace(.sRGB))
+        #expect(abs(corner.brightnessComponent - source.brightnessComponent) < 0.03) // "extend" continues the edge
+    }
+
+    @Test func roundedCornersWithoutPaddingAreTransparent() throws {
+        let model = try makeModel()
+        model.background.cornerRadius = 20
+        let rep = NSBitmapImageRep(cgImage: try #require(model.renderedImage()))
+        #expect((rep.colorAt(x: 0, y: 0)?.alphaComponent ?? 1) < 0.05)
+        #expect((rep.colorAt(x: 200, y: 100)?.alphaComponent ?? 0) > 0.95)
+    }
+
+    @Test func backgroundChangeIsOneUndoStep() throws {
+        let model = try makeModel()
+        action(model) {
+            for padding in stride(from: CGFloat(0), through: 40, by: 10) { model.background.padding = padding }
+            model.endBackgroundChange()
+        }
+        #expect(model.background.padding == 40)
+        model.undoManager.undo()
+        #expect(model.background.padding == 0)
+        model.undoManager.redo()
+        #expect(model.background.padding == 40)
     }
 
     @Test func croppedCapturePinsOverTheCroppedArea() throws {
