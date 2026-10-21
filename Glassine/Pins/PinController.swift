@@ -10,6 +10,8 @@ final class PinController {
 
     var hasPins: Bool { !pins.isEmpty }
 
+    var onEdit: (CapturedImage) -> Void = { _ in }
+
     func pin(_ capture: CapturedImage) {
         let screen = screenForNewPin(capture)
         let visible = screen?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)

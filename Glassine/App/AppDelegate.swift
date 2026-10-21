@@ -5,6 +5,7 @@ import KeyboardShortcuts
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let capture = CaptureCoordinator()
     private let pins = PinController()
+    private let editor = EditorController()
     private let settings = HostingWindowController(title: "Glassine Settings") { SettingsView() }
     private lazy var welcome: HostingWindowController<WelcomeView> = HostingWindowController(
         title: "Welcome to Glassine"
@@ -25,6 +26,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.mainMenu = MainMenu.make(target: self)
         capture.onMissingPermission = { [weak self] in self?.welcome.show() }
         capture.onPin = { [weak self] in self?.pins.pin($0) }
+        capture.onEdit = { [weak self] in self?.editor.open($0) }
+        pins.onEdit = { [weak self] in self?.editor.open($0) }
+        editor.onPin = { [weak self] in self?.pins.pin($0) }
 
         #if DEBUG
         if CommandLine.arguments.contains("--debug-preview") {
@@ -32,6 +36,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         if CommandLine.arguments.contains("--debug-pins") {
             pins.showDebugPins()
+        }
+        if CommandLine.arguments.contains("--debug-editor") {
+            editor.openDebugSample()
         }
         #endif
 

@@ -23,14 +23,7 @@ final class HostingWindowController<Content: View> {
             window.center()
             self.window = window
         }
-        // Plain `NSApp.activate()` (macOS 14+) is declined when an agent app opens a window
-        // right after launch, leaving it inactive behind the frontmost app. Asking the frontmost
-        // app to hand over activation succeeds; these windows only open on explicit request.
-        if let frontmost = NSWorkspace.shared.frontmostApplication, frontmost != .current {
-            NSRunningApplication.current.activate(from: frontmost, options: [])
-        } else {
-            NSApp.activate()
-        }
+        AppActivation.bringToFront()
         window?.makeKeyAndOrderFront(nil)
         window?.orderFrontRegardless()
 
@@ -47,5 +40,21 @@ final class HostingWindowController<Content: View> {
 
     func close() {
         window?.close()
+    }
+}
+
+enum AppActivation {
+    /// Makes Glassine the active app for a window the user explicitly asked for.
+    ///
+    /// Plain `NSApp.activate()` (macOS 14+) is declined when an agent app opens a window
+    /// right after launch, leaving it inactive behind the frontmost app. Asking the frontmost
+    /// app to hand over activation succeeds.
+    @MainActor
+    static func bringToFront() {
+        if let frontmost = NSWorkspace.shared.frontmostApplication, frontmost != .current {
+            NSRunningApplication.current.activate(from: frontmost, options: [])
+        } else {
+            NSApp.activate()
+        }
     }
 }

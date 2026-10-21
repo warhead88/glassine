@@ -100,6 +100,10 @@ final class PinPanel: NSPanel {
     @objc func toggleClickThrough() { isClickThrough.toggle() }
     @objc func closePin() { controller.close(self) }
     @objc func closeAllPins() { controller.closeAll() }
+    @objc func edit() {
+        controller.onEdit(capture)
+        controller.close(self)
+    }
 
     @objc func setOpacityFromMenu(_ sender: NSMenuItem) {
         setOpacity(CGFloat(sender.tag) / 100)
@@ -109,6 +113,7 @@ final class PinPanel: NSPanel {
         let menu = NSMenu()
         menu.addItem(withTitle: "Copy", action: #selector(copyImage), keyEquivalent: "c")
         menu.addItem(withTitle: "Save As…", action: #selector(saveAs), keyEquivalent: "s")
+        menu.addItem(withTitle: "Edit", action: #selector(edit), keyEquivalent: "e")
         menu.addItem(.separator())
         menu.addItem(withTitle: "Actual Size", action: #selector(actualSize), keyEquivalent: "0")
 
@@ -262,6 +267,7 @@ private final class PinView: NSView {
         case (8, true): panel.copyImage()               // ⌘C
         case (1, true): panel.saveAs()                  // ⌘S
         case (29, true): panel.actualSize()             // ⌘0
+        case (14, true): panel.edit()                   // ⌘E
         case (24, true): panel.setZoom(panel.zoom * 1.25)  // ⌘=
         case (27, true): panel.setZoom(panel.zoom / 1.25)  // ⌘-
         default: super.keyDown(with: event)

@@ -22,6 +22,12 @@ final class CaptureCoordinator {
         set { quickAccess.onPin = newValue }
     }
 
+    /// Called when the user opens a capture from its preview in the editor.
+    var onEdit: (CapturedImage) -> Void {
+        get { quickAccess.onEdit }
+        set { quickAccess.onEdit = newValue }
+    }
+
     /// Freeze all screens and let the user select an area or click a window.
     func captureArea() {
         guard begin() else { return }

@@ -9,6 +9,7 @@ final class QuickAccessPanel: NSPanel {
     private let autoClose: Duration?
     private let onClose: (QuickAccessPanel) -> Void
     private let onPin: (CapturedImage) -> Void
+    private let onEdit: (CapturedImage) -> Void
     private var closeTask: Task<Void, Never>?
     private var isDismissing = false
 
@@ -16,11 +17,13 @@ final class QuickAccessPanel: NSPanel {
         capture: CapturedImage,
         autoClose: Duration?,
         onPin: @escaping (CapturedImage) -> Void,
+        onEdit: @escaping (CapturedImage) -> Void,
         onClose: @escaping (QuickAccessPanel) -> Void
     ) {
         self.capture = capture
         self.autoClose = autoClose
         self.onPin = onPin
+        self.onEdit = onEdit
         self.onClose = onClose
         super.init(
             contentRect: NSRect(origin: .zero, size: QuickAccessLayout.thumbnailSize(for: capture.pointSize)),
@@ -55,6 +58,12 @@ final class QuickAccessPanel: NSPanel {
     /// Turns the preview into a pin that stays on screen.
     func pin() {
         onPin(capture)
+        dismiss()
+    }
+
+    /// Opens the capture in the editor; the preview's job is done.
+    func edit() {
+        onEdit(capture)
         dismiss()
     }
 
@@ -208,7 +217,7 @@ private final class ThumbnailView: NSView, NSDraggingSource {
     override func mouseUp(with event: NSEvent) {
         guard mouseDownPoint != nil else { return }
         mouseDownPoint = nil
-        openFile()
+        panel.edit()
     }
 
     func draggingSession(_ session: NSDraggingSession, sourceOperationMaskFor context: NSDraggingContext) -> NSDragOperation {
@@ -284,6 +293,10 @@ private final class ThumbnailView: NSView, NSDraggingSource {
         panel.pin()
     }
 
+    @objc private func edit() {
+        panel.edit()
+    }
+
     private var saveTitle: String { capture.savedURL == nil ? "Save" : "Show in Finder" }
 
     private func updateSaveTitle() {
@@ -295,7 +308,8 @@ private final class ThumbnailView: NSView, NSDraggingSource {
         menu.addItem(withTitle: "Copy", action: #selector(copyImage), keyEquivalent: "")
         menu.addItem(withTitle: saveTitle, action: #selector(saveOrReveal), keyEquivalent: "")
         menu.addItem(withTitle: "Save As…", action: #selector(saveAs), keyEquivalent: "")
-        menu.addItem(withTitle: "Open", action: #selector(openFile), keyEquivalent: "")
+        menu.addItem(withTitle: "Edit", action: #selector(edit), keyEquivalent: "")
+        menu.addItem(withTitle: "Open in Preview", action: #selector(openFile), keyEquivalent: "")
         menu.addItem(withTitle: "Pin to Screen", action: #selector(pin), keyEquivalent: "")
         menu.addItem(.separator())
         menu.addItem(withTitle: "Close", action: #selector(close), keyEquivalent: "")

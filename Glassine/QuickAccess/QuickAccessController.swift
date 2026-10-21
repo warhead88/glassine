@@ -11,13 +11,15 @@ final class QuickAccessController {
     private let maxVisible = 5
 
     var onPin: (CapturedImage) -> Void = { _ in }
+    var onEdit: (CapturedImage) -> Void = { _ in }
 
     func show(_ capture: CapturedImage, on screen: NSScreen) {
         let seconds = UserDefaults.standard.integer(forKey: PrefKey.quickAccessAutoClose)
         let panel = QuickAccessPanel(
             capture: capture,
             autoClose: seconds > 0 ? .seconds(seconds) : nil,
-            onPin: { [weak self] in self?.onPin($0) }
+            onPin: { [weak self] in self?.onPin($0) },
+            onEdit: { [weak self] in self?.onEdit($0) }
         ) { [weak self] closed in
             self?.remove(closed)
         }
