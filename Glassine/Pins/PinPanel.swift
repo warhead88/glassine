@@ -3,7 +3,8 @@ import UniformTypeIdentifiers
 
 /// A capture floating above all windows.
 ///
-/// Drag to move, scroll or pinch to zoom, ⌥-scroll for opacity, double-click for 100%.
+/// Drag to move, scroll to zoom, ⌥-scroll for opacity, double-click for 100%.
+/// (No pinch: macOS sends trackpad gestures only to the active app, and pins never activate Glassine.)
 /// Right-click for copy, save, opacity, lock, click-through and close.
 @MainActor
 final class PinPanel: NSPanel {
@@ -235,6 +236,7 @@ private final class PinView: NSView {
     }
 
     override func mouseDown(with event: NSEvent) {
+        // Key (for Esc, ⌘C, ⌘0…) but not active: the app underneath stays frontmost.
         window?.makeKey()
         if event.clickCount == 2 {
             panel.actualSize()
@@ -251,11 +253,6 @@ private final class PinView: NSView {
         } else {
             panel.setZoom(panel.zoom * exp(delta), anchor: NSEvent.mouseLocation)
         }
-    }
-
-    override func magnify(with event: NSEvent) {
-        Log.app.notice("Pin magnify \(event.magnification, privacy: .public), key: \(self.panel.isKeyWindow, privacy: .public)")
-        panel.setZoom(panel.zoom * (1 + event.magnification), anchor: NSEvent.mouseLocation)
     }
 
     override func menu(for event: NSEvent) -> NSMenu? { panel.makeMenu() }
