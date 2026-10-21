@@ -18,7 +18,11 @@ final class PinPanel: NSPanel {
     var isClickThrough = false {
         didSet {
             ignoresMouseEvents = isClickThrough
-            if !isClickThrough { setHighlighted(false) }
+            if isClickThrough {
+                (contentView as? PinView)?.showBadge("Clicks pass through · hold ⌥⌘ to use the pin", for: .seconds(3))
+            } else {
+                setHighlighted(false)
+            }
             controller.clickThroughDidChange()
         }
     }
@@ -201,12 +205,12 @@ private final class PinView: NSView {
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
     override var acceptsFirstResponder: Bool { true }
 
-    func showBadge(_ text: String) {
+    func showBadge(_ text: String, for duration: Duration = .seconds(1)) {
         badge.stringValue = "  \(text)  "
         badge.alphaValue = 1
         hideBadge?.cancel()
         hideBadge = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(1))
+            try? await Task.sleep(for: duration)
             guard !Task.isCancelled, let self else { return }
             self.badge.animator().alphaValue = 0
         }
@@ -250,6 +254,7 @@ private final class PinView: NSView {
     }
 
     override func magnify(with event: NSEvent) {
+        Log.app.notice("Pin magnify \(event.magnification, privacy: .public), key: \(self.panel.isKeyWindow, privacy: .public)")
         panel.setZoom(panel.zoom * (1 + event.magnification), anchor: NSEvent.mouseLocation)
     }
 

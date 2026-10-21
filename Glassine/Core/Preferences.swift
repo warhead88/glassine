@@ -7,7 +7,8 @@ extension KeyboardShortcuts.Name {
     static let repeatLastArea = Self("repeatLastArea")
     static let timedCapture = Self("timedCapture")
     static let pinFromClipboard = Self("pinFromClipboard")
-    static let togglePins = Self("togglePins")
+    /// Has a default so a click-through pin can always be hidden, even with the menu bar icon off.
+    static let togglePins = Self("togglePins", default: .init(.p, modifiers: [.command, .option, .shift]))
     static let openSettings = Self("openSettings", default: .init(.comma, modifiers: [.command, .option, .shift]))
 }
 
