@@ -148,7 +148,7 @@ final class CaptureCoordinator {
         // and pull any open Glassine window (e.g. Settings) over the user's app.
         let defaults = UserDefaults.standard
         let isArea = overlayMode == .capture
-        let animate = isArea && defaults.bool(forKey: PrefKey.captureStartAnimation)
+        let animate = isArea
         let mouse = NSEvent.mouseLocation
         for overlay in overlays {
             if animate { overlay.alphaValue = 0 }

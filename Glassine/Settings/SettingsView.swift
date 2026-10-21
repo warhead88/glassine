@@ -74,8 +74,8 @@ private struct CaptureSettings: View {
     @AppStorage(PrefKey.windowShadow) private var windowShadow = true
     @AppStorage(PrefKey.timerDelay) private var timerDelay = 5
     @AppStorage(PrefKey.colorFormat) private var colorFormat = ColorFormat.hex.rawValue
-    @AppStorage(PrefKey.captureStartAnimation) private var startAnimation = true
     @AppStorage(PrefKey.captureStartSound) private var startSound = true
+    @AppStorage(PrefKey.playSound) private var afterCaptureSound = true
 
     var body: some View {
         Form {
@@ -86,8 +86,6 @@ private struct CaptureSettings: View {
                     Text("Adjust, then press Return").tag(true)
                 }
                 Toggle("Include window shadow", isOn: $windowShadow)
-                Toggle("Animate when area capture starts", isOn: $startAnimation)
-                Toggle("Sound when area capture starts", isOn: $startSound)
                 Picker("Timer:", selection: $timerDelay) {
                     Text("3 seconds").tag(3)
                     Text("5 seconds").tag(5)
@@ -96,6 +94,11 @@ private struct CaptureSettings: View {
                 Picker("Copied color format:", selection: $colorFormat) {
                     ForEach(ColorFormat.allCases) { Text($0.title).tag($0.rawValue) }
                 }
+            }
+
+            Section("Sounds") {
+                Toggle("When area capture starts", isOn: $startSound)
+                Toggle("After capture", isOn: $afterCaptureSound)
             }
 
             Section("Tips") {
@@ -129,7 +132,6 @@ private struct OutputSettings: View {
     @AppStorage(PrefKey.saveFolder) private var saveFolder = AppPaths.defaultSaveFolder.path
     @AppStorage(PrefKey.showQuickAccess) private var showQuickAccess = true
     @AppStorage(PrefKey.quickAccessAutoClose) private var quickAccessAutoClose = 10
-    @AppStorage(PrefKey.playSound) private var playSound = true
     @AppStorage(PrefKey.imageFormat) private var imageFormat = ImageFormat.png.rawValue
     @AppStorage(PrefKey.fileNamePrefix) private var fileNamePrefix = "Glassine"
     @AppStorage(PrefKey.saveAtStandardResolution) private var saveAtStandardResolution = false
@@ -157,7 +159,6 @@ private struct OutputSettings: View {
                     Text("Never").tag(0)
                 }
                 .disabled(!showQuickAccess)
-                Toggle("Sound after capture", isOn: $playSound)
             }
 
             Section("Files") {

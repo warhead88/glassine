@@ -144,7 +144,21 @@ private final class SelectionView: NSView {
     override var acceptsFirstResponder: Bool { true }
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 
-    private static let frameCornerRadius: CGFloat = 14
+    /// Rounded rect with larger top corners (y grows downward in this flipped view).
+    private static func framePath(in rect: CGRect, top: CGFloat = 24, bottom: CGFloat = 14) -> CGPath {
+        let path = CGMutablePath()
+        path.move(to: CGPoint(x: rect.minX + top, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.maxX - top, y: rect.minY))
+        path.addArc(tangent1End: CGPoint(x: rect.maxX, y: rect.minY), tangent2End: CGPoint(x: rect.maxX, y: rect.minY + top), radius: top)
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY - bottom))
+        path.addArc(tangent1End: CGPoint(x: rect.maxX, y: rect.maxY), tangent2End: CGPoint(x: rect.maxX - bottom, y: rect.maxY), radius: bottom)
+        path.addLine(to: CGPoint(x: rect.minX + bottom, y: rect.maxY))
+        path.addArc(tangent1End: CGPoint(x: rect.minX, y: rect.maxY), tangent2End: CGPoint(x: rect.minX, y: rect.maxY - bottom), radius: bottom)
+        path.addLine(to: CGPoint(x: rect.minX, y: rect.minY + top))
+        path.addArc(tangent1End: CGPoint(x: rect.minX, y: rect.minY), tangent2End: CGPoint(x: rect.minX + top, y: rect.minY), radius: top)
+        path.closeSubpath()
+        return path
+    }
 
     /// 0…1 while the area frame animates in; 1 when shown without animation.
     private var frameProgress: CGFloat = 1
@@ -165,7 +179,7 @@ private final class SelectionView: NSView {
 
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
-        if mode == .capture, UserDefaults.standard.bool(forKey: PrefKey.captureStartAnimation) {
+        if mode == .capture {
             animateFrameIn()
         }
         window?.makeFirstResponder(self)
@@ -219,13 +233,12 @@ private final class SelectionView: NSView {
 
         if mode == .capture {
             // Marks the whole screen as "in area capture" without singling out any window.
-            // Rounded a bit more than MacBook display corners so the corners aren't cut off.
-            // When animated it fades in from slightly inside the edge.
+            // Rounded more than MacBook display corners (most at the top) so no corner is cut off.
+            // It eases in from slightly inside the edge.
             let inset = 1.5 + (1 - frameProgress) * 14
             ctx.setStrokeColor(NSColor.white.withAlphaComponent(0.9 * frameProgress).cgColor)
             ctx.setLineWidth(3)
-            ctx.addPath(CGPath(roundedRect: bounds.insetBy(dx: inset, dy: inset),
-                               cornerWidth: Self.frameCornerRadius, cornerHeight: Self.frameCornerRadius, transform: nil))
+            ctx.addPath(Self.framePath(in: bounds.insetBy(dx: inset, dy: inset)))
             ctx.strokePath()
         }
 
