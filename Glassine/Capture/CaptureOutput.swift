@@ -10,19 +10,37 @@ final class CapturedImage {
     let scale: CGFloat
     /// e.g. "Glassine 2026-10-21 at 19.53.06", fixed at capture time.
     let baseName: String
+    /// Format for files on disk; the clipboard always gets lossless PNG.
+    let format: ImageFormat
     private let png: Data
+    private var encodedFile: Data?
 
     private(set) var savedURL: URL?
     private var temporaryURL: URL?
 
     init(image: CGImage, scale: CGFloat, date: Date = .now) throws {
-        self.image = image
-        self.scale = scale
-        self.png = try Self.pngData(for: image, scale: scale)
+        if UserDefaults.standard.bool(forKey: PrefKey.saveAtStandardResolution), scale > 1,
+           let downscaled = Self.downscale(image, by: scale) {
+            self.image = downscaled
+            self.scale = 1
+        } else {
+            self.image = image
+            self.scale = scale
+        }
+        self.format = Preferences.imageFormat
+        self.png = try Self.encode(self.image, scale: self.scale, as: .png)
 
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd 'at' HH.mm.ss"
-        self.baseName = "Glassine \(formatter.string(from: date))"
+        self.baseName = "\(Preferences.fileNamePrefix) \(formatter.string(from: date))"
+    }
+
+    var fileExtension: String {
+        switch format {
+        case .png: "png"
+        case .jpeg: "jpg"
+        case .heic: "heic"
+        }
     }
 
     /// Size in points, i.e. how big the capture looked on screen.
@@ -48,7 +66,7 @@ final class CapturedImage {
     }
 
     func save(to url: URL) throws {
-        try png.write(to: url, options: .atomic)
+        try fileData().write(to: url, options: .atomic)
         savedURL = url
     }
 
@@ -63,27 +81,58 @@ final class CapturedImage {
 
     private func write(into folder: URL) throws -> URL {
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        var url = folder.appending(path: "\(baseName).png")
+        var url = folder.appending(path: "\(baseName).\(fileExtension)")
         var index = 2
         while FileManager.default.fileExists(atPath: url.path) {
-            url = folder.appending(path: "\(baseName) (\(index)).png")
+            url = folder.appending(path: "\(baseName) (\(index)).\(fileExtension)")
             index += 1
         }
-        try png.write(to: url, options: .atomic)
+        try fileData().write(to: url, options: .atomic)
         return url
     }
 
-    /// PNG with DPI metadata, so a 2x capture opens at its on-screen size.
-    private static func pngData(for image: CGImage, scale: CGFloat) throws -> Data {
+    private func fileData() throws -> Data {
+        if format == .png { return png }
+        if let encodedFile { return encodedFile }
+        let data = try Self.encode(image, scale: scale, as: format)
+        encodedFile = data
+        return data
+    }
+
+    /// Encodes with DPI metadata, so a 2x capture opens at its on-screen size.
+    private static func encode(_ image: CGImage, scale: CGFloat, as format: ImageFormat) throws -> Data {
+        let type: UTType = switch format {
+        case .png: .png
+        case .jpeg: .jpeg
+        case .heic: .heic
+        }
         let data = NSMutableData()
-        guard let destination = CGImageDestinationCreateWithData(data, UTType.png.identifier as CFString, 1, nil) else {
+        guard let destination = CGImageDestinationCreateWithData(data, type.identifier as CFString, 1, nil) else {
             throw CocoaError(.fileWriteUnknown)
         }
         let dpi = 72 * scale
-        let properties = [kCGImagePropertyDPIWidth: dpi, kCGImagePropertyDPIHeight: dpi] as CFDictionary
-        CGImageDestinationAddImage(destination, image, properties)
+        var properties: [CFString: Any] = [kCGImagePropertyDPIWidth: dpi, kCGImagePropertyDPIHeight: dpi]
+        if format != .png {
+            properties[kCGImageDestinationLossyCompressionQuality] = 0.9
+        }
+        CGImageDestinationAddImage(destination, image, properties as CFDictionary)
         guard CGImageDestinationFinalize(destination) else { throw CocoaError(.fileWriteUnknown) }
         return data as Data
+    }
+
+    private static func downscale(_ image: CGImage, by scale: CGFloat) -> CGImage? {
+        let width = Int((CGFloat(image.width) / scale).rounded())
+        let height = Int((CGFloat(image.height) / scale).rounded())
+        guard width > 0, height > 0,
+              let context = CGContext(
+                data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
+                space: image.colorSpace ?? CGColorSpace(name: CGColorSpace.sRGB)!,
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+              )
+        else { return nil }
+        context.interpolationQuality = .high
+        context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
+        return context.makeImage()
     }
 }
 
@@ -98,6 +147,8 @@ enum CaptureOutput {
         if defaults.bool(forKey: PrefKey.saveToFile) {
             try capture.save()
         }
-        NSSound(named: "Tink")?.play()
+        if defaults.bool(forKey: PrefKey.playSound) {
+            NSSound(named: "Tink")?.play()
+        }
     }
 }

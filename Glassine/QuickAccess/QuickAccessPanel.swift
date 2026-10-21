@@ -244,8 +244,8 @@ private final class ThumbnailView: NSView, NSDraggingSource {
         defer { panel.setHovering(panel.frame.contains(NSEvent.mouseLocation)) }
 
         let savePanel = NSSavePanel()
-        savePanel.nameFieldStringValue = "\(capture.baseName).png"
-        savePanel.allowedContentTypes = [.png]
+        savePanel.nameFieldStringValue = "\(capture.baseName).\(capture.fileExtension)"
+        savePanel.allowedContentTypes = [UTType(filenameExtension: capture.fileExtension) ?? .png]
         savePanel.directoryURL = Preferences.saveFolder
         NSApp.activate()
         guard savePanel.runModal() == .OK, let url = savePanel.url else { return }
