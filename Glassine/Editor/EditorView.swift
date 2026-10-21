@@ -44,6 +44,7 @@ struct EditorView: View {
             }
             .animation(.snappy(duration: 0.25), value: model.status)
         }
+        .tooltipHost()
         .ignoresSafeArea()
         .frame(minWidth: 980, minHeight: 520)
     }
@@ -93,7 +94,7 @@ struct EditorView: View {
             ), supportsOpacity: false)
             .labelsHidden()
             .controlSize(.small)
-            .help("Custom color")
+            .tooltip("Custom Color", "Pick any color from the macOS color panel.", placement: .above)
         }
     }
 
@@ -113,7 +114,7 @@ struct EditorView: View {
                 .foregroundStyle(.secondary)
                 .frame(width: 18, alignment: .leading)
         }
-        .help("Line width — text and steps scale with it")
+        .tooltip("Line Width", "Thickness of new and selected marks. Text and steps scale with it.", placement: .above)
     }
 
     // MARK: Actions
@@ -121,23 +122,42 @@ struct EditorView: View {
     private var actionBar: some View {
         GlassGroup {
             HStack(spacing: 4) {
-                IconButton(symbol: "arrow.uturn.backward", help: "Undo (⌘Z)", action: model.undo)
+                IconButton(symbol: "arrow.uturn.backward", action: model.undo)
                     .disabled(!model.canUndo)
-                IconButton(symbol: "arrow.uturn.forward", help: "Redo (⇧⌘Z)", action: model.redo)
+                    .tooltip("Undo", "Step back through every change.", shortcut: "⌘Z", placement: .above)
+                IconButton(symbol: "arrow.uturn.forward", action: model.redo)
                     .disabled(!model.canRedo)
+                    .tooltip("Redo", "Bring back what you undid.", shortcut: "⇧⌘Z", placement: .above)
                 if model.crop != nil {
                     GlassDivider()
-                    IconButton(symbol: "crop.rotate", help: "Reset crop") { model.setCrop(nil) }
+                    IconButton(symbol: "crop.rotate") { model.setCrop(nil) }
+                        .tooltip("Reset Crop", "Show the whole image again.", placement: .above)
                 }
                 GlassDivider()
-                IconButton(symbol: "doc.on.doc", help: "Copy to clipboard (⌘C)", action: actions.copy)
-                IconButton(symbol: "square.and.arrow.down", help: "Save to the capture folder (⌘S)", action: actions.save)
-                IconButton(symbol: "pin", help: "Pin to screen", action: actions.pin)
+                LabeledButton(symbol: "doc.on.doc", title: "Copy", action: actions.copy)
+                    .tooltip("Copy", "Copy the edited image to the clipboard. Nothing is saved.", shortcut: "⌘C", placement: .above)
+                LabeledButton(symbol: "square.and.arrow.down", title: "Save", action: actions.save)
+                    .tooltip("Save", "Save the edited image to \(Preferences.saveFolder.lastPathComponent).", shortcut: "⌘S", placement: .above)
+                LabeledButton(symbol: "pin", title: "Pin", action: actions.pin)
+                    .tooltip("Pin", "Keep the edited image floating above all windows.", placement: .above)
                 DoneButton(action: actions.done)
                     .padding(.leading, 4)
+                    .tooltip("Done", doneDetail, shortcut: "⌘↩", placement: .above)
             }
             .padding(6)
             .glassPanel(in: Capsule())
+        }
+    }
+
+    /// What Done will do with the current "After Capture" settings.
+    private var doneDetail: String {
+        let defaults = UserDefaults.standard
+        let folder = Preferences.saveFolder.lastPathComponent
+        switch (defaults.bool(forKey: PrefKey.copyToClipboard), defaults.bool(forKey: PrefKey.saveToFile)) {
+        case (true, true): return "Copy to the clipboard and save to \(folder), then close."
+        case (true, false): return "Copy to the clipboard, then close (saving is off in Settings)."
+        case (false, true): return "Save to \(folder), then close (copying is off in Settings)."
+        case (false, false): return "Close. Copy and save are both off in Settings → Output."
         }
     }
 }
@@ -167,7 +187,7 @@ private struct ToolButton: View {
         }
         .buttonStyle(.plain)
         .onHover { isHovered = $0 }
-        .help("\(tool.title)  \(tool.keyLabel)")
+        .tooltip(tool.title, tool.detail, shortcut: tool.keyLabel, placement: .below)
         .animation(.snappy(duration: 0.15), value: isSelected)
     }
 }
@@ -194,7 +214,6 @@ private struct ColorSwatch: View {
 
 private struct IconButton: View {
     let symbol: String
-    let help: String
     let action: () -> Void
     @State private var isHovered = false
     @Environment(\.isEnabled) private var isEnabled
@@ -210,7 +229,26 @@ private struct IconButton: View {
         .buttonStyle(.plain)
         .opacity(isEnabled ? 1 : 0.35)
         .onHover { isHovered = $0 }
-        .help(help)
+    }
+}
+
+private struct LabeledButton: View {
+    let symbol: String
+    let title: String
+    let action: () -> Void
+    @State private var isHovered = false
+
+    var body: some View {
+        Button(action: action) {
+            Label(title, systemImage: symbol)
+                .font(.system(size: 13, weight: .medium))
+                .padding(.horizontal, 10)
+                .frame(height: 32)
+                .background(Capsule().fill(Color.primary.opacity(isHovered ? 0.12 : 0.06)))
+                .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .onHover { isHovered = $0 }
     }
 }
 
@@ -223,14 +261,12 @@ private struct DoneButton: View {
                 .buttonStyle(.glassProminent)
                 .controlSize(.large)
                 .keyboardShortcut(.return, modifiers: .command)
-                .help("Copy or save per your “After Capture” settings and close (⌘↩)")
         } else {
             Button("Done", action: action)
                 .buttonStyle(.borderedProminent)
                 .buttonBorderShape(.capsule)
                 .controlSize(.large)
                 .keyboardShortcut(.return, modifiers: .command)
-                .help("Copy or save per your “After Capture” settings and close (⌘↩)")
         }
     }
 }
