@@ -33,6 +33,8 @@ enum PrefKey {
     static let windowShadow = "windowShadow"
     static let timerDelay = "timerDelay"
     static let playSound = "playSound"
+    static let captureStartAnimation = "captureStartAnimation"
+    static let captureStartSound = "captureStartSound"
     static let colorFormat = "colorFormat"
 
     static let imageFormat = "imageFormat"
@@ -76,6 +78,8 @@ enum Preferences {
             PrefKey.windowShadow: true,
             PrefKey.timerDelay: 5,
             PrefKey.playSound: true,
+            PrefKey.captureStartAnimation: true,
+            PrefKey.captureStartSound: true,
             PrefKey.colorFormat: ColorFormat.hex.rawValue,
             PrefKey.imageFormat: ImageFormat.png.rawValue,
             PrefKey.fileNamePrefix: "Glassine",

@@ -74,6 +74,8 @@ private struct CaptureSettings: View {
     @AppStorage(PrefKey.windowShadow) private var windowShadow = true
     @AppStorage(PrefKey.timerDelay) private var timerDelay = 5
     @AppStorage(PrefKey.colorFormat) private var colorFormat = ColorFormat.hex.rawValue
+    @AppStorage(PrefKey.captureStartAnimation) private var startAnimation = true
+    @AppStorage(PrefKey.captureStartSound) private var startSound = true
 
     var body: some View {
         Form {
@@ -84,6 +86,8 @@ private struct CaptureSettings: View {
                     Text("Adjust, then press Return").tag(true)
                 }
                 Toggle("Include window shadow", isOn: $windowShadow)
+                Toggle("Animate when area capture starts", isOn: $startAnimation)
+                Toggle("Sound when area capture starts", isOn: $startSound)
                 Picker("Timer:", selection: $timerDelay) {
                     Text("3 seconds").tag(3)
                     Text("5 seconds").tag(5)
@@ -153,7 +157,7 @@ private struct OutputSettings: View {
                     Text("Never").tag(0)
                 }
                 .disabled(!showQuickAccess)
-                Toggle("Play sound", isOn: $playSound)
+                Toggle("Sound after capture", isOn: $playSound)
             }
 
             Section("Files") {

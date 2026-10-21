@@ -146,14 +146,36 @@ final class CaptureCoordinator {
         // The overlays are non-activating panels: they take keyboard focus (Esc) without
         // activating Glassine. Activating would leave Glassine frontmost after the capture
         // and pull any open Glassine window (e.g. Settings) over the user's app.
+        let defaults = UserDefaults.standard
+        let isArea = overlayMode == .capture
+        let animate = isArea && defaults.bool(forKey: PrefKey.captureStartAnimation)
         let mouse = NSEvent.mouseLocation
         for overlay in overlays {
+            if animate { overlay.alphaValue = 0 }
             overlay.orderFrontRegardless()
             if overlay.frame.contains(mouse) {
                 overlay.makeKey()
             }
         }
+        if animate {
+            // The frozen screen equals the live one, so only the dimming visibly fades in.
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.18
+                context.timingFunction = CAMediaTimingFunction(name: .easeOut)
+                overlays.forEach { $0.animator().alphaValue = 1 }
+            }
+        }
+        if isArea && defaults.bool(forKey: PrefKey.captureStartSound) {
+            Self.startSound?.play()
+        }
     }
+
+    /// A soft click when area capture starts.
+    private static let startSound: NSSound? = {
+        let sound = NSSound(named: "Pop")
+        sound?.volume = 0.35
+        return sound
+    }()
 
     private func finish(with result: OverlayResult, from snapshot: ScreenSnapshot) {
         overlays.forEach { $0.orderOut(nil) }

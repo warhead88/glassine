@@ -144,8 +144,30 @@ private final class SelectionView: NSView {
     override var acceptsFirstResponder: Bool { true }
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 
+    private static let frameCornerRadius: CGFloat = 14
+
+    /// 0…1 while the area frame animates in; 1 when shown without animation.
+    private var frameProgress: CGFloat = 1
+
+    private func animateFrameIn() {
+        frameProgress = 0
+        let start = ContinuousClock.now
+        let duration = Duration.milliseconds(260)
+        Task { [weak self] in
+            while let self, self.frameProgress < 1 {
+                try? await Task.sleep(for: .milliseconds(8))
+                let t = min((ContinuousClock.now - start) / duration, 1)
+                self.frameProgress = 1 - pow(1 - t, 3) // ease out
+                self.needsDisplay = true
+            }
+        }
+    }
+
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
+        if mode == .capture, UserDefaults.standard.bool(forKey: PrefKey.captureStartAnimation) {
+            animateFrameIn()
+        }
         window?.makeFirstResponder(self)
         addTrackingArea(NSTrackingArea(
             rect: .zero,
@@ -197,9 +219,14 @@ private final class SelectionView: NSView {
 
         if mode == .capture {
             // Marks the whole screen as "in area capture" without singling out any window.
-            ctx.setStrokeColor(NSColor.white.withAlphaComponent(0.9).cgColor)
+            // Rounded a bit more than MacBook display corners so the corners aren't cut off.
+            // When animated it fades in from slightly inside the edge.
+            let inset = 1.5 + (1 - frameProgress) * 14
+            ctx.setStrokeColor(NSColor.white.withAlphaComponent(0.9 * frameProgress).cgColor)
             ctx.setLineWidth(3)
-            ctx.stroke(bounds.insetBy(dx: 1.5, dy: 1.5))
+            ctx.addPath(CGPath(roundedRect: bounds.insetBy(dx: inset, dy: inset),
+                               cornerWidth: Self.frameCornerRadius, cornerHeight: Self.frameCornerRadius, transform: nil))
+            ctx.strokePath()
         }
 
         if let measureStart, let measureEnd {
