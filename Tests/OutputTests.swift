@@ -70,6 +70,17 @@ struct ImageEncodingTests {
         #expect(scaled.height == 100)
     }
 
+    @Test func detachedCopyKeepsSizeAndPixels() throws {
+        let screen = try makeImage(width: 400, height: 200)
+        let crop = try #require(screen.cropping(to: CGRect(x: 10, y: 10, width: 30, height: 20)))
+        let copy = try #require(CapturedImage.detached(crop))
+        #expect(copy.width == 30)
+        #expect(copy.height == 20)
+        let pixel = NSBitmapImageRep(cgImage: copy).colorAt(x: 5, y: 5)?.usingColorSpace(.sRGB)
+        let original = NSBitmapImageRep(cgImage: screen).colorAt(x: 15, y: 15)?.usingColorSpace(.sRGB)
+        #expect(pixel?.hexString == original?.hexString, "copy \(pixel?.hexString ?? "-"), original \(original?.hexString ?? "-")")
+    }
+
     @Test func magnifierHexColor() {
         #expect(NSColor(srgbRed: 1, green: 0.5, blue: 0, alpha: 1).hexString == "#FF8000")
         #expect(NSColor(srgbRed: 0.102, green: 0.102, blue: 0.102, alpha: 1).hexString == "#1A1A1A")

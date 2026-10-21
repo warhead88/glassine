@@ -89,3 +89,19 @@ scripts/install.sh                                                     # соб�
 - [ ] Переназначение хоткея работает сразу
 - [ ] «Launch at login» — Glassine появляется в System Settings → General → Login Items
 - [ ] ⌘W закрывает окно, ⌘Q завершает приложение, когда окно в фокусе
+
+## 8. Производительность
+
+Цели — в «Принципах» ROADMAP.md. Последние замеры — там же, в этапе 1.1.
+
+```bash
+PID=$(pgrep -x Glassine)
+footprint -p $PID | head -3                       # память (Footprint)
+top -l 5 -s 2 -pid $PID -stats cpu,idlew          # CPU и пробуждения в простое
+leaks $PID | grep "leaks for"                     # утечки
+/usr/bin/log show --last 10m --predicate 'subsystem == "com.warhead88.glassine" AND eventMessage CONTAINS "Overlay ready"' --style compact
+```
+
+- [ ] В простое ~10 МБ и 0 % CPU
+- [ ] «Overlay ready» < 150 мс (кроме первого захвата после запуска)
+- [ ] После 10 снимков с превью память перестаёт расти, `leaks` — 0

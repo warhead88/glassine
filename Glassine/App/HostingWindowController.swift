@@ -23,11 +23,22 @@ final class HostingWindowController<Content: View> {
             window.center()
             self.window = window
         }
-        // Activation is cooperative since macOS 14 and may be declined when triggered
-        // by a global hotkey, so bring the window forward regardless.
-        NSApp.activate()
+        // Cooperative `NSApp.activate()` (macOS 14+) is declined when an agent app opens a
+        // window right after launch, leaving it inactive behind the frontmost app. These windows
+        // only open on an explicit request (hotkey, relaunch, first launch), so take focus.
+        NSApp.activate(ignoringOtherApps: true)
         window?.makeKeyAndOrderFront(nil)
         window?.orderFrontRegardless()
+
+        let title = title
+        Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(300))
+            let key = self?.window?.isKeyWindow ?? false
+            let frontmost = NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "-"
+            Log.app.notice(
+                "\(title, privacy: .public) shown: active \(NSApp.isActive, privacy: .public), key \(key, privacy: .public), frontmost \(frontmost, privacy: .public)"
+            )
+        }
     }
 
     func close() {

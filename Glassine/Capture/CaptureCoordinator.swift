@@ -25,10 +25,15 @@ final class CaptureCoordinator {
     /// Freeze all screens and let the user select an area or click a window.
     func captureArea() {
         guard begin() else { return }
+        let start = ContinuousClock.now
         Task {
             do {
                 let snapshots = try await ScreenSnapshotter.snapshotAllScreens()
+                let snapshotted = ContinuousClock.now
                 presentOverlays(for: snapshots, windows: WindowList.onScreenWindows())
+                Log.capture.notice(
+                    "Overlay ready in \(Self.ms(start), privacy: .public) ms (snapshot \(Self.ms(start, snapshotted), privacy: .public) ms, \(snapshots.count, privacy: .public) screens)"
+                )
             } catch {
                 fail(error)
             }
@@ -168,6 +173,11 @@ final class CaptureCoordinator {
         } catch {
             presentError(error)
         }
+    }
+
+    private static func ms(_ from: ContinuousClock.Instant, _ to: ContinuousClock.Instant = .now) -> Int {
+        let (seconds, attoseconds) = (to - from).components
+        return Int(seconds) * 1000 + Int(attoseconds / 1_000_000_000_000_000)
     }
 
     private func fail(_ error: Error) {

@@ -27,7 +27,9 @@ final class CapturedImage {
             self.image = downscaled
             self.scale = 1
         } else {
-            self.image = image
+            // A crop (`CGImage.cropping`) shares the whole frozen screen's pixels; copy it so a
+            // small capture doesn't keep a ~24 MB screen snapshot alive while its preview is open.
+            self.image = Self.detached(image) ?? image
             self.scale = scale
         }
         self.format = Preferences.imageFormat
@@ -110,6 +112,17 @@ final class CapturedImage {
         CGImageDestinationAddImage(destination, image, properties as CFDictionary)
         guard CGImageDestinationFinalize(destination) else { throw CocoaError(.fileWriteUnknown) }
         return data as Data
+    }
+
+    /// A copy of the image with its own pixel buffer.
+    static func detached(_ image: CGImage) -> CGImage? {
+        guard let context = CGContext(
+            data: nil, width: image.width, height: image.height, bitsPerComponent: 8, bytesPerRow: 0,
+            space: image.colorSpace ?? CGColorSpace(name: CGColorSpace.sRGB)!,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return nil }
+        context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+        return context.makeImage()
     }
 
     static func downscale(_ image: CGImage, by scale: CGFloat) -> CGImage? {
