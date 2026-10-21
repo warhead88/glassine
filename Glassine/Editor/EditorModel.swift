@@ -11,13 +11,13 @@ final class EditorModel {
 
     private(set) var annotations: [Annotation] = []
     private(set) var crop: CGRect?
-    var selectedID: UUID? { didSet { onChange?() } }
+    var selectedID: UUID? { didSet { changed() } }
 
     var tool: EditorTool = EditorPrefs.tool {
         didSet {
-            EditorPrefs.tool = tool
+            if tool.isDrawingTool { EditorPrefs.tool = tool }
             if tool != .select { selectedID = nil }
-            onChange?()
+            changed()
         }
     }
 
@@ -28,15 +28,24 @@ final class EditorModel {
         }
     }
 
-    var size: AnnotationSize = EditorPrefs.size {
+    /// Stroke width from the slider. While the slider is dragged the selection updates live;
+    /// `endWidthChange` records the whole drag as one undo step.
+    var width: CGFloat = EditorPrefs.width {
         didSet {
-            EditorPrefs.size = size
-            restyleSelection { $0.size = size }
+            EditorPrefs.width = width
+            guard var annotation = selected else { return }
+            if widthEditOriginal == nil { widthEditOriginal = annotation }
+            annotation.width = width
+            previewEdit(annotation)
         }
     }
+    @ObservationIgnored private var widthEditOriginal: Annotation?
 
-    /// Transient status shown in the toolbar ("Copied", "Saved").
+    /// Transient status shown in the editor ("Copied", "Saved").
     var status: String?
+
+    /// Bumped on every change, so SwiftUI refreshes undo/redo availability.
+    private(set) var revision = 0
 
     @ObservationIgnored let undoManager = UndoManager()
     /// Lets the canvas redraw after any change.
@@ -53,10 +62,25 @@ final class EditorModel {
 
     var stepNumbers: [UUID: Int] { AnnotationGeometry.stepNumbers(annotations) }
 
+    var canUndo: Bool { _ = revision; return undoManager.canUndo }
+    var canRedo: Bool { _ = revision; return undoManager.canRedo }
+
+    func undo() { if undoManager.canUndo { undoManager.undo() } }
+    func redo() { if undoManager.canRedo { undoManager.redo() } }
+
     // MARK: Changes (undoable)
 
     func add(_ annotation: Annotation) {
-        commit("Add \(annotationName(annotation))") { $0.annotations.append(annotation) }
+        commit("Add \(annotation.name)") { $0.annotations.append(annotation) }
+    }
+
+    /// Adds a freshly drawn shape; for one-shot tools switches to Select with it selected.
+    func addDrawn(_ annotation: Annotation) {
+        add(annotation)
+        if tool.switchesToSelectAfterDrawing {
+            tool = .select
+            selectedID = annotation.id
+        }
     }
 
     func replace(_ annotation: Annotation, actionName: String = "Edit") {
@@ -78,31 +102,43 @@ final class EditorModel {
         }
     }
 
-    /// Moves an annotation live while dragging, without an undo step per mouse event.
-    func previewMove(_ annotation: Annotation) {
+    /// Updates an annotation live while dragging, without an undo step per mouse event.
+    func previewEdit(_ annotation: Annotation) {
         guard let index = annotations.firstIndex(where: { $0.id == annotation.id }) else { return }
         annotations[index] = annotation
-        onChange?()
+        changed()
     }
 
-    /// Records a finished drag as one undo step, from `original` to the current state.
-    func finishMove(from original: Annotation) {
-        guard let moved = annotations.first(where: { $0.id == original.id }), moved != original else { return }
-        previewMove(original)
-        replace(moved, actionName: "Move")
+    /// Records a finished drag (move or resize) as one undo step, from `original` to now.
+    func finishEdit(from original: Annotation, actionName: String) {
+        guard let edited = annotations.first(where: { $0.id == original.id }), edited != original else { return }
+        previewEdit(original)
+        replace(edited, actionName: actionName)
+    }
+
+    /// Called when the width slider is released.
+    func endWidthChange() {
+        guard let original = widthEditOriginal else { return }
+        widthEditOriginal = nil
+        finishEdit(from: original, actionName: "Change Width")
     }
 
     private func restyleSelection(_ change: (inout Annotation) -> Void) {
         guard var annotation = selected else { return }
         change(&annotation)
-        replace(annotation, actionName: "Change Style")
+        replace(annotation, actionName: "Change Color")
+    }
+
+    private func changed() {
+        revision += 1
+        onChange?()
     }
 
     private func commit(_ actionName: String, _ change: (EditorModel) -> Void) {
         let before = (annotations, crop)
         change(self)
         registerUndo(restoring: before, actionName: actionName)
-        onChange?()
+        changed()
     }
 
     private func registerUndo(restoring state: ([Annotation], CGRect?), actionName: String) {
@@ -114,25 +150,10 @@ final class EditorModel {
                     model.selectedID = nil
                 }
                 model.registerUndo(restoring: current, actionName: actionName)
-                model.onChange?()
+                model.changed()
             }
         }
         undoManager.setActionName(actionName)
-    }
-
-    private func annotationName(_ annotation: Annotation) -> String {
-        switch annotation.shape {
-        case .arrow: "Arrow"
-        case .line: "Line"
-        case .rectangle: "Rectangle"
-        case .ellipse: "Ellipse"
-        case .text: "Text"
-        case .marker: "Marker"
-        case .step: "Step"
-        case .blur: "Blur"
-        case .pixelate: "Pixelate"
-        case .redact: "Redaction"
-        }
     }
 
     // MARK: Export
@@ -157,22 +178,46 @@ final class EditorModel {
     }
 }
 
-/// Last used tool, color and size, remembered between editor windows and launches.
+extension Annotation {
+    var name: String {
+        switch shape {
+        case .arrow: "Arrow"
+        case .line: "Line"
+        case .rectangle: "Rectangle"
+        case .ellipse: "Ellipse"
+        case .text: "Text"
+        case .pen: "Drawing"
+        case .marker: "Marker"
+        case .step: "Step"
+        case .blur: "Blur"
+        case .pixelate: "Pixelate"
+        case .redact: "Redaction"
+        }
+    }
+}
+
+/// Last used drawing tool, color and width, remembered between editor windows and launches.
 enum EditorPrefs {
     private static var defaults: UserDefaults { .standard }
 
     static var tool: EditorTool {
         get { EditorTool(rawValue: defaults.string(forKey: "editorTool") ?? "") ?? .arrow }
-        set { defaults.set(newValue == .crop ? EditorTool.arrow.rawValue : newValue.rawValue, forKey: "editorTool") }
+        set { defaults.set(newValue.rawValue, forKey: "editorTool") }
     }
 
     static var color: RGBA {
-        get { RGBA.palette[min(max(defaults.integer(forKey: "editorColorIndex"), 0), RGBA.palette.count - 1)] }
-        set { defaults.set(RGBA.palette.firstIndex(of: newValue) ?? 0, forKey: "editorColorIndex") }
+        get {
+            guard let c = defaults.array(forKey: "editorColor") as? [Double], c.count == 3 else { return RGBA.palette[0] }
+            return RGBA(red: c[0], green: c[1], blue: c[2])
+        }
+        set { defaults.set([newValue.red, newValue.green, newValue.blue].map(Double.init), forKey: "editorColor") }
     }
 
-    static var size: AnnotationSize {
-        get { AnnotationSize(rawValue: defaults.integer(forKey: "editorSize")) ?? .medium }
-        set { defaults.set(newValue.rawValue, forKey: "editorSize") }
+    static var width: CGFloat {
+        get {
+            let value = defaults.double(forKey: "editorWidth")
+            return value > 0 ? min(max(value, StrokeWidth.range.lowerBound), StrokeWidth.range.upperBound) : StrokeWidth.default
+        }
+        set { defaults.set(Double(newValue), forKey: "editorWidth") }
     }
 }

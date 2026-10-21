@@ -32,19 +32,19 @@ struct AnnotationGeometryTests {
     }
 
     @Test func hitTestingShapes() {
-        let arrow = Annotation(shape: .arrow(from: .zero, to: CGPoint(x: 100, y: 0)), color: RGBA.palette[0], size: .medium)
+        let arrow = Annotation(shape: .arrow(from: .zero, to: CGPoint(x: 100, y: 0)), color: RGBA.palette[0])
         #expect(G.hits(arrow, at: CGPoint(x: 50, y: 4), textBounds: { _ in .zero }))
         #expect(!G.hits(arrow, at: CGPoint(x: 50, y: 30), textBounds: { _ in .zero }))
 
-        let step = Annotation(shape: .step(center: CGPoint(x: 10, y: 10)), color: RGBA.palette[0], size: .medium)
+        let step = Annotation(shape: .step(center: CGPoint(x: 10, y: 10)), color: RGBA.palette[0])
         #expect(G.hits(step, at: CGPoint(x: 20, y: 10), textBounds: { _ in .zero }))
         #expect(!G.hits(step, at: CGPoint(x: 40, y: 10), textBounds: { _ in .zero }))
     }
 
     @Test func stepsAreNumberedInOrderSkippingOtherShapes() {
-        let a = Annotation(shape: .step(center: .zero), color: RGBA.palette[0], size: .small)
-        let line = Annotation(shape: .line(from: .zero, to: CGPoint(x: 1, y: 1)), color: RGBA.palette[0], size: .small)
-        let b = Annotation(shape: .step(center: .zero), color: RGBA.palette[0], size: .small)
+        let a = Annotation(shape: .step(center: .zero), color: RGBA.palette[0])
+        let line = Annotation(shape: .line(from: .zero, to: CGPoint(x: 1, y: 1)), color: RGBA.palette[0])
+        let b = Annotation(shape: .step(center: .zero), color: RGBA.palette[0])
         let numbers = G.stepNumbers([a, line, b])
         #expect(numbers[a.id] == 1)
         #expect(numbers[b.id] == 2)
@@ -52,10 +52,67 @@ struct AnnotationGeometryTests {
     }
 
     @Test func movingKeepsShapeAndIdentity() {
-        let rect = Annotation(shape: .rectangle(CGRect(x: 10, y: 10, width: 20, height: 20)), color: RGBA.palette[0], size: .small)
+        let rect = Annotation(shape: .rectangle(CGRect(x: 10, y: 10, width: 20, height: 20)), color: RGBA.palette[0])
         let moved = rect.moved(by: CGVector(dx: 5, dy: -5))
         #expect(moved.id == rect.id)
         #expect(moved.shape == .rectangle(CGRect(x: 15, y: 5, width: 20, height: 20)))
+    }
+
+    // MARK: Resizing with handles
+
+    private let red = RGBA.palette[0]
+
+    @Test func rectangleCornerHandleResizes() {
+        let rect = Annotation(shape: .rectangle(CGRect(x: 10, y: 10, width: 100, height: 50)), color: red)
+        let resized = rect.resized(.box(.bottomRight), by: CGVector(dx: 20, dy: 10))
+        #expect(resized.shape == .rectangle(CGRect(x: 10, y: 10, width: 120, height: 60)))
+        #expect(resized.id == rect.id)
+    }
+
+    @Test func arrowEndpointsMoveIndependently() {
+        let arrow = Annotation(shape: .arrow(from: .zero, to: CGPoint(x: 100, y: 0)), color: red)
+        #expect(arrow.resized(.end, by: CGVector(dx: 0, dy: 50)).shape == .arrow(from: .zero, to: CGPoint(x: 100, y: 50)))
+        #expect(arrow.resized(.start, by: CGVector(dx: 10, dy: 0)).shape == .arrow(from: CGPoint(x: 10, y: 0), to: CGPoint(x: 100, y: 0)))
+        #expect(arrow.handles().map(\.0) == [.start, .end])
+    }
+
+    @Test func penDrawingScalesWithItsBox() {
+        let pen = Annotation(shape: .pen(points: [.zero, CGPoint(x: 10, y: 20), CGPoint(x: 20, y: 0)]), color: red)
+        let wider = pen.resized(.box(.right), by: CGVector(dx: 20, dy: 0))
+        #expect(wider.shape == .pen(points: [.zero, CGPoint(x: 20, y: 20), CGPoint(x: 40, y: 0)]))
+    }
+
+    @Test func textAndStepsHaveNoHandles() {
+        #expect(Annotation(shape: .text(origin: .zero, string: "Hi"), color: red).handles().isEmpty)
+        #expect(Annotation(shape: .step(center: .zero), color: red).handles().isEmpty)
+        #expect(Annotation(shape: .ellipse(CGRect(x: 0, y: 0, width: 10, height: 10)), color: red).handles().count == 8)
+    }
+
+    @Test func widthScalesTextAndSteps() {
+        let thin = Annotation(shape: .step(center: .zero), color: red, width: 2)
+        let thick = Annotation(shape: .step(center: .zero), color: red, width: 8)
+        #expect(thin.stepDiameter < thick.stepDiameter)
+        #expect(thin.fontSize < thick.fontSize)
+        #expect(Annotation(shape: .step(center: .zero), color: red).fontSize == 24) // default width 4
+    }
+
+    // MARK: Tools
+
+    @Test func everyToolHasItsOwnPhysicalKey() {
+        let codes = EditorTool.allCases.map(\.keyCode)
+        #expect(Set(codes).count == codes.count)
+        #expect(EditorTool.forKeyCode(9) == .select)  // V — the same key in any layout
+        #expect(EditorTool.forKeyCode(2) == .pen)     // D
+        #expect(EditorTool.forKeyCode(46) == .marker) // M
+    }
+
+    @Test func oneShotToolsHandOverToSelect() {
+        #expect(EditorTool.rectangle.switchesToSelectAfterDrawing)
+        #expect(EditorTool.text.switchesToSelectAfterDrawing)
+        // Repeated marks keep their tool: drawing, highlighting, numbering.
+        #expect(!EditorTool.pen.switchesToSelectAfterDrawing)
+        #expect(!EditorTool.marker.switchesToSelectAfterDrawing)
+        #expect(!EditorTool.step.switchesToSelectAfterDrawing)
     }
 
     @Test func lightColorsGetDarkStepNumbers() {
@@ -90,7 +147,7 @@ struct EditorModelTests {
     }
 
     private func redact(_ rect: CGRect) -> Annotation {
-        Annotation(shape: .redact(rect), color: RGBA(red: 0, green: 0, blue: 0), size: .medium)
+        Annotation(shape: .redact(rect), color: RGBA(red: 0, green: 0, blue: 0))
     }
 
     @Test func undoAndRedoAnAnnotation() throws {
@@ -108,8 +165,8 @@ struct EditorModelTests {
         let original = redact(CGRect(x: 0, y: 0, width: 10, height: 10))
         action(model) { model.add(original) }
         action(model) {
-            for dx in 1...5 { model.previewMove(original.moved(by: CGVector(dx: CGFloat(dx), dy: 0))) }
-            model.finishMove(from: original)
+            for dx in 1...5 { model.previewEdit(original.moved(by: CGVector(dx: CGFloat(dx), dy: 0))) }
+            model.finishEdit(from: original, actionName: "Move")
         }
         #expect(model.annotations.first?.shape == .redact(CGRect(x: 5, y: 0, width: 10, height: 10)))
         model.undoManager.undo()

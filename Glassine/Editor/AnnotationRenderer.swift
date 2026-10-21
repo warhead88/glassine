@@ -40,7 +40,7 @@ final class AnnotationRenderer {
 
     func draw(_ annotation: Annotation, number: Int) {
         let color = NSColor(cgColor: annotation.color.cgColor) ?? .red
-        let width = annotation.size.lineWidth
+        let width = annotation.width
 
         switch annotation.shape {
         case .arrow(let from, let to):
@@ -71,20 +71,19 @@ final class AnnotationRenderer {
         case .text(let origin, let string):
             withShadow { NSAttributedString(string: string, attributes: textAttributes(for: annotation)).draw(at: origin) }
 
+        case .pen(let points):
+            stroke(polyline(points), color: color, width: width)
+
         case .marker(let points):
-            guard let first = points.first else { return }
-            let path = NSBezierPath()
-            path.move(to: first)
-            points.dropFirst().forEach { path.line(to: $0) }
-            if points.count == 1 { path.line(to: first) }
-            path.lineWidth = width * 4
+            let path = polyline(points)
+            path.lineWidth = annotation.markerWidth
             path.lineCapStyle = .round
             path.lineJoinStyle = .round
             color.withAlphaComponent(0.4).setStroke()
             path.stroke()
 
         case .step(let center):
-            let d = annotation.size.stepDiameter
+            let d = annotation.stepDiameter
             let circle = NSBezierPath(ovalIn: CGRect(x: center.x - d / 2, y: center.y - d / 2, width: d, height: d))
             withShadow { color.setFill(); circle.fill() }
             let label = NSAttributedString(string: "\(number)", attributes: [
@@ -108,7 +107,7 @@ final class AnnotationRenderer {
 
     func textAttributes(for annotation: Annotation) -> [NSAttributedString.Key: Any] {
         [
-            .font: NSFont.systemFont(ofSize: annotation.size.fontSize, weight: .semibold),
+            .font: NSFont.systemFont(ofSize: annotation.fontSize, weight: .semibold),
             .foregroundColor: NSColor(cgColor: annotation.color.cgColor) ?? .red,
         ]
     }
@@ -121,7 +120,7 @@ final class AnnotationRenderer {
 
     /// Area an annotation covers, for the selection outline.
     func bounds(of annotation: Annotation) -> CGRect {
-        let pad = annotation.size.lineWidth
+        let pad = annotation.width
         switch annotation.shape {
         case .arrow(let a, let b), .line(let a, let b):
             return CGRect(x: min(a.x, b.x), y: min(a.y, b.y), width: abs(a.x - b.x), height: abs(a.y - b.y))
@@ -132,12 +131,12 @@ final class AnnotationRenderer {
             return rect
         case .text:
             return textBounds(annotation)
+        case .pen(let points):
+            return AnnotationGeometry.boundingBox(points).insetBy(dx: -pad, dy: -pad)
         case .marker(let points):
-            let xs = points.map(\.x), ys = points.map(\.y)
-            return CGRect(x: xs.min() ?? 0, y: ys.min() ?? 0, width: (xs.max() ?? 0) - (xs.min() ?? 0),
-                          height: (ys.max() ?? 0) - (ys.min() ?? 0)).insetBy(dx: -pad * 2, dy: -pad * 2)
+            return AnnotationGeometry.boundingBox(points).insetBy(dx: -annotation.markerWidth / 2, dy: -annotation.markerWidth / 2)
         case .step(let center):
-            let r = annotation.size.stepDiameter / 2
+            let r = annotation.stepDiameter / 2
             return CGRect(x: center.x - r, y: center.y - r, width: r * 2, height: r * 2)
         }
     }
@@ -170,6 +169,15 @@ final class AnnotationRenderer {
     }
 
     // MARK: Helpers
+
+    private func polyline(_ points: [CGPoint]) -> NSBezierPath {
+        let path = NSBezierPath()
+        guard let first = points.first else { return path }
+        path.move(to: first)
+        points.dropFirst().forEach { path.line(to: $0) }
+        if points.count == 1 { path.line(to: first) }
+        return path
+    }
 
     private func stroke(_ path: NSBezierPath, color: NSColor, width: CGFloat) {
         path.lineWidth = width
@@ -205,9 +213,4 @@ final class AnnotationRenderer {
         else { return nil }
         return NSImage(cgImage: cgImage, size: pointSize)
     }
-}
-
-extension RGBA {
-    /// Light colors (white, yellow) get dark text on numbered steps.
-    var isLight: Bool { 0.299 * red + 0.587 * green + 0.114 * blue > 0.6 }
 }

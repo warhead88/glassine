@@ -1,19 +1,29 @@
 import AppKit
 
-/// The editing surface: shows the capture fitted to the view and turns mouse and keyboard
-/// input into annotations. All drawing goes through `AnnotationRenderer`.
+/// The editing surface: shows the capture fitted between the floating toolbars and turns
+/// mouse and keyboard input into annotations. All drawing goes through `AnnotationRenderer`.
 @MainActor
-final class EditorCanvasView: NSView, NSTextFieldDelegate {
+final class EditorCanvasView: NSView, NSTextFieldDelegate, NSMenuItemValidation {
     private let model: EditorModel
     private var renderer: AnnotationRenderer { model.renderer }
 
     var onCopy: () -> Void = {}
     var onSave: () -> Void = {}
 
-    private var dragStart: CGPoint?
+    /// Space kept free for the floating toolbar (top) and action bar (bottom).
+    private let insets = NSEdgeInsets(top: 72, left: 32, bottom: 80, right: 32)
+    private let handleRadius: CGFloat = 5
+
+    private enum Drag {
+        case draw(start: CGPoint)
+        case crop(start: CGPoint)
+        case move(start: CGPoint, original: Annotation)
+        case resize(Annotation.Handle, start: CGPoint, original: Annotation)
+    }
+
+    private var drag: Drag?
     private var draft: Annotation?
     private var cropDraft: CGRect?
-    private var moveOriginal: Annotation?
 
     private var textField: NSTextField?
     private var editingText: Annotation?
@@ -38,22 +48,33 @@ final class EditorCanvasView: NSView, NSTextFieldDelegate {
 
     // MARK: Fitting
 
-    /// Fits the image with a margin; small captures may grow up to 2× so they're easy to annotate.
+    private var available: CGRect {
+        CGRect(x: insets.left, y: insets.top, width: bounds.width - insets.left - insets.right,
+               height: bounds.height - insets.top - insets.bottom)
+    }
+
+    /// Fits the image between the bars; small captures may grow up to 2× so they're easy to annotate.
     private var zoom: CGFloat {
-        let margin: CGFloat = 32
         let size = model.imageSize
-        return max(min((bounds.width - margin * 2) / size.width, (bounds.height - margin * 2) / size.height, 2), 0.05)
+        return max(min(available.width / size.width, available.height / size.height, 2), 0.05)
     }
 
     private var imageRect: CGRect {
         let size = CGSize(width: model.imageSize.width * zoom, height: model.imageSize.height * zoom)
-        return CGRect(x: (bounds.width - size.width) / 2, y: (bounds.height - size.height) / 2,
+        return CGRect(x: available.midX - size.width / 2, y: available.midY - size.height / 2,
                       width: size.width, height: size.height).integral
     }
 
     private func imagePoint(_ event: NSEvent) -> CGPoint {
-        let p = convert(event.locationInWindow, from: nil)
-        return CGPoint(x: (p.x - imageRect.minX) / zoom, y: (p.y - imageRect.minY) / zoom)
+        imagePoint(convert(event.locationInWindow, from: nil))
+    }
+
+    private func imagePoint(_ p: CGPoint) -> CGPoint {
+        CGPoint(x: (p.x - imageRect.minX) / zoom, y: (p.y - imageRect.minY) / zoom)
+    }
+
+    private func viewPoint(_ p: CGPoint) -> CGPoint {
+        CGPoint(x: imageRect.minX + p.x * zoom, y: imageRect.minY + p.y * zoom)
     }
 
     private func viewRect(_ rect: CGRect) -> CGRect {
@@ -69,8 +90,19 @@ final class EditorCanvasView: NSView, NSTextFieldDelegate {
     // MARK: Drawing
 
     override func draw(_ dirtyRect: NSRect) {
-        NSColor(white: 0.13, alpha: 1).setFill()
-        bounds.fill()
+        NSGradient(starting: NSColor(white: 0.17, alpha: 1), ending: NSColor(white: 0.09, alpha: 1))?
+            .draw(in: bounds, angle: -90)
+
+        // The capture floats on the backdrop with a soft shadow.
+        NSGraphicsContext.saveGraphicsState()
+        let shadow = NSShadow()
+        shadow.shadowColor = NSColor.black.withAlphaComponent(0.45)
+        shadow.shadowBlurRadius = 24
+        shadow.shadowOffset = NSSize(width: 0, height: -6)
+        shadow.set()
+        NSColor.black.setFill()
+        imageRect.fill()
+        NSGraphicsContext.restoreGraphicsState()
 
         NSGraphicsContext.saveGraphicsState()
         let transform = NSAffineTransform()
@@ -97,12 +129,29 @@ final class EditorCanvasView: NSView, NSTextFieldDelegate {
             NSBezierPath(rect: visible.insetBy(dx: 0.5, dy: 0.5)).stroke()
         }
 
-        if let selected = model.selected {
-            let outline = NSBezierPath(rect: viewRect(renderer.bounds(of: selected)).insetBy(dx: -4, dy: -4))
+        if let selected = model.selected, editingText == nil {
+            drawSelection(selected)
+        }
+    }
+
+    private func drawSelection(_ annotation: Annotation) {
+        let handles = annotation.handles()
+        if handles.isEmpty || handles.count == 8 {
+            let outline = NSBezierPath(rect: viewRect(renderer.bounds(of: annotation)).insetBy(dx: -3, dy: -3))
             outline.setLineDash([4, 3], count: 2, phase: 0)
             outline.lineWidth = 1
             NSColor.controlAccentColor.setStroke()
             outline.stroke()
+        }
+        for (_, point) in handles {
+            let center = viewPoint(point)
+            let dot = NSBezierPath(ovalIn: CGRect(x: center.x - handleRadius, y: center.y - handleRadius,
+                                                  width: handleRadius * 2, height: handleRadius * 2))
+            NSColor.white.setFill()
+            dot.fill()
+            NSColor.controlAccentColor.setStroke()
+            dot.lineWidth = 1.5
+            dot.stroke()
         }
     }
 
@@ -113,83 +162,127 @@ final class EditorCanvasView: NSView, NSTextFieldDelegate {
         default: .crosshair
         }
         addCursorRect(imageRect, cursor: cursor)
+        if model.tool == .select, let selected = model.selected {
+            for (handle, point) in selected.handles() {
+                let c = viewPoint(point)
+                let rect = CGRect(x: c.x - handleRadius - 2, y: c.y - handleRadius - 2,
+                                  width: (handleRadius + 2) * 2, height: (handleRadius + 2) * 2)
+                addCursorRect(rect, cursor: resizeCursor(for: handle))
+            }
+        }
+    }
+
+    private func resizeCursor(for handle: Annotation.Handle) -> NSCursor {
+        switch handle {
+        case .box(.left), .box(.right): .resizeLeftRight
+        case .box(.top), .box(.bottom): .resizeUpDown
+        default: .crosshair
+        }
     }
 
     // MARK: Mouse
 
+    private func handle(at viewLocation: CGPoint) -> Annotation.Handle? {
+        guard model.tool == .select, let selected = model.selected else { return nil }
+        return selected.handles().first { _, point in
+            let c = viewPoint(point)
+            return hypot(c.x - viewLocation.x, c.y - viewLocation.y) <= handleRadius + 3
+        }?.0
+    }
+
     override func mouseDown(with event: NSEvent) {
         commitTextEditing()
         window?.makeFirstResponder(self)
-        let point = imagePoint(event)
-        dragStart = point
+        let location = convert(event.locationInWindow, from: nil)
+        let point = imagePoint(location)
 
         switch model.tool {
         case .select:
+            if let handle = handle(at: location), let selected = model.selected {
+                drag = .resize(handle, start: point, original: selected)
+                return
+            }
             let hit = renderer.hitTest(model.annotations, at: point)
             if event.clickCount == 2, let hit, case .text = hit.shape {
                 beginTextEditing(hit, existing: true)
                 return
             }
             model.selectedID = hit?.id
-            moveOriginal = hit
+            if let hit { drag = .move(start: point, original: hit) }
         case .text:
             if let hit = renderer.hitTest(model.annotations, at: point), case .text = hit.shape {
                 beginTextEditing(hit, existing: true)
             } else {
-                beginTextEditing(Annotation(shape: .text(origin: point, string: ""), color: model.color, size: model.size), existing: false)
+                beginTextEditing(newAnnotation(.text(origin: point, string: "")), existing: false)
             }
         case .step:
-            model.add(Annotation(shape: .step(center: point), color: model.color, size: model.size))
+            model.add(newAnnotation(.step(center: point)))
         case .crop:
+            drag = .crop(start: point)
             cropDraft = CGRect(origin: point, size: .zero)
+        case .pen:
+            drag = .draw(start: point)
+            draft = newAnnotation(.pen(points: [point]))
         case .marker:
-            draft = Annotation(shape: .marker(points: [point]), color: model.color, size: model.size)
+            drag = .draw(start: point)
+            draft = newAnnotation(.marker(points: [point]))
         default:
+            drag = .draw(start: point)
             draft = makeDraft(from: point, to: point, shift: false)
         }
     }
 
     override func mouseDragged(with event: NSEvent) {
-        guard let start = dragStart else { return }
+        guard let drag else { return }
         let point = imagePoint(event)
         let shift = event.modifierFlags.contains(.shift)
 
-        switch model.tool {
-        case .select:
-            if let moveOriginal {
-                model.previewMove(moveOriginal.moved(by: CGVector(dx: point.x - start.x, dy: point.y - start.y)))
+        switch drag {
+        case .move(let start, let original):
+            model.previewEdit(original.moved(by: CGVector(dx: point.x - start.x, dy: point.y - start.y)))
+        case .resize(let handle, let start, let original):
+            var target = point
+            if shift, case .arrow(let a, let b) = original.shape {
+                target = AnnotationGeometry.snapped(point, from: handle == .start ? b : a)
+            } else if shift, case .line(let a, let b) = original.shape {
+                target = AnnotationGeometry.snapped(point, from: handle == .start ? b : a)
             }
-        case .crop:
+            model.previewEdit(original.resized(handle, by: CGVector(dx: target.x - start.x, dy: target.y - start.y)))
+        case .crop(let start):
             cropDraft = AnnotationGeometry.rect(from: start, to: point, square: shift).intersection(renderer.imageBounds)
-        case .marker:
-            if case .marker(let points)? = draft?.shape {
-                draft?.shape = .marker(points: points + [point])
+        case .draw(let start):
+            switch draft?.shape {
+            case .pen(let points): draft?.shape = .pen(points: points + [point])
+            case .marker(let points): draft?.shape = .marker(points: points + [point])
+            default: draft = makeDraft(from: start, to: point, shift: shift)
             }
-        case .text, .step:
-            break
-        default:
-            draft = makeDraft(from: start, to: point, shift: shift)
         }
         needsDisplay = true
     }
 
     override func mouseUp(with event: NSEvent) {
         defer {
-            dragStart = nil
+            drag = nil
             draft = nil
             cropDraft = nil
-            moveOriginal = nil
             needsDisplay = true
         }
-        if let moveOriginal {
-            model.finishMove(from: moveOriginal)
+        switch drag {
+        case .move(_, let original):
+            model.finishEdit(from: original, actionName: "Move")
+        case .resize(_, _, let original):
+            model.finishEdit(from: original, actionName: "Resize")
+        case .crop:
+            if let cropDraft, cropDraft.width >= 4, cropDraft.height >= 4 { model.setCrop(cropDraft) }
+        case .draw:
+            if let draft, isUsable(draft) { model.addDrawn(draft) }
+        case nil:
+            break
         }
-        if let cropDraft, cropDraft.width >= 4, cropDraft.height >= 4 {
-            model.setCrop(cropDraft)
-        }
-        if let draft, isUsable(draft) {
-            model.add(draft)
-        }
+    }
+
+    private func newAnnotation(_ shape: Annotation.Shape) -> Annotation {
+        Annotation(shape: shape, color: model.color, width: model.width)
     }
 
     private func makeDraft(from a: CGPoint, to b: CGPoint, shift: Bool) -> Annotation? {
@@ -203,7 +296,7 @@ final class EditorCanvasView: NSView, NSTextFieldDelegate {
         case .redact: .redact(AnnotationGeometry.rect(from: a, to: b, square: shift))
         default: nil
         }
-        return shape.map { Annotation(shape: $0, color: model.color, size: model.size) }
+        return shape.map(newAnnotation)
     }
 
     /// Ignores accidental clicks that would leave invisible annotations.
@@ -211,7 +304,7 @@ final class EditorCanvasView: NSView, NSTextFieldDelegate {
         switch annotation.shape {
         case .arrow(let a, let b), .line(let a, let b): hypot(b.x - a.x, b.y - a.y) >= 4
         case .rectangle(let r), .ellipse(let r), .blur(let r), .pixelate(let r), .redact(let r): r.width >= 3 && r.height >= 3
-        case .marker, .text, .step: true
+        case .pen, .marker, .text, .step: true
         }
     }
 
@@ -221,19 +314,18 @@ final class EditorCanvasView: NSView, NSTextFieldDelegate {
         guard case .text(let origin, let string) = annotation.shape else { return }
         editingText = annotation
         editingExisting = existing
-        model.selectedID = nil
 
         let field = NSTextField(string: string)
         field.isBordered = false
         field.drawsBackground = false
         field.focusRingType = .none
-        field.font = NSFont.systemFont(ofSize: annotation.size.fontSize * zoom, weight: .semibold)
+        field.font = NSFont.systemFont(ofSize: annotation.fontSize * zoom, weight: .semibold)
         field.textColor = NSColor(cgColor: annotation.color.cgColor)
         field.delegate = self
         field.placeholderString = "Text"
         let fieldOrigin = CGPoint(x: imageRect.minX + origin.x * zoom - 2, y: imageRect.minY + origin.y * zoom - 1)
         field.frame = CGRect(origin: fieldOrigin, size: CGSize(width: max(bounds.maxX - fieldOrigin.x - 8, 60),
-                                                           height: annotation.size.fontSize * zoom * 1.35))
+                                                                height: annotation.fontSize * zoom * 1.35))
         addSubview(field)
         textField = field
         window?.makeFirstResponder(field)
@@ -246,7 +338,7 @@ final class EditorCanvasView: NSView, NSTextFieldDelegate {
 
     func control(_ control: NSControl, textView: NSTextView, doCommandBy selector: Selector) -> Bool {
         if selector == #selector(cancelOperation(_:)) {
-            cancelTextEditing()
+            finishTextField()
             return true
         }
         return false
@@ -265,12 +357,8 @@ final class EditorCanvasView: NSView, NSTextFieldDelegate {
                 model.replace(annotation, actionName: "Edit Text")
             }
         } else if !text.isEmpty {
-            model.add(annotation)
+            model.addDrawn(annotation)
         }
-    }
-
-    private func cancelTextEditing() {
-        finishTextField()
     }
 
     private func finishTextField() {
@@ -290,11 +378,13 @@ final class EditorCanvasView: NSView, NSTextFieldDelegate {
         case 51, 117: // Delete, Forward Delete
             model.deleteSelected()
             return
-        case 53: // Esc
-            if draft != nil || cropDraft != nil {
+        case 53: // Esc: cancel the drag, then deselect
+            if drag != nil {
+                if case .move(_, let original)? = drag { model.previewEdit(original) }
+                if case .resize(_, _, let original)? = drag { model.previewEdit(original) }
+                drag = nil
                 draft = nil
                 cropDraft = nil
-                dragStart = nil
                 needsDisplay = true
             } else {
                 model.selectedID = nil
@@ -315,16 +405,33 @@ final class EditorCanvasView: NSView, NSTextFieldDelegate {
             break
         }
 
-        if modifiers.isEmpty, let key = event.charactersIgnoringModifiers?.lowercased().first,
-           let tool = EditorTool.allCases.first(where: { $0.key == key }) {
+        // Tools by physical key, so they work in any keyboard layout (e.g. Russian).
+        if modifiers.isEmpty, let tool = EditorTool.forKeyCode(event.keyCode) {
             model.tool = tool
             return
         }
         super.keyDown(with: event)
     }
 
-    // Responder-chain actions from the main menu (⌘C, ⌘S, Delete).
+    // Responder-chain actions from the main menu: ⌘Z, ⇧⌘Z, ⌘C, ⌘S, Delete.
+    @objc func undo(_ sender: Any?) { model.undo() }
+    @objc func redo(_ sender: Any?) { model.redo() }
     @objc func copy(_ sender: Any?) { onCopy() }
     @objc func saveDocument(_ sender: Any?) { onSave() }
     @objc func delete(_ sender: Any?) { model.deleteSelected() }
+
+    func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+        switch menuItem.action {
+        case #selector(undo(_:)):
+            menuItem.title = model.undoManager.undoMenuItemTitle
+            return model.undoManager.canUndo
+        case #selector(redo(_:)):
+            menuItem.title = model.undoManager.redoMenuItemTitle
+            return model.undoManager.canRedo
+        case #selector(delete(_:)):
+            return model.selected != nil
+        default:
+            return true
+        }
+    }
 }
