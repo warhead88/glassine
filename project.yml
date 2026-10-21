@@ -23,6 +23,10 @@ targets:
     platform: macOS
     sources:
       - path: Glassine
+      # App icon: Icon Composer document (Liquid Glass on macOS 26+, flat .icns fallback for 14–15)
+      - path: Design/glassine.icon
+        type: file
+        buildPhase: resources
     dependencies:
       - package: KeyboardShortcuts
     settings:
@@ -34,5 +38,5 @@ targets:
         CODE_SIGN_STYLE: Automatic
         DEVELOPMENT_TEAM: 7MJWXG9L6K
         ENABLE_HARDENED_RUNTIME: YES
-        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_APPICON_NAME: glassine
         COMBINE_HIDPI_IMAGES: YES

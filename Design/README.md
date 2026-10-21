@@ -2,6 +2,7 @@
 
 | File | What |
 |---|---|
+| `glassine.icon` | **App icon** — Icon Composer document, built into the app via `project.yml` |
 | `glassine-g.svg` | The G alone, outlines, transparent 1024×1024 — **layer for Icon Composer** |
 | `glassine-v2.svg` | Current logo: G on the macOS icon grid (824×824 body, 185 pt corners) |
 | `glassine-v1.svg/.png` | First version (Apple Chancery, text — not outlines). Kept for history |
@@ -26,7 +27,8 @@ swift Design/tools/glyphs.swift svg Design/fonts/Fraunces-Italic.ttf 400 Design/
 4. Select the G layer: keep fill `#cccccc` or set it there; play with **Liquid Glass**
    (on/off), **Translucency**, **Shadow** (Neutral/Chromatic), **Specular**.
 5. Check the appearance previews at the top: Default, Dark, Clear, Tinted.
-6. File → Save as `Design/Glassine.icon`.
+6. File → Save (`Design/glassine.icon`), then `scripts/install.sh`.
 
-Then Claude wires it into `project.yml` (the `.icon` replaces the empty `AppIcon` asset);
-Xcode generates flat images for macOS 14–15 from the same file.
+The build compiles it into `Assets.car` (Liquid Glass, macOS 26+) and `glassine.icns`
+(flat, macOS 14–15). Exports from Icon Composer (`Icon Exports/`) are previews only and not committed.
+If Finder keeps showing an old icon: `touch /Applications/Glassine.app`.
