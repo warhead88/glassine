@@ -16,7 +16,7 @@ Builds go to `build.noindex/` so Spotlight doesn't show duplicate copies of the 
 ## Conventions
 
 - Agent app (`LSUIElement`): no Dock icon. Menu bar icon is optional and off by default.
-  Relaunching the app opens Settings; first launch opens Settings too.
+  Relaunching the app opens Settings; first launch (or missing permission) opens the Welcome window.
 - Clean uninstall: write only to paths listed in `Glassine/Core/AppPaths.swift`
   (Application Support / Caches / Logs / Preferences, all named by bundle ID).
   No privileged helpers, LaunchDaemons or .pkg installers. Login item only via `SMAppService.mainApp`.
@@ -24,5 +24,6 @@ Builds go to `build.noindex/` so Spotlight doesn't show duplicate copies of the 
 - Not sandboxed (Developer ID distribution).
 - Features go in their own folder under `Glassine/` (`Capture/`, `Settings/`, …).
 - Plan and priorities live in `ROADMAP.md`; tick items off there when they ship.
+- Manual QA checklist: `TESTING.md` — extend it when a feature ships.
 - Logs: `/usr/bin/log stream --predicate 'subsystem == "com.warhead88.glassine"'` (plain `log` is a zsh builtin).
 - Debug builds: `open /Applications/Glassine.app --args --debug-preview` shows sample previews without the hotkey.
