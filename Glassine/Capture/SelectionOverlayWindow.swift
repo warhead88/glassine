@@ -72,7 +72,8 @@ private final class SelectionView: NSView {
     private let windows: [(id: CGWindowID, rect: NSRect)]
     private let onFinish: (OverlayResult) -> Void
 
-    private let showMagnifier = UserDefaults.standard.bool(forKey: PrefKey.showMagnifier)
+    /// Toggled with M in the overlay; the choice is remembered for next time.
+    private var showMagnifier = UserDefaults.standard.bool(forKey: PrefKey.showMagnifier)
     private let adjustBeforeCapture = UserDefaults.standard.bool(forKey: PrefKey.adjustBeforeCapture)
 
     private var selection: NSRect?
@@ -147,11 +148,11 @@ private final class SelectionView: NSView {
             if isAdjusting { drawHandles(for: selection, in: ctx) }
             drawSizeLabel(for: selection)
         } else if let hovered = hoveredWindow?.rect.intersection(bounds) {
-            ctx.setFillColor(NSColor.controlAccentColor.withAlphaComponent(0.18).cgColor)
-            ctx.fill(hovered)
-            ctx.setStrokeColor(NSColor.controlAccentColor.cgColor)
-            ctx.setLineWidth(2)
-            ctx.stroke(hovered.insetBy(dx: 1, dy: 1))
+            // The window is shown undimmed, like a spotlight; a thin neutral outline marks
+            // its edge where the surroundings are already dark.
+            ctx.setStrokeColor(NSColor.white.withAlphaComponent(0.7).cgColor)
+            ctx.setLineWidth(1)
+            ctx.stroke(hovered.insetBy(dx: 0.5, dy: 0.5))
         }
 
         if let cursorPoint, !isAdjusting || dragMode != nil {
@@ -391,6 +392,11 @@ private final class SelectionView: NSView {
             if isAdjusting { captureSelection() }
         case 49: // Space
             if case .create = dragMode, selection != nil { isSpaceMoving = true }
+        case 46: // M
+            showMagnifier.toggle()
+            UserDefaults.standard.set(showMagnifier, forKey: PrefKey.showMagnifier)
+            updateCursorColor()
+            needsDisplay = true
         case 123, 124, 125, 126: // Arrows
             guard isAdjusting, let selection else { return }
             let step: CGFloat = event.modifierFlags.contains(.shift) ? 10 : 1 / snapshot.scale

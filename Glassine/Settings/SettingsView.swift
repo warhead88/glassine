@@ -77,7 +77,7 @@ private struct CaptureSettings: View {
     var body: some View {
         Form {
             Section {
-                Toggle("Show magnifier", isOn: $showMagnifier)
+                Toggle("Show magnifier (press M while capturing)", isOn: $showMagnifier)
                 Picker("After selecting an area:", selection: $adjustBeforeCapture) {
                     Text("Capture immediately").tag(false)
                     Text("Adjust, then press Return").tag(true)
@@ -97,6 +97,7 @@ private struct CaptureSettings: View {
                     tip("⇧ Shift", "square selection")
                     tip("⌥ Option", "select from the center")
                     tip("Space", "hold to move the selection while dragging")
+                    tip("M", "show or hide the magnifier")
                     tip("Esc", "cancel")
                 }
                 .font(.callout)
