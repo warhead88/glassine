@@ -36,7 +36,9 @@ final class CaptureCoordinator {
             }
         }
 
-        NSApp.activate()
+        // The overlays are non-activating panels: they take keyboard focus (Esc) without
+        // activating Glassine. Activating would leave Glassine frontmost after the capture
+        // and pull any open Glassine window (e.g. Settings) over the user's app.
         let mouse = NSEvent.mouseLocation
         for overlay in overlays {
             overlay.orderFrontRegardless()
