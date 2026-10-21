@@ -1,0 +1,326 @@
+import AppKit
+import UniformTypeIdentifiers
+
+/// Floating thumbnail of a fresh capture: drag it into any app, copy, save or close it.
+/// Never activates Glassine, so the app the user is working in keeps focus.
+@MainActor
+final class QuickAccessPanel: NSPanel {
+    let capture: CapturedImage
+    private let autoClose: Duration?
+    private let onClose: (QuickAccessPanel) -> Void
+    private var closeTask: Task<Void, Never>?
+    private var isDismissing = false
+
+    init(capture: CapturedImage, autoClose: Duration?, onClose: @escaping (QuickAccessPanel) -> Void) {
+        self.capture = capture
+        self.autoClose = autoClose
+        self.onClose = onClose
+        super.init(
+            contentRect: NSRect(origin: .zero, size: Self.thumbnailSize(for: capture.pointSize)),
+            styleMask: [.borderless, .nonactivatingPanel],
+            backing: .buffered,
+            defer: false
+        )
+        level = .floating
+        collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
+        isOpaque = false
+        backgroundColor = .clear
+        hasShadow = true
+        hidesOnDeactivate = false
+        isReleasedWhenClosed = false
+        becomesKeyOnlyIfNeeded = true
+
+        contentView = ThumbnailView(capture: capture, panel: self)
+        scheduleAutoClose()
+    }
+
+    override var canBecomeKey: Bool { true }
+
+    /// The countdown pauses while the pointer is over the preview.
+    func setHovering(_ hovering: Bool) {
+        if hovering {
+            closeTask?.cancel()
+        } else {
+            scheduleAutoClose()
+        }
+    }
+
+    func dismiss() {
+        guard !isDismissing else { return }
+        isDismissing = true
+        closeTask?.cancel()
+        onClose(self)
+
+        NSAnimationContext.runAnimationGroup({ context in
+            context.duration = 0.2
+            animator().setFrame(frame.offsetBy(dx: frame.width / 2, dy: 0), display: true)
+            animator().alphaValue = 0
+        }, completionHandler: {
+            MainActor.assumeIsolated { self.orderOut(nil) }
+        })
+    }
+
+    private func scheduleAutoClose() {
+        closeTask?.cancel()
+        guard let autoClose else { return }
+        closeTask = Task { [weak self] in
+            try? await Task.sleep(for: autoClose)
+            guard !Task.isCancelled else { return }
+            self?.dismiss()
+        }
+    }
+
+    /// Fits the capture into a 220×150 pt box, but never smaller than the controls need.
+    private static func thumbnailSize(for size: NSSize) -> NSSize {
+        let maxSize = NSSize(width: 220, height: 150)
+        let minSize = NSSize(width: 140, height: 90)
+        let fit = min(maxSize.width / max(size.width, 1), maxSize.height / max(size.height, 1), 1)
+        return NSSize(
+            width: max((size.width * fit).rounded(), minSize.width),
+            height: max((size.height * fit).rounded(), minSize.height)
+        )
+    }
+}
+
+@MainActor
+private final class ThumbnailView: NSView, NSDraggingSource {
+    private let capture: CapturedImage
+    private unowned let panel: QuickAccessPanel
+
+    private let overlay = NSView()
+    private lazy var copyButton = PillButton(label: "Copy", target: self, action: #selector(copyImage))
+    private lazy var saveButton = PillButton(label: "", target: self, action: #selector(saveOrReveal))
+    private lazy var closeButton = FirstMouseButton(
+        image: NSImage(systemSymbolName: "xmark.circle.fill", accessibilityDescription: "Close")!,
+        target: self, action: #selector(close)
+    )
+
+    private var mouseDownPoint: NSPoint?
+    private var resetCopyTitle: Task<Void, Never>?
+
+    init(capture: CapturedImage, panel: QuickAccessPanel) {
+        self.capture = capture
+        self.panel = panel
+        super.init(frame: NSRect(origin: .zero, size: panel.frame.size))
+
+        wantsLayer = true
+        // Aspect-fit on a neutral backdrop, so tall or tiny captures are shown whole.
+        layer?.contents = capture.image
+        layer?.contentsGravity = .resizeAspect
+        layer?.backgroundColor = NSColor(white: 0.12, alpha: 0.95).cgColor
+        layer?.cornerRadius = 10
+        layer?.cornerCurve = .continuous
+        layer?.masksToBounds = true
+        layer?.borderWidth = 1
+        layer?.borderColor = NSColor.white.withAlphaComponent(0.2).cgColor
+
+        setUpOverlay()
+        updateSaveTitle()
+
+        addTrackingArea(NSTrackingArea(
+            rect: .zero,
+            options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect],
+            owner: self
+        ))
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError() }
+
+    private func setUpOverlay() {
+        overlay.wantsLayer = true
+        overlay.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.35).cgColor
+        overlay.alphaValue = 0
+        overlay.frame = bounds
+        overlay.autoresizingMask = [.width, .height]
+        addSubview(overlay)
+
+        let stack = NSStackView(views: [copyButton, saveButton])
+        stack.orientation = .vertical
+        stack.spacing = 6
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        overlay.addSubview(stack)
+
+        closeButton.isBordered = false
+        closeButton.contentTintColor = .white
+        closeButton.symbolConfiguration = .init(pointSize: 16, weight: .regular)
+        closeButton.translatesAutoresizingMaskIntoConstraints = false
+        overlay.addSubview(closeButton)
+
+        NSLayoutConstraint.activate([
+            stack.centerXAnchor.constraint(equalTo: overlay.centerXAnchor),
+            stack.centerYAnchor.constraint(equalTo: overlay.centerYAnchor),
+            copyButton.widthAnchor.constraint(equalTo: saveButton.widthAnchor),
+            closeButton.topAnchor.constraint(equalTo: overlay.topAnchor, constant: 6),
+            closeButton.leadingAnchor.constraint(equalTo: overlay.leadingAnchor, constant: 6),
+        ])
+    }
+
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+
+    // MARK: Hover
+
+    override func mouseEntered(with event: NSEvent) { setHovering(true) }
+    override func mouseExited(with event: NSEvent) { setHovering(false) }
+
+    private func setHovering(_ hovering: Bool) {
+        panel.setHovering(hovering)
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.15
+            overlay.animator().alphaValue = hovering ? 1 : 0
+        }
+    }
+
+    // MARK: Click & drag
+
+    override func mouseDown(with event: NSEvent) {
+        mouseDownPoint = event.locationInWindow
+    }
+
+    override func mouseDragged(with event: NSEvent) {
+        guard let start = mouseDownPoint else { return }
+        let point = event.locationInWindow
+        guard hypot(point.x - start.x, point.y - start.y) > 4 else { return }
+        mouseDownPoint = nil
+
+        do {
+            let url = try capture.shareableFileURL()
+            let item = NSDraggingItem(pasteboardWriter: url as NSURL)
+            item.setDraggingFrame(bounds, contents: capture.nsImage)
+            beginDraggingSession(with: [item], event: event, source: self)
+            panel.alphaValue = 0
+        } catch {
+            Alerts.present(error)
+        }
+    }
+
+    override func mouseUp(with event: NSEvent) {
+        guard mouseDownPoint != nil else { return }
+        mouseDownPoint = nil
+        openFile()
+    }
+
+    func draggingSession(_ session: NSDraggingSession, sourceOperationMaskFor context: NSDraggingContext) -> NSDragOperation {
+        context == .outsideApplication ? .copy : []
+    }
+
+    func draggingSession(_ session: NSDraggingSession, endedAt screenPoint: NSPoint, operation: NSDragOperation) {
+        if operation.isEmpty {
+            panel.alphaValue = 1
+            setHovering(panel.frame.contains(NSEvent.mouseLocation))
+        } else {
+            panel.dismiss()
+        }
+    }
+
+    // MARK: Actions
+
+    @objc private func copyImage() {
+        capture.copyToClipboard()
+        copyButton.setLabel("Copied")
+        resetCopyTitle?.cancel()
+        resetCopyTitle = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(1.2))
+            guard !Task.isCancelled else { return }
+            self?.copyButton.setLabel("Copy")
+        }
+    }
+
+    @objc private func saveOrReveal() {
+        do {
+            let alreadySaved = capture.savedURL != nil
+            let url = try capture.save()
+            if alreadySaved {
+                NSWorkspace.shared.activateFileViewerSelecting([url])
+            }
+            updateSaveTitle()
+        } catch {
+            Alerts.present(error)
+        }
+    }
+
+    @objc private func saveAs() {
+        panel.setHovering(true)
+        defer { panel.setHovering(panel.frame.contains(NSEvent.mouseLocation)) }
+
+        let savePanel = NSSavePanel()
+        savePanel.nameFieldStringValue = "\(capture.baseName).png"
+        savePanel.allowedContentTypes = [.png]
+        savePanel.directoryURL = Preferences.saveFolder
+        NSApp.activate()
+        guard savePanel.runModal() == .OK, let url = savePanel.url else { return }
+        do {
+            try capture.save(to: url)
+            updateSaveTitle()
+        } catch {
+            Alerts.present(error)
+        }
+    }
+
+    @objc private func openFile() {
+        do {
+            NSWorkspace.shared.open(try capture.shareableFileURL())
+        } catch {
+            Alerts.present(error)
+        }
+    }
+
+    @objc private func close() {
+        panel.dismiss()
+    }
+
+    private var saveTitle: String { capture.savedURL == nil ? "Save" : "Show in Finder" }
+
+    private func updateSaveTitle() {
+        saveButton.setLabel(saveTitle)
+    }
+
+    override func menu(for event: NSEvent) -> NSMenu? {
+        let menu = NSMenu()
+        menu.addItem(withTitle: "Copy", action: #selector(copyImage), keyEquivalent: "")
+        menu.addItem(withTitle: saveTitle, action: #selector(saveOrReveal), keyEquivalent: "")
+        menu.addItem(withTitle: "Save As…", action: #selector(saveAs), keyEquivalent: "")
+        menu.addItem(withTitle: "Open", action: #selector(openFile), keyEquivalent: "")
+        menu.addItem(.separator())
+        menu.addItem(withTitle: "Close", action: #selector(close), keyEquivalent: "")
+        menu.items.forEach { $0.target = self }
+        return menu
+    }
+}
+
+/// Buttons in a non-key panel must respond to the very first click.
+private class FirstMouseButton: NSButton {
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+}
+
+/// High-contrast button drawn by hand: system bezels render faded in a panel
+/// that never becomes active, which is exactly how the preview works.
+private final class PillButton: FirstMouseButton {
+    convenience init(label: String, target: AnyObject, action: Selector) {
+        self.init(frame: .zero)
+        self.target = target
+        self.action = action
+        isBordered = false
+        wantsLayer = true
+        layer?.cornerRadius = 7
+        layer?.cornerCurve = .continuous
+        setLabel(label)
+        highlight(false)
+    }
+
+    func setLabel(_ label: String) {
+        attributedTitle = NSAttributedString(string: label, attributes: [
+            .font: NSFont.systemFont(ofSize: 12, weight: .semibold),
+            .foregroundColor: NSColor.black.withAlphaComponent(0.85),
+        ])
+        invalidateIntrinsicContentSize()
+    }
+
+    override func highlight(_ flag: Bool) {
+        layer?.backgroundColor = NSColor.white.withAlphaComponent(flag ? 0.7 : 0.92).cgColor
+    }
+
+    override var intrinsicContentSize: NSSize {
+        NSSize(width: super.intrinsicContentSize.width + 24, height: 24)
+    }
+}
