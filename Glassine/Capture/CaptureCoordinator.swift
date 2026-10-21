@@ -32,6 +32,9 @@ final class CaptureCoordinator {
     /// Freeze all screens and let the user select an area or click a window.
     func captureArea() { startOverlay(.capture) }
 
+    /// Click the window under the pointer to capture it.
+    func captureWindow() { startOverlay(.window) }
+
     /// Select an area or click a window; its text (or QR code) goes to the clipboard.
     func captureText() { startOverlay(.text) }
 
@@ -49,7 +52,7 @@ final class CaptureCoordinator {
             do {
                 let snapshots = try await ScreenSnapshotter.snapshotAllScreens()
                 let snapshotted = ContinuousClock.now
-                presentOverlays(for: snapshots, windows: mode.selectsAreas ? WindowList.onScreenWindows() : [])
+                presentOverlays(for: snapshots, windows: mode == .color || mode == .measure ? [] : WindowList.onScreenWindows())
                 Log.capture.notice(
                     "Overlay ready in \(Self.ms(start), privacy: .public) ms (snapshot \(Self.ms(start, snapshotted), privacy: .public) ms, \(snapshots.count, privacy: .public) screens)"
                 )

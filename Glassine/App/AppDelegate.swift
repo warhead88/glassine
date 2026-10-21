@@ -43,6 +43,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         #endif
 
         KeyboardShortcuts.onKeyUp(for: .captureArea) { [weak self] in self?.capture.captureArea() }
+        KeyboardShortcuts.onKeyUp(for: .captureWindow) { [weak self] in self?.capture.captureWindow() }
         KeyboardShortcuts.onKeyUp(for: .captureScreen) { [weak self] in self?.capture.captureScreen() }
         KeyboardShortcuts.onKeyUp(for: .repeatLastArea) { [weak self] in self?.capture.repeatLastArea() }
         KeyboardShortcuts.onKeyUp(for: .timedCapture) { [weak self] in self?.capture.timedCapture() }
@@ -80,6 +81,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func captureArea() { capture.captureArea() }
+    @objc private func captureWindow() { capture.captureWindow() }
     @objc private func captureScreen() { capture.captureScreen() }
     @objc private func repeatLastArea() { capture.repeatLastArea() }
     @objc private func timedCapture() { capture.timedCapture() }
@@ -93,7 +95,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func makeCaptureMenu() -> NSMenu {
         let menu = NSMenu()
         let items: [(String, Selector, KeyboardShortcuts.Name?)] = [
-            ("Capture Area or Window", #selector(captureArea), .captureArea),
+            ("Capture Area", #selector(captureArea), .captureArea),
+            ("Capture Window", #selector(captureWindow), .captureWindow),
             ("Capture Screen", #selector(captureScreen), .captureScreen),
             ("Repeat Last Area", #selector(repeatLastArea), .repeatLastArea),
             ("Capture with Timer", #selector(timedCapture), .timedCapture),

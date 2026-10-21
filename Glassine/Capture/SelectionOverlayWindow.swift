@@ -13,26 +13,34 @@ enum OverlayResult {
 
 /// What the overlay is for. All modes share the frozen screen and the magnifier.
 enum OverlayMode {
-    case capture, text, color, measure
+    /// `capture` selects an area; `window` captures the window under the pointer.
+    case capture, window, text, color, measure
 
     /// One line shown at the top of the screen.
     var hint: String? {
         switch self {
         case .capture: nil
+        case .window: "Click a window to capture it  ·  Space for area  ·  Esc to cancel"
         case .text: "Select text or click a window to copy its text  ·  Esc to cancel"
         case .color: "Click to copy the color  ·  Esc to cancel"
         case .measure: "Drag to measure, Shift for straight lines  ·  C to copy  ·  Esc to close"
         }
     }
 
-    /// Text and capture select areas and windows; color and measure keep the screen undimmed.
-    var selectsAreas: Bool { self == .capture || self == .text }
+    /// Modes where dragging selects an area.
+    var dragsAreas: Bool { self == .capture || self == .text }
+
+    /// Modes where the window under the pointer is highlighted (area mode keeps the screen plain).
+    var highlightsWindows: Bool { self == .window || self == .text }
+
+    /// Capture modes dim the screen; color and measure keep it close to real.
+    var dimsScreen: Bool { self != .color && self != .measure }
 }
 
 /// Borderless full-screen panel showing a frozen snapshot of one screen.
 ///
-/// - Drag to select an area (Shift: square, Option: from center, hold Space: move).
-/// - Click a window to capture it; click the desktop to capture the whole screen.
+/// - Area mode: drag to select (Shift: square, Option: from center, hold Space: move).
+/// - Window mode: click the highlighted window. Space switches between area and window.
 /// - With "adjust before capture" on, the selection stays editable after release:
 ///   drag handles or the inside, arrows nudge (Shift: 10 px), Return captures.
 @MainActor
@@ -92,7 +100,8 @@ private final class SelectionView: NSView {
 
     private let snapshot: ScreenSnapshot
     private let windows: [(id: CGWindowID, rect: NSRect)]
-    private let mode: OverlayMode
+    /// Space switches between `.capture` (area) and `.window`.
+    private var mode: OverlayMode
     private let onFinish: (OverlayResult) -> Void
 
     /// Toggled with M in the overlay; the choice is remembered for next time. Always on for colors.
@@ -158,7 +167,7 @@ private final class SelectionView: NSView {
     override func draw(_ dirtyRect: NSRect) {
         guard let ctx = NSGraphicsContext.current?.cgContext else { return }
         // Colors and distances are judged on the real, undimmed screen.
-        let dim = NSColor.black.withAlphaComponent(mode.selectsAreas ? 0.35 : 0.08).cgColor
+        let dim = NSColor.black.withAlphaComponent(mode.dimsScreen ? 0.35 : 0.08).cgColor
 
         let highlight = selection ?? hoveredWindow?.rect.intersection(bounds)
         ctx.setFillColor(dim)
@@ -184,6 +193,13 @@ private final class SelectionView: NSView {
             ctx.setStrokeColor(NSColor.white.withAlphaComponent(0.7).cgColor)
             ctx.setLineWidth(1)
             ctx.stroke(hovered.insetBy(dx: 0.5, dy: 0.5))
+        }
+
+        if mode == .capture {
+            // Marks the whole screen as "in area capture" without singling out any window.
+            ctx.setStrokeColor(NSColor.white.withAlphaComponent(0.9).cgColor)
+            ctx.setLineWidth(3)
+            ctx.stroke(bounds.insetBy(dx: 1.5, dy: 1.5))
         }
 
         if let measureStart, let measureEnd {
@@ -363,6 +379,8 @@ private final class SelectionView: NSView {
             measureEnd = point
             needsDisplay = true
             return
+        case .window:
+            return // captured on mouse up
         case .capture, .text:
             break
         }
@@ -393,6 +411,7 @@ private final class SelectionView: NSView {
             needsDisplay = true
             return
         }
+        guard mode.dragsAreas else { return }
         if let start = mouseDownPoint, !didDrag {
             guard hypot(point.x - start.x, point.y - start.y) > 3 else { return }
             didDrag = true
@@ -405,7 +424,11 @@ private final class SelectionView: NSView {
     }
 
     override func mouseUp(with event: NSEvent) {
-        guard mode.selectsAreas else { return }
+        if mode == .window {
+            if let hoveredWindow { onFinish(.window(hoveredWindow.id)) }
+            return
+        }
+        guard mode.dragsAreas else { return }
         defer {
             dragMode = nil
             mouseDownPoint = nil
@@ -414,21 +437,17 @@ private final class SelectionView: NSView {
         }
 
         guard didDrag else {
-            // A plain click: capture the window under the cursor, or the whole screen.
             if isAdjusting {
                 if case .create = dragMode { selection = nil; isAdjusting = false }
                 return
             }
-            if let hoveredWindow, mode == .text {
-                // Text comes from what's visible, so crop the frozen screen to the window.
-                let rect = hoveredWindow.rect.intersection(bounds)
-                if let image = snapshot.image.cropping(to: pixelRect(for: rect)) {
-                    onFinish(.area(image, rect: rect))
-                }
-            } else if let hoveredWindow {
-                onFinish(.window(hoveredWindow.id))
-            } else {
-                onFinish(.area(snapshot.image, rect: bounds))
+            // A plain click in area mode does nothing: no accidental captures.
+            guard mode == .text else { return }
+            // Text: the clicked window, or the whole screen. Text comes from what's visible,
+            // so crop the frozen screen rather than capturing the window itself.
+            let rect = hoveredWindow?.rect.intersection(bounds) ?? bounds
+            if let image = snapshot.image.cropping(to: pixelRect(for: rect)) {
+                onFinish(.area(image, rect: rect))
             }
             return
         }
@@ -483,8 +502,16 @@ private final class SelectionView: NSView {
             onFinish(.cancelled)
         case 36, 76: // Return, Enter
             if isAdjusting { captureSelection() }
-        case 49: // Space
-            if case .create = dragMode, selection != nil { isSpaceMoving = true }
+        case 49: // Space: move the selection while dragging, otherwise switch area / window
+            if case .create = dragMode, selection != nil {
+                isSpaceMoving = true
+            } else if dragMode == nil, !isAdjusting, mode == .capture || mode == .window, !event.isARepeat {
+                mode = mode == .capture ? .window : .capture
+                selection = nil
+                hoveredWindow = nil
+                if let cursorPoint { updateHover(at: cursorPoint) }
+                needsDisplay = true
+            }
         case 8: // C: copy the color under the pointer, or the ruler reading
             if mode == .measure, let measureStart, let measureEnd {
                 onFinish(.measurement(Measurement.describe(from: measureStart, to: measureEnd, scale: snapshot.scale)))
@@ -532,7 +559,7 @@ private final class SelectionView: NSView {
 
     private func updateHover(at point: NSPoint) {
         cursorPoint = point
-        if !isAdjusting && dragMode == nil && mode.selectsAreas {
+        if !isAdjusting && dragMode == nil && mode.highlightsWindows {
             hoveredWindow = windows.first { $0.rect.contains(point) }
         }
         updateCursorColor()

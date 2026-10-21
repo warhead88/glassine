@@ -96,11 +96,11 @@ private struct CaptureSettings: View {
 
             Section("Tips") {
                 VStack(alignment: .leading, spacing: 4) {
-                    tip("Click", "capture the window under the pointer, or the screen")
                     tip("Drag", "select an area")
+                    tip("Space", "switch between area and window capture")
                     tip("⇧ Shift", "square selection")
                     tip("⌥ Option", "select from the center")
-                    tip("Space", "hold to move the selection while dragging")
+                    tip("Space ⇢", "hold while dragging to move the selection")
                     tip("M", "show or hide the magnifier")
                     tip("C", "copy the color under the pointer")
                     tip("Esc", "cancel")
@@ -191,7 +191,8 @@ private struct ShortcutSettings: View {
     var body: some View {
         Form {
             Section {
-                KeyboardShortcuts.Recorder("Capture area or window:", name: .captureArea)
+                KeyboardShortcuts.Recorder("Capture area:", name: .captureArea)
+                KeyboardShortcuts.Recorder("Capture window:", name: .captureWindow)
                 KeyboardShortcuts.Recorder("Capture screen:", name: .captureScreen)
                 KeyboardShortcuts.Recorder("Repeat last area:", name: .repeatLastArea)
                 KeyboardShortcuts.Recorder("Capture with timer:", name: .timedCapture)

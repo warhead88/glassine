@@ -3,6 +3,7 @@ import KeyboardShortcuts
 
 extension KeyboardShortcuts.Name {
     static let captureArea = Self("captureArea", default: .init(.two, modifiers: [.command, .shift]))
+    static let captureWindow = Self("captureWindow", default: .init(.two, modifiers: [.command, .option, .shift]))
     static let captureScreen = Self("captureScreen", default: .init(.one, modifiers: [.command, .shift]))
     static let repeatLastArea = Self("repeatLastArea")
     static let timedCapture = Self("timedCapture")
