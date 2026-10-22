@@ -56,6 +56,8 @@ enum PrefKey {
     static let recordingCursor = "recordingCursor"
     static let recordingSystemAudio = "recordingSystemAudio"
     static let recordingMicrophone = "recordingMicrophone"
+    /// JSON `[AudioTrack]`; replaces the two switches above.
+    static let recordingAudioTracks = "recordingAudioTracks"
     static let gifFPS = "gifFPS"
     /// Pixels; 0 = the recording's width.
     static let gifMaxWidth = "gifMaxWidth"
@@ -112,8 +114,6 @@ enum Preferences {
             PrefKey.recordingBitrate: 0,
             PrefKey.recordingRetina: true,
             PrefKey.recordingCursor: true,
-            PrefKey.recordingSystemAudio: false,
-            PrefKey.recordingMicrophone: false,
             PrefKey.gifFPS: 15,
             PrefKey.gifMaxWidth: 800,
             PrefKey.imageFormat: ImageFormat.png.rawValue,

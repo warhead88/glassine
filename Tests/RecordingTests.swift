@@ -1,4 +1,5 @@
 import CoreGraphics
+import Foundation
 import Testing
 @testable import Glassine
 
@@ -83,5 +84,59 @@ struct RecordingTests {
         #expect(!path.contains(CGPoint(x: 2, y: 18)))    // with a rounded outer corner
         let box = path.boundingBoxOfPath
         #expect(abs(box.minX) < 0.01 && abs(box.minY) < 0.01 && abs(box.width - 80) < 0.01 && abs(box.height - 400) < 0.01)
+    }
+}
+
+@Suite("Audio tracks")
+struct AudioTrackTests {
+    let mic = AudioSource.microphone(id: "built-in", name: "MacBook Pro Microphone")
+    let safari = AudioSource.app(bundleID: "com.apple.Safari", name: "Safari")
+    let music = AudioSource.app(bundleID: "com.apple.Music", name: "Music")
+
+    @Test func eachSourceIsCapturedOnceAndMixedIntoItsTrack() {
+        let tracks = [AudioTrack(sources: [.system, mic]), AudioTrack(), AudioTrack(sources: [safari, music])]
+        #expect(AudioTrackPlan.sources(of: tracks) == [.system, mic, safari, music])
+        // The empty track gets no file track.
+        #expect(AudioTrackPlan.mix(tracks) == [[0, 1], [2, 3]])
+    }
+
+    @Test func aSourceBelongsToOneTrack() {
+        let tracks = [AudioTrack(sources: [.system]), AudioTrack(sources: [safari])]
+        #expect(AudioTrackPlan.available([.system, mic, safari, music], in: tracks) == [mic, music])
+    }
+
+    @Test func unavailableSourcesAreDropped() {
+        let tracks = [AudioTrack(sources: [.system, mic]), AudioTrack(sources: [mic])]
+        let without = AudioTrackPlan.removing(\.isMicrophone, from: tracks)
+        #expect(without.map(\.sources) == [[.system], []])
+        #expect(AudioTrackPlan.mix(without) == [[0]])
+    }
+
+    @Test func trackNamesSaySourcesWhenFew() {
+        #expect(AudioTrackPlan.name(of: AudioTrack(sources: [.system, mic]), number: 1) == "System audio + MacBook Pro Microphone")
+        #expect(AudioTrackPlan.name(of: AudioTrack(sources: [.system, mic, safari]), number: 2) == "Track 2")
+    }
+
+    @Test func tracksSurviveSaving() throws {
+        let tracks = [AudioTrack(sources: [.system, mic]), AudioTrack(sources: [safari])]
+        let decoded = try JSONDecoder().decode([AudioTrack].self, from: JSONEncoder().encode(tracks))
+        #expect(decoded == tracks)
+    }
+
+    @Test func gifsHaveNoSound() {
+        var options = RecordingOptions()
+        options.audioTracks = [AudioTrack(sources: [.system])]
+        #expect(options.recordedTracks.count == 1)
+        options.format = .gif
+        #expect(options.recordedTracks.isEmpty)
+    }
+
+    @Test func proResGoesInAMovie() {
+        var options = RecordingOptions()
+        #expect(options.fileExtension == "mp4")
+        options.codec = .prores
+        #expect(options.fileExtension == "mov" && !options.codec.hasBitrate)
+        options.format = .gif
+        #expect(options.fileExtension == "gif")
     }
 }

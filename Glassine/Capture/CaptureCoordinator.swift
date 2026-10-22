@@ -265,6 +265,12 @@ final class CaptureCoordinator {
         let rect = fullScreen ? CGRect(origin: .zero, size: size)
             : CGRect(x: size.width / 4, y: size.height / 4, width: size.width / 2, height: size.height / 2)
         recording.prepare(.area(display: screen, rect: rect), area: screen.globalRect(fromLocalFlipped: rect), on: screen)
+        if CommandLine.arguments.contains("audio") {
+            Task {
+                try? await Task.sleep(for: .milliseconds(400))
+                recording.debugOpenAudioEditor()
+            }
+        }
         guard let seconds else { return }
         recording.record()
         Task {

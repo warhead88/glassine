@@ -41,10 +41,13 @@ All shortcuts can be changed in Settings. Repeat-last-area and timed capture are
 Press <kbd>⌥⇧⌘R</kbd>, then drag an area, click a window (it's followed even when it moves or is
 covered), or press <kbd>↩</kbd> for the whole screen. The controls appear beside it — or, when there's no
 room, docked to the screen edge: format (MP4 or GIF), codec, frame rate, bitrate, scale, pointer,
-system audio and microphone, and which side the controls go. Press the red button or <kbd>↩</kbd>;
+audio tracks, and which side the controls go. Press the red button or <kbd>↩</kbd>;
 after a 3-second countdown they turn into a small player with the time, pause, stop and discard.
 
-Video is hardware-encoded as H.264 (plays everywhere) or HEVC/H.265 (half the size), at 30 or 60 fps.
+Video is hardware-encoded as H.264 (plays everywhere), HEVC/H.265 (half the size) or ProRes 422 (for
+editing, in a .mov), at 30 or 60 fps. Sound is recorded in tracks you put together: each track mixes
+its sources — system audio, a microphone, or single apps — and stays separate in the file, so an
+editor can level your voice apart from the app.
 GIFs are made from the recording at 10–24 fps, scaled to the width you choose. The result lands in the
 same floating preview as screenshots.
 

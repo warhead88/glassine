@@ -5,8 +5,6 @@ import CoreGraphics
 /// a GIF is made from the video when recording stops.
 enum RecordingFormat: String, Hashable {
     case video, gif
-
-    var fileExtension: String { self == .video ? "mp4" : "gif" }
 }
 
 enum VideoCodec: String, CaseIterable, Identifiable {
@@ -14,6 +12,8 @@ enum VideoCodec: String, CaseIterable, Identifiable {
     case h264
     /// About half the size at the same quality; every Apple device since 2017 plays it.
     case hevc
+    /// ProRes 422: nearly lossless and quick to edit (Final Cut, DaVinci, Premiere); files are 10–20× larger.
+    case prores
 
     var id: Self { self }
 
@@ -21,10 +21,22 @@ enum VideoCodec: String, CaseIterable, Identifiable {
         switch self {
         case .h264: "H.264"
         case .hevc: "HEVC"
+        case .prores: "ProRes"
         }
     }
 
-    var avCodec: AVVideoCodecType { self == .h264 ? .h264 : .hevc }
+    var avCodec: AVVideoCodecType {
+        switch self {
+        case .h264: .h264
+        case .hevc: .hevc
+        case .prores: .proRes422
+        }
+    }
+
+    /// ProRes keeps its own quality and lives in QuickTime movies; the others go in MP4.
+    var hasBitrate: Bool { self != .prores }
+    var fileType: AVFileType { self == .prores ? .mov : .mp4 }
+    var fileExtension: String { self == .prores ? "mov" : "mp4" }
 }
 
 /// Everything a recording is made with, read from preferences when it starts.
@@ -37,13 +49,19 @@ struct RecordingOptions {
     /// Record at the screen's pixel density; off records at 1 pixel per point (smaller files).
     var retina = true
     var showsCursor = true
-    var systemAudio = false
-    var microphone = false
+    /// Video only; empty records no sound.
+    var audioTracks: [AudioTrack] = []
     var gifFramesPerSecond = 15
     /// Widest GIF in pixels; 0 keeps the recording's width.
     var gifMaxWidth = 800
 
     /// The options last used; the recording controls change and save them.
+    /// What the recording is saved as: "gif", "mov" (ProRes) or "mp4".
+    var fileExtension: String { format == .gif ? "gif" : codec.fileExtension }
+
+    /// The audio tracks actually recorded: none for a GIF.
+    var recordedTracks: [AudioTrack] { format == .video ? audioTracks.filter { !$0.sources.isEmpty } : [] }
+
     static var current: RecordingOptions {
         let defaults = UserDefaults.standard
         var options = RecordingOptions()
@@ -53,8 +71,16 @@ struct RecordingOptions {
         options.bitrateMbps = defaults.integer(forKey: PrefKey.recordingBitrate)
         options.retina = defaults.bool(forKey: PrefKey.recordingRetina)
         options.showsCursor = defaults.bool(forKey: PrefKey.recordingCursor)
-        options.systemAudio = defaults.bool(forKey: PrefKey.recordingSystemAudio)
-        options.microphone = defaults.bool(forKey: PrefKey.recordingMicrophone)
+        if let data = defaults.data(forKey: PrefKey.recordingAudioTracks),
+           let tracks = try? JSONDecoder().decode([AudioTrack].self, from: data) {
+            options.audioTracks = tracks
+        } else {
+            // Before tracks there were two switches; keep what they recorded, in one track.
+            var sources: [AudioSource] = []
+            if defaults.bool(forKey: PrefKey.recordingSystemAudio) { sources.append(.system) }
+            if defaults.bool(forKey: PrefKey.recordingMicrophone) { sources.append(.microphone(id: nil, name: "Microphone")) }
+            options.audioTracks = sources.isEmpty ? [] : [AudioTrack(sources: sources)]
+        }
         options.gifFramesPerSecond = defaults.integer(forKey: PrefKey.gifFPS)
         options.gifMaxWidth = defaults.integer(forKey: PrefKey.gifMaxWidth)
         return options
@@ -68,8 +94,9 @@ struct RecordingOptions {
         defaults.set(bitrateMbps, forKey: PrefKey.recordingBitrate)
         defaults.set(retina, forKey: PrefKey.recordingRetina)
         defaults.set(showsCursor, forKey: PrefKey.recordingCursor)
-        defaults.set(systemAudio, forKey: PrefKey.recordingSystemAudio)
-        defaults.set(microphone, forKey: PrefKey.recordingMicrophone)
+        defaults.set(try? JSONEncoder().encode(audioTracks), forKey: PrefKey.recordingAudioTracks)
+        defaults.removeObject(forKey: PrefKey.recordingSystemAudio)
+        defaults.removeObject(forKey: PrefKey.recordingMicrophone)
         defaults.set(gifFramesPerSecond, forKey: PrefKey.gifFPS)
         defaults.set(gifMaxWidth, forKey: PrefKey.gifMaxWidth)
     }

@@ -28,6 +28,8 @@ final class RecordingPanelModel {
             onLayoutChange?()
         }
     }
+    /// The audio track editor is open.
+    var editingAudio = false
     /// Recorded time before the last pause, and when recording last (re)started.
     private(set) var elapsedBeforePause: TimeInterval = 0
     private(set) var runningSince: Date?
@@ -139,10 +141,12 @@ struct RecordingPanelView: View {
                        choices: [(30, "30 fps"), (60, "60 fps")], selection: options.framesPerSecond) {
                 model.options.framesPerSecond = $0
             }
-            OptionChip(caption: "BITRATE", value: options.bitrateMbps == 0 ? "Auto" : "\(options.bitrateMbps)M",
-                       choices: [(0, "Automatic")] + [4, 8, 16, 32, 50].map { ($0, "\($0) Mbit/s") },
-                       selection: options.bitrateMbps) {
-                model.options.bitrateMbps = $0
+            if options.codec.hasBitrate {
+                OptionChip(caption: "BITRATE", value: options.bitrateMbps == 0 ? "Auto" : "\(options.bitrateMbps)M",
+                           choices: [(0, "Automatic")] + [4, 8, 16, 32, 50].map { ($0, "\($0) Mbit/s") },
+                           selection: options.bitrateMbps) {
+                    model.options.bitrateMbps = $0
+                }
             }
         } else {
             OptionChip(caption: "FPS", value: "\(options.gifFramesPerSecond)",
@@ -165,14 +169,7 @@ struct RecordingPanelView: View {
             model.options.showsCursor.toggle()
         }
         if options.format == .video {
-            ToggleIcon(symbol: "speaker.wave.2.fill", help: "System audio — what apps play", isOn: options.systemAudio) {
-                model.options.systemAudio.toggle()
-            }
-            ToggleIcon(symbol: "mic.fill", help: model.microphoneAvailable ? "Microphone" : "Microphone needs macOS 15",
-                       isOn: options.microphone && model.microphoneAvailable) {
-                model.options.microphone.toggle()
-            }
-            .disabled(!model.microphoneAvailable)
+            AudioChip(model: model)
         }
         Separator()
 
@@ -247,6 +244,7 @@ private extension VideoCodec {
         switch self {
         case .h264: "H.264 — plays everywhere"
         case .hevc: "HEVC (H.265) — half the size"
+        case .prores: "ProRes 422 — for editing, large files"
         }
     }
 }
@@ -508,3 +506,187 @@ private struct LiveIndicator: View {
         }
     }
 }
+
+// MARK: - Audio tracks
+
+/// "AUDIO · 2 tracks"; opens the track editor.
+private struct AudioChip: View {
+    @Bindable var model: RecordingPanelModel
+    @State private var hovered = false
+
+    var body: some View {
+        let count = model.options.audioTracks.filter { !$0.sources.isEmpty }.count
+        Button { model.editingAudio.toggle() } label: {
+            VStack(spacing: 1) {
+                Text("AUDIO")
+                    .font(.system(size: 8, weight: .semibold))
+                    .tracking(0.6)
+                    .foregroundStyle(.secondary)
+                Text(count == 0 ? "Off" : count == 1 ? "1 track" : "\(count) tracks")
+                    .font(.system(size: 12, weight: .semibold))
+                    .lineLimit(1)
+            }
+            .frame(width: 56, height: 36)
+            .background(RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Color.primary.opacity(hovered || model.editingAudio ? 0.14 : 0.07)))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .onHover { hovered = $0 }
+        .help("Audio tracks: system audio, microphones, single apps")
+        .popover(isPresented: $model.editingAudio, arrowEdge: arrowEdge) {
+            AudioTracksEditor(model: model)
+        }
+    }
+
+    /// The editor opens away from the screen edge the controls are on.
+    private var arrowEdge: Edge {
+        switch model.side {
+        case .right: .leading
+        case .left: .trailing
+        case .below: .top
+        case .above: .bottom
+        }
+    }
+}
+
+private struct AudioTracksEditor: View {
+    let model: RecordingPanelModel
+
+    private var tracks: [AudioTrack] { model.options.audioTracks }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Audio").font(.headline)
+                Text("Each track stays separate in the video; the sources in a track are mixed together.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            if tracks.isEmpty {
+                Text("No sound. Add a track for system audio, a microphone or single apps.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            ForEach(Array(tracks.enumerated()), id: \.element.id) { index, track in
+                TrackCard(model: model, track: track, number: index + 1)
+            }
+
+            Button {
+                model.options.audioTracks.append(AudioTrack())
+            } label: {
+                Label("Add Track", systemImage: "plus")
+            }
+            .controlSize(.small)
+        }
+        .padding(14)
+        .frame(width: 300)
+    }
+}
+
+private struct TrackCard: View {
+    let model: RecordingPanelModel
+    let track: AudioTrack
+    let number: Int
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text("Track \(number)").font(.subheadline.weight(.semibold))
+                Spacer()
+                Button {
+                    model.options.audioTracks.removeAll { $0.id == track.id }
+                } label: {
+                    Image(systemName: "trash").foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help("Remove the track")
+            }
+            ForEach(track.sources, id: \.self) { source in
+                HStack(spacing: 8) {
+                    Group {
+                        if let icon = AudioSourceCatalog.icon(for: source) {
+                            Image(nsImage: icon).resizable()
+                        } else {
+                            Image(systemName: source.symbol).foregroundStyle(.secondary)
+                        }
+                    }
+                    .frame(width: 16, height: 16)
+                    Text(source.title).lineLimit(1)
+                    Spacer()
+                    Button {
+                        update { $0.sources.removeAll { $0 == source } }
+                    } label: {
+                        Image(systemName: "xmark.circle.fill").foregroundStyle(.tertiary)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Remove from the track")
+                }
+                .font(.callout)
+            }
+            AddSourceMenu(model: model) { source in update { $0.sources.append(source) } }
+        }
+        .padding(10)
+        .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color.primary.opacity(0.06)))
+    }
+
+    private func update(_ change: (inout AudioTrack) -> Void) {
+        guard let index = model.options.audioTracks.firstIndex(where: { $0.id == track.id }) else { return }
+        change(&model.options.audioTracks[index])
+    }
+}
+
+/// System audio, microphones and running apps — each only once across tracks.
+private struct AddSourceMenu: View {
+    let model: RecordingPanelModel
+    let add: (AudioSource) -> Void
+
+    var body: some View {
+        let tracks = model.options.audioTracks
+        let system = AudioTrackPlan.available([.system], in: tracks)
+        let microphones = AudioTrackPlan.available(AudioSourceCatalog.microphones, in: tracks)
+        let apps = AudioSourceCatalog.apps.filter { AudioTrackPlan.available([$0.source], in: tracks).count == 1 }
+        Menu {
+            if !system.isEmpty {
+                Button { add(.system) } label: { Label("System Audio (all apps)", systemImage: "speaker.wave.2.fill") }
+            }
+            Section(model.microphoneAvailable ? "Microphones" : "Microphones (macOS 15 or later)") {
+                ForEach(microphones, id: \.self) { microphone in
+                    Button { add(microphone) } label: { Label(microphone.title, systemImage: "mic.fill") }
+                }
+            }
+            .disabled(!model.microphoneAvailable)
+            Section("Apps") {
+                ForEach(apps, id: \.source) { app in
+                    Button { add(app.source) } label: {
+                        Label {
+                            Text(app.source.title)
+                        } icon: {
+                            if let icon = app.icon { Image(nsImage: Self.menuIcon(icon)) }
+                        }
+                    }
+                }
+            }
+        } label: {
+            Label("Add Source", systemImage: "plus.circle")
+                .font(.callout)
+        }
+        .menuStyle(.button)
+        .buttonStyle(.plain)
+        .foregroundStyle(Color.accentColor)
+        .fixedSize()
+    }
+
+    private static func menuIcon(_ icon: NSImage) -> NSImage {
+        let image = NSImage(size: NSSize(width: 16, height: 16))
+        image.lockFocus()
+        icon.draw(in: NSRect(x: 0, y: 0, width: 16, height: 16))
+        image.unlockFocus()
+        return image
+    }
+}
+

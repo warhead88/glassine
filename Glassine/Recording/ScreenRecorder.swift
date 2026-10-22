@@ -20,16 +20,22 @@ enum RecordingError: LocalizedError {
     }
 }
 
-/// Streams the screen with ScreenCaptureKit straight into a hardware-encoded MP4: frames arrive
-/// as GPU surfaces and go to the media engine without being copied or drawn.
+/// Streams the screen with ScreenCaptureKit straight into the hardware encoder: frames arrive as
+/// GPU surfaces and go to the media engine without being copied or drawn.
+///
+/// Sound comes from its own audio-only streams, one per source (system, a microphone, an app —
+/// ScreenCaptureKit filters sound by app). Each source is kept uncompressed on its own track of a
+/// working file; on stop `AudioMixdown` mixes them into the user's tracks and copies the video
+/// over as it is. Without sound the video is written to its final file directly.
 final class ScreenRecorder: NSObject, SCStreamOutput, SCStreamDelegate, @unchecked Sendable {
     // The writer and inputs are used only on `queue` once capture starts.
     private let queue = DispatchQueue(label: "com.warhead88.glassine.recorder", qos: .userInitiated)
-    private var stream: SCStream!
+    private var videoStream: SCStream!
+    private var audioStreams: [SCStream] = []
+    /// Which writer input each audio stream feeds.
+    private var audioInputs: [ObjectIdentifier: AVAssetWriterInput] = [:]
     private let writer: AVAssetWriter
     private let video: AVAssetWriterInput
-    private var systemAudio: AVAssetWriterInput?
-    private var microphone: AVAssetWriterInput?
     private var sessionStarted = false
     private var firstVideoTime = CMTime.invalid
     private var lastVideoTime = CMTime.invalid
@@ -38,7 +44,13 @@ final class ScreenRecorder: NSObject, SCStreamOutput, SCStreamDelegate, @uncheck
     private var pausedSince: CMTime?
     private var pausedTotal = CMTime.zero
 
+    /// The finished recording.
     let url: URL
+    /// Where sources are recorded before the mixdown; nil without sound.
+    private let workingURL: URL?
+    private let mixPlan: [[Int]]
+    private let trackNames: [String]
+    private let codec: VideoCodec
     let pixelSize: (width: Int, height: Int)
     /// The stream stopped by itself (display gone, sharing stopped from the menu bar).
     var onInterrupted: (@MainActor (Error) -> Void)?
@@ -46,17 +58,17 @@ final class ScreenRecorder: NSObject, SCStreamOutput, SCStreamDelegate, @uncheck
     @MainActor
     static func make(_ target: RecordingTarget, options: RecordingOptions, url: URL) async throws -> ScreenRecorder {
         let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
+        let ownApps = content.applications.filter { $0.processID == ProcessInfo.processInfo.processIdentifier }
         let config = SCStreamConfiguration()
         let filter: SCContentFilter
         let size: (width: Int, height: Int)
+        var display = content.displays.first
 
         switch target {
         case .area(let screen, let rect):
-            guard let display = content.displays.first(where: { $0.displayID == screen.displayID }) else {
-                throw RecordingError.unavailable
-            }
+            display = content.displays.first(where: { $0.displayID == screen.displayID })
+            guard let display else { throw RecordingError.unavailable }
             // Glassine's own windows (the recording controls, previews) stay out of the video.
-            let ownApps = content.applications.filter { $0.processID == ProcessInfo.processInfo.processIdentifier }
             filter = SCContentFilter(display: display, excludingApplications: ownApps, exceptingWindows: [])
             size = RecordingMath.pixelSize(points: rect.size, scale: options.retina ? screen.backingScaleFactor : 1)
             if rect.size != screen.frame.size {
@@ -77,83 +89,125 @@ final class ScreenRecorder: NSObject, SCStreamOutput, SCStreamDelegate, @uncheck
         config.pixelFormat = kCVPixelFormatType_32BGRA
         config.colorSpaceName = CGColorSpace.sRGB
         config.queueDepth = 6
-        config.capturesAudio = options.systemAudio
-        config.excludesCurrentProcessAudio = true
-        config.sampleRate = 48_000
-        config.channelCount = 2
-        var microphone = false
-        if #available(macOS 15.0, *), options.microphone {
-            config.captureMicrophone = true
-            microphone = true
-        }
 
-        let recorder = try ScreenRecorder(url: url, size: size, options: options, microphone: microphone)
+        // Sources whose app has quit are left out.
+        let tracks = AudioTrackPlan.removing({ source in
+            if case .app(let id, _) = source { !content.applications.contains { $0.bundleIdentifier == id } } else { false }
+        }, from: options.recordedTracks).filter { !$0.sources.isEmpty }
+        let sources = AudioTrackPlan.sources(of: tracks)
+
+        let recorder = try ScreenRecorder(
+            url: url, size: size, options: options, sourceCount: sources.count,
+            mixPlan: AudioTrackPlan.mix(tracks),
+            trackNames: tracks.enumerated().map { AudioTrackPlan.name(of: $1, number: $0 + 1) }
+        )
         let stream = SCStream(filter: filter, configuration: config, delegate: recorder)
         try stream.addStreamOutput(recorder, type: .screen, sampleHandlerQueue: recorder.queue)
-        if options.systemAudio {
-            try stream.addStreamOutput(recorder, type: .audio, sampleHandlerQueue: recorder.queue)
+        recorder.videoStream = stream
+
+        for (index, source) in sources.enumerated() {
+            guard let display else { throw RecordingError.unavailable }
+            let audio = try Self.audioStream(for: source, display: display, ownApps: ownApps,
+                                             apps: content.applications, recorder: recorder)
+            recorder.audioStreams.append(audio)
+            recorder.audioInputs[ObjectIdentifier(audio)] = recorder.sourceInputs[index]
         }
-        if #available(macOS 15.0, *), microphone {
-            try stream.addStreamOutput(recorder, type: .microphone, sampleHandlerQueue: recorder.queue)
-        }
-        recorder.stream = stream
         return recorder
     }
 
-    private init(url: URL, size: (width: Int, height: Int), options: RecordingOptions, microphone: Bool) throws {
+    /// A stream that only carries sound: its picture is 2×2 pixels once a second and ignored.
+    @MainActor
+    private static func audioStream(for source: AudioSource, display: SCDisplay, ownApps: [SCRunningApplication],
+                                    apps: [SCRunningApplication], recorder: ScreenRecorder) throws -> SCStream {
+        let config = SCStreamConfiguration()
+        config.width = 2
+        config.height = 2
+        config.minimumFrameInterval = CMTime(value: 1, timescale: 1)
+        config.sampleRate = 48_000
+        config.channelCount = 2
+        config.excludesCurrentProcessAudio = true
+
+        let filter: SCContentFilter
+        var outputType = SCStreamOutputType.audio
+        switch source {
+        case .system:
+            filter = SCContentFilter(display: display, excludingApplications: ownApps, exceptingWindows: [])
+            config.capturesAudio = true
+        case .app(let bundleID, _):
+            let app = apps.filter { $0.bundleIdentifier == bundleID }
+            filter = SCContentFilter(display: display, including: app, exceptingWindows: [])
+            config.capturesAudio = true
+        case .microphone(let id, _):
+            filter = SCContentFilter(display: display, excludingApplications: ownApps, exceptingWindows: [])
+            guard #available(macOS 15.0, *) else { throw RecordingError.unavailable }
+            config.captureMicrophone = true
+            config.microphoneCaptureDeviceID = id
+            outputType = .microphone
+        }
+
+        let stream = SCStream(filter: filter, configuration: config, delegate: recorder)
+        try stream.addStreamOutput(recorder, type: .screen, sampleHandlerQueue: recorder.queue)
+        try stream.addStreamOutput(recorder, type: outputType, sampleHandlerQueue: recorder.queue)
+        return stream
+    }
+
+    /// One uncompressed input per source, in the working file.
+    private var sourceInputs: [AVAssetWriterInput] = []
+
+    private init(url: URL, size: (width: Int, height: Int), options: RecordingOptions, sourceCount: Int,
+                 mixPlan: [[Int]], trackNames: [String]) throws {
         self.url = url
         self.pixelSize = size
-        writer = try AVAssetWriter(outputURL: url, fileType: .mp4)
+        self.mixPlan = mixPlan
+        self.trackNames = trackNames
+        self.codec = options.codec
+        workingURL = sourceCount > 0
+            ? url.deletingPathExtension().appendingPathExtension("sources.mov")
+            : nil
+        writer = try AVAssetWriter(outputURL: workingURL ?? url, fileType: workingURL != nil ? .mov : options.codec.fileType)
 
-        let bitrate = RecordingMath.bitrate(width: size.width, height: size.height, fps: options.framesPerSecond,
-                                            codec: options.codec, mbps: options.bitrateMbps)
-        var compression: [String: Any] = [
-            AVVideoAverageBitRateKey: bitrate,
-            AVVideoExpectedSourceFrameRateKey: options.framesPerSecond,
-            AVVideoMaxKeyFrameIntervalKey: options.framesPerSecond * 2,
-        ]
-        if options.codec == .h264 {
-            compression[AVVideoProfileLevelKey] = AVVideoProfileLevelH264HighAutoLevel
-        }
-        video = AVAssetWriterInput(mediaType: .video, outputSettings: [
+        var settings: [String: Any] = [
             AVVideoCodecKey: options.codec.avCodec,
             AVVideoWidthKey: size.width,
             AVVideoHeightKey: size.height,
-            AVVideoCompressionPropertiesKey: compression,
             AVVideoColorPropertiesKey: [
                 AVVideoColorPrimariesKey: AVVideoColorPrimaries_ITU_R_709_2,
                 AVVideoTransferFunctionKey: AVVideoTransferFunction_ITU_R_709_2,
                 AVVideoYCbCrMatrixKey: AVVideoYCbCrMatrix_ITU_R_709_2,
             ],
-        ])
+        ]
+        if options.codec.hasBitrate {
+            var compression: [String: Any] = [
+                AVVideoAverageBitRateKey: RecordingMath.bitrate(width: size.width, height: size.height,
+                                                                fps: options.framesPerSecond,
+                                                                codec: options.codec, mbps: options.bitrateMbps),
+                AVVideoExpectedSourceFrameRateKey: options.framesPerSecond,
+                AVVideoMaxKeyFrameIntervalKey: options.framesPerSecond * 2,
+            ]
+            if options.codec == .h264 {
+                compression[AVVideoProfileLevelKey] = AVVideoProfileLevelH264HighAutoLevel
+            }
+            settings[AVVideoCompressionPropertiesKey] = compression
+        }
+        video = AVAssetWriterInput(mediaType: .video, outputSettings: settings)
         video.expectsMediaDataInRealTime = true
         writer.add(video)
 
-        let audioSettings: [String: Any] = [
-            AVFormatIDKey: kAudioFormatMPEG4AAC,
-            AVSampleRateKey: 48_000,
-            AVNumberOfChannelsKey: 2,
-            AVEncoderBitRateKey: 160_000,
-        ]
-        // System audio and the microphone are separate tracks; players mix them.
-        if options.systemAudio {
-            let input = AVAssetWriterInput(mediaType: .audio, outputSettings: audioSettings)
+        for _ in 0..<sourceCount {
+            let input = AVAssetWriterInput(mediaType: .audio, outputSettings: AudioMixdown.pcm)
             input.expectsMediaDataInRealTime = true
             writer.add(input)
-            systemAudio = input
-        }
-        if microphone {
-            let input = AVAssetWriterInput(mediaType: .audio, outputSettings: audioSettings)
-            input.expectsMediaDataInRealTime = true
-            writer.add(input)
-            self.microphone = input
+            sourceInputs.append(input)
         }
         super.init()
         guard writer.startWriting() else { throw writer.error ?? CocoaError(.fileWriteUnknown) }
     }
 
     func start() async throws {
-        try await stream.startCapture()
+        try await videoStream.startCapture()
+        for stream in audioStreams {
+            try await stream.startCapture()
+        }
     }
 
     func setPaused(_ paused: Bool) {
@@ -170,16 +224,30 @@ final class ScreenRecorder: NSObject, SCStreamOutput, SCStreamDelegate, @uncheck
 
     private static var now: CMTime { CMClockGetTime(CMClockGetHostTimeClock()) }
 
-    /// Stops and finishes the file; returns the recording's length in seconds.
+    /// Stops, finishes the file (mixing the sound into its tracks); returns the length in seconds.
     func stop() async throws -> Double {
         let stopTime = Self.now
-        try? await stream.stopCapture()
-        return try await withCheckedThrowingContinuation { continuation in
+        try? await videoStream.stopCapture()
+        for stream in audioStreams {
+            try? await stream.stopCapture()
+        }
+        let duration = try await finishWriting(stopTime: stopTime)
+        if let workingURL {
+            defer { try? FileManager.default.removeItem(at: workingURL) }
+            try await AudioMixdown.run(source: workingURL, destination: url, fileType: codec.fileType,
+                                       plan: mixPlan, names: trackNames,
+                                       audioSettings: codec == .prores ? AudioMixdown.pcm24 : AudioMixdown.aac)
+        }
+        return duration
+    }
+
+    private func finishWriting(stopTime: CMTime) async throws -> Double {
+        try await withCheckedThrowingContinuation { continuation in
             // On the sample queue: every frame delivered before the stop is already appended.
             queue.async { [self] in
                 guard sessionStarted else {
                     writer.cancelWriting()
-                    try? FileManager.default.removeItem(at: url)
+                    try? FileManager.default.removeItem(at: workingURL ?? url)
                     continuation.resume(throwing: RecordingError.noFrames)
                     return
                 }
@@ -189,8 +257,7 @@ final class ScreenRecorder: NSObject, SCStreamOutput, SCStreamDelegate, @uncheck
                 let end = CMTimeMaximum(CMTimeSubtract(CMTimeSubtract(stopTime, pausedTotal), pausedAtStop), lastVideoTime)
                 writer.endSession(atSourceTime: end)
                 video.markAsFinished()
-                systemAudio?.markAsFinished()
-                microphone?.markAsFinished()
+                sourceInputs.forEach { $0.markAsFinished() }
                 let duration = CMTimeSubtract(end, firstVideoTime).seconds
                 writer.finishWriting { [self] in
                     if writer.status == .completed {
@@ -206,11 +273,11 @@ final class ScreenRecorder: NSObject, SCStreamOutput, SCStreamDelegate, @uncheck
     // MARK: SCStreamOutput
 
     func stream(_ stream: SCStream, didOutputSampleBuffer buffer: CMSampleBuffer, of type: SCStreamOutputType) {
-        guard buffer.isValid, writer.status == .writing, pausedSince == nil,
-              let buffer = Self.shifted(buffer, back: pausedTotal) else { return }
-        switch type {
-        case .screen:
-            guard Self.isCompleteFrame(buffer) else { return }
+        guard buffer.isValid, writer.status == .writing, pausedSince == nil else { return }
+        if type == .screen {
+            // Audio-only streams send a tiny picture too.
+            guard stream === videoStream, Self.isCompleteFrame(buffer),
+                  let buffer = Self.shifted(buffer, back: pausedTotal) else { return }
             let time = buffer.presentationTimeStamp
             if !sessionStarted {
                 writer.startSession(atSourceTime: time)
@@ -220,18 +287,10 @@ final class ScreenRecorder: NSObject, SCStreamOutput, SCStreamDelegate, @uncheck
             if video.isReadyForMoreMediaData, video.append(buffer) {
                 lastVideoTime = time
             }
-        case .audio:
-            append(buffer, to: systemAudio)
-        default:
-            if #available(macOS 15.0, *), type == .microphone {
-                append(buffer, to: microphone)
-            }
+        } else if sessionStarted, let input = audioInputs[ObjectIdentifier(stream)], input.isReadyForMoreMediaData,
+                  let buffer = Self.shifted(buffer, back: pausedTotal) {
+            input.append(buffer)
         }
-    }
-
-    private func append(_ buffer: CMSampleBuffer, to input: AVAssetWriterInput?) {
-        guard sessionStarted, let input, input.isReadyForMoreMediaData else { return }
-        input.append(buffer)
     }
 
     /// The buffer with its timestamps moved `back` (itself when there is nothing to move).
@@ -260,6 +319,11 @@ final class ScreenRecorder: NSObject, SCStreamOutput, SCStreamDelegate, @uncheck
     // MARK: SCStreamDelegate
 
     func stream(_ stream: SCStream, didStopWithError error: any Error) {
+        // A source going quiet (its app quit) doesn't end the recording; the picture does.
+        guard stream === videoStream else {
+            Log.capture.error("Audio source stopped: \(error.localizedDescription, privacy: .public)")
+            return
+        }
         Task { @MainActor [onInterrupted] in onInterrupted?(error) }
     }
 }

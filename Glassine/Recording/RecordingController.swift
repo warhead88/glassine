@@ -69,8 +69,10 @@ final class RecordingController {
         let model = setup.panel.model
         countdownTask = Task { [weak self] in
             var options = model.options
-            if options.microphone, model.microphoneAvailable, !(await Self.microphoneAllowed()) {
-                options.microphone = false
+            let wantsMicrophone = options.recordedTracks.contains { $0.sources.contains(where: \.isMicrophone) }
+            let microphoneAllowed = wantsMicrophone && model.microphoneAvailable ? await Self.microphoneAllowed() : false
+            if wantsMicrophone, !microphoneAllowed {
+                options.audioTracks = AudioTrackPlan.removing(\.isMicrophone, from: options.audioTracks)
                 HUD.show("Recording without the microphone",
                          detail: "Allow Glassine in System Settings → Privacy & Security → Microphone.",
                          symbol: "mic.slash")
@@ -99,7 +101,8 @@ final class RecordingController {
         do {
             try FileManager.default.createDirectory(at: AppPaths.temporaryFiles, withIntermediateDirectories: true)
             let baseName = FileNaming.baseName(prefix: Preferences.fileNamePrefix, date: .now)
-            let url = FileNaming.uniqueURL(in: AppPaths.temporaryFiles, baseName: baseName, fileExtension: "mp4") {
+            let url = FileNaming.uniqueURL(in: AppPaths.temporaryFiles, baseName: baseName,
+                                          fileExtension: options.codec.fileExtension) {
                 FileManager.default.fileExists(atPath: $0.path)
             }
             let recorder = try await ScreenRecorder.make(setup.target, options: options, url: url)
@@ -172,6 +175,10 @@ final class RecordingController {
     }
 
     #if DEBUG
+    func debugOpenAudioEditor() {
+        if case .setup(let setup) = state { setup.panel.model.editingAudio = true }
+    }
+
     func debugTogglePause() {
         if case .recording(let session) = state { session.panel.model.togglePause() }
     }
