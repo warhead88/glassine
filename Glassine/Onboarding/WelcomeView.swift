@@ -8,6 +8,7 @@ struct WelcomeView: View {
 
     @State private var hasAccess = ScreenAccess.isGranted && !Self.debugShowsSteps
     @State private var prompted = ScreenAccess.hasPrompted && !Self.debugShowsSteps
+    @State private var conflicts = SystemScreenshotShortcuts.conflicts
 
     /// Debug (`--debug-welcome`): show the permission steps even when access is granted.
     nonisolated(unsafe) static var debugShowsSteps = false
@@ -36,6 +37,10 @@ struct WelcomeView: View {
             .padding(12)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(.quaternary.opacity(0.5), in: .rect(cornerRadius: 8))
+
+            if !conflicts.isEmpty {
+                ShortcutConflictNote(conflicts: conflicts)
+            }
 
             if hasAccess {
                 HStack(alignment: .top, spacing: 12) {
@@ -93,6 +98,7 @@ struct WelcomeView: View {
         .fixedSize()
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             hasAccess = ScreenAccess.isGranted && !Self.debugShowsSteps
+            conflicts = SystemScreenshotShortcuts.conflicts
         }
     }
 
@@ -130,3 +136,27 @@ private struct PermissionStep: View {
         }
     }
 }
+
+/// macOS keeps ⇧⌘3/4/5 while its own screenshot shortcuts are on; explains where to turn them off.
+struct ShortcutConflictNote: View {
+    let conflicts: [String]
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+            VStack(alignment: .leading, spacing: 6) {
+                Text("macOS still uses \(conflicts.joined(separator: ", ")) for its own screenshots")
+                    .font(.callout.weight(.semibold))
+                Text("Turn them off so Glassine gets them: Keyboard → Keyboard Shortcuts… → Screenshots.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Button("Open Keyboard Settings…", action: SystemScreenshotShortcuts.openSettings)
+            }
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.orange.opacity(0.12), in: .rect(cornerRadius: 8))
+    }
+}
+

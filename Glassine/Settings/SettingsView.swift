@@ -235,8 +235,13 @@ private struct OutputSettings: View {
 }
 
 private struct ShortcutSettings: View {
+    @State private var conflicts = SystemScreenshotShortcuts.conflicts
+
     var body: some View {
         Form {
+            if !conflicts.isEmpty {
+                Section { ShortcutConflictNote(conflicts: conflicts) }
+            }
             Section {
                 KeyboardShortcuts.Recorder("Capture area:", name: .captureArea)
                 KeyboardShortcuts.Recorder("Capture window:", name: .captureWindow)
@@ -257,5 +262,8 @@ private struct ShortcutSettings: View {
             }
         }
         .formStyle(.grouped)
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            conflicts = SystemScreenshotShortcuts.conflicts
+        }
     }
 }

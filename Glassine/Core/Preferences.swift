@@ -2,9 +2,10 @@ import Foundation
 import KeyboardShortcuts
 
 extension KeyboardShortcuts.Name {
-    static let captureArea = Self("captureArea", default: .init(.two, modifiers: [.command, .shift]))
-    static let captureWindow = Self("captureWindow", default: .init(.two, modifiers: [.command, .option, .shift]))
-    static let captureScreen = Self("captureScreen", default: .init(.one, modifiers: [.command, .shift]))
+    // The macOS screenshot keys: Glassine replaces the system tool (see SystemScreenshotShortcuts).
+    static let captureArea = Self("captureArea", default: .init(.four, modifiers: [.command, .shift]))
+    static let captureWindow = Self("captureWindow", default: .init(.five, modifiers: [.command, .shift]))
+    static let captureScreen = Self("captureScreen", default: .init(.three, modifiers: [.command, .shift]))
     static let repeatLastArea = Self("repeatLastArea")
     static let timedCapture = Self("timedCapture")
     static let pinFromClipboard = Self("pinFromClipboard")
