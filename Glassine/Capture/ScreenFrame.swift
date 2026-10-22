@@ -18,7 +18,7 @@ enum AreaFrameStyle: String, CaseIterable, Identifiable {
 }
 
 enum ScreenFrame {
-    static let topRadius: CGFloat = 24
+    static let topRadius: CGFloat = 20
     static let bottomRadius: CGFloat = 14
     /// Notch bottom corners (the cut-out's own rounding) and its shoulders where it meets the edge.
     static let notchRadius: CGFloat = 10
