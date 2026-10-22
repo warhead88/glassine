@@ -5,7 +5,7 @@ sections **Added**, **Changed**, **Fixed**, **Removed** (and **Security** when n
 section is what the update window shows, so write it for users. Versions follow
 [Semantic Versioning](https://semver.org).
 
-## [Unreleased]
+## [0.2.0] - 2026-10-22
 
 ### Added
 - Screen recording (⌥⇧⌘R): an area, a window or the whole screen, as MP4 or GIF. The controls beside it — or docked to the screen edge — set codec (H.264, HEVC or ProRes), frame rate, bitrate, scale, the pointer and audio tracks; while recording they pause, stop or discard

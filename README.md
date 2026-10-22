@@ -6,7 +6,7 @@
 
 <p align="center">
   A quiet, native screenshot tool for macOS — capture, record, annotate, pin, and copy text from your screen.<br>
-  No Dock icon, no network, no clutter. Just shortcuts.
+  No Dock icon, no tracking, no clutter. Just shortcuts.
 </p>
 
 <p align="center">
