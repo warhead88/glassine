@@ -7,18 +7,21 @@ section is what the update window shows, so write it for users. Versions follow
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-22
+
 ### Added
+- A new look throughout: glassine paper, ink and the Fraunces typeface, in light and dark
 - Accent color in Settings → General → Appearance: Ink, Sage, Stamp, Ochre or your macOS accent
 
 ### Changed
 - A new icon: the cream G on ink, half slid into a glassine sleeve
-- Pins get a paper close button and a hairline edge; size, ruler and zoom tags are dark ink everywhere. Selections in the editor follow the accent
-- The recording controls are paper too: chips with Fraunces values, a red record button, a steady timer
-- The editor's bars, tooltips and background panel are paper; the canvas stays neutral. Background presets are now Sleeve, Sage, Stamp, Peach and Ink — a saved one moves to its nearest new match
-- The installer window: Glassine and Applications on postage stamps, a perforated arrow between them
-- The welcome and update windows, notices and the timer countdown are set on paper too, with Fraunces titles and shortcuts shown as keys
-- Settings are set on paper: Fraunces section titles, cards of settings, the tabs as one pill
 - Previews look like stamps: the capture in a paper mat, dated like a postmark, with its size or format. On a small screen the stack closes older previews instead of running off the top
+- Settings: section titles in Fraunces, settings on cards, the tabs as one pill
+- The welcome and update windows, notices and the countdown are set on paper, with shortcuts shown as keys
+- The editor's bars, tooltips and background panel are paper; the canvas stays neutral. Background presets are now Sleeve, Sage, Stamp, Peach and Ink — a saved one moves to its nearest new match
+- The recording controls: chips with Fraunces values, a red record button, a timer that doesn't jitter
+- Pins get a paper close button and a hairline edge; size, ruler and zoom tags are dark ink everywhere. Selections in the editor follow the accent
+- The installer window: Glassine and Applications on postage stamps, a perforated arrow between them
 
 ## [0.3.1] - 2026-10-22
 
