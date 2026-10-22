@@ -105,15 +105,12 @@ struct RecordingPanelView: View {
         }
         .padding(contentInsets)
         .background {
-            ZStack {
-                DotPattern()
-                // Dots along the outline, following the shoulders into the screen edge.
-                shape.inset(by: 5).stroke(Color.primary.opacity(0.22),
-                                          style: StrokeStyle(lineWidth: 1.6, lineCap: .round, dash: [0, 7]))
+            // The panel is its own SwiftUI root, so it reads the theme directly.
+            if Theme.shared.showsPaperDetails {
+                DotPattern().clipShape(shape)
             }
-            .clipShape(shape)
         }
-        .glassPanel(in: shape)
+        .paperPanel(in: shape)
         .padding(shadowInsets)
         .fixedSize()
         .animation(.snappy(duration: 0.2), value: model.options.format)
@@ -126,7 +123,7 @@ struct RecordingPanelView: View {
     private var setupControls: some View {
         RecordButton(countdown: countdown) { model.onRecord() }
             .disabled(countdown != nil)
-        Separator()
+        Separator(across: vertical)
 
         let options = model.options
         OptionChip(caption: "FORMAT", value: options.format == .video ? "MP4" : "GIF",
@@ -164,7 +161,7 @@ struct RecordingPanelView: View {
                    choices: [(true, "Retina (every pixel)"), (false, "1× (smaller files)")], selection: options.retina) {
             model.options.retina = $0
         }
-        Separator()
+        Separator(across: vertical)
 
         ToggleIcon(symbol: "cursorarrow", help: "Show the pointer", isOn: options.showsCursor) {
             model.options.showsCursor.toggle()
@@ -172,23 +169,23 @@ struct RecordingPanelView: View {
         if options.format == .video {
             AudioChip(model: model)
         }
-        Separator()
+        Separator(across: vertical)
 
         PositionMenu(side: model.side) { model.side = $0 }
-        PanelIconButton(symbol: "xmark", help: "Cancel (Esc)", tint: .secondary) { model.onCancel() }
+        PanelIconButton(symbol: "xmark", help: "Cancel (Esc)", tint: .ink2) { model.onCancel() }
             .keyboardShortcut(.cancelAction)
     }
 
     @ViewBuilder
     private var liveControls: some View {
         LiveIndicator(model: model, vertical: vertical)
-        Separator()
+        Separator(across: vertical)
         PanelIconButton(symbol: model.phase == .paused ? "play.fill" : "pause.fill",
-                        help: model.phase == .paused ? "Resume" : "Pause", tint: .primary) {
+                        help: model.phase == .paused ? "Resume" : "Pause", tint: .ink) {
             model.togglePause()
         }
-        PanelIconButton(symbol: "stop.fill", help: "Stop and save", tint: .red) { model.onStop() }
-        PanelIconButton(symbol: "trash", help: "Discard the recording", tint: .secondary) { model.onDiscard() }
+        PanelIconButton(symbol: "stop.fill", help: "Stop and save", tint: .rec) { model.onStop() }
+        PanelIconButton(symbol: "trash", help: "Discard the recording", tint: .ink2) { model.onDiscard() }
     }
 
     @ViewBuilder
@@ -197,10 +194,10 @@ struct RecordingPanelView: View {
             ProgressView(value: progress)
                 .progressViewStyle(.circular)
                 .controlSize(.small)
-            Text("Making GIF…").font(.system(size: 12, weight: .medium)).fixedSize()
+            Text("Making GIF…").font(.system(size: 12, weight: .medium)).foregroundStyle(Color.ink2).fixedSize()
         } else {
             ProgressView().controlSize(.small)
-            Text("Saving…").font(.system(size: 12, weight: .medium)).fixedSize()
+            Text("Saving…").font(.system(size: 12, weight: .medium)).foregroundStyle(Color.ink2).fixedSize()
         }
     }
 
@@ -315,7 +312,7 @@ private struct DotPattern: View {
                 }
                 y += step
             }
-            context.fill(dots, with: .color(.primary.opacity(0.09)))
+            context.fill(dots, with: .color(Color.ink.opacity(0.11)))
         }
         .allowsHitTesting(false)
     }
@@ -331,20 +328,21 @@ private struct RecordButton: View {
     var body: some View {
         Button(action: action) {
             ZStack {
-                Circle().fill(Color.red.gradient)
-                Circle().strokeBorder(.white.opacity(0.9), lineWidth: 2).padding(4)
+                // Red means recording, and only here (DECISIONS 2).
+                Circle().fill(Color.rec)
+                Circle().strokeBorder(.white, lineWidth: 2).padding(6.5)
                 if let countdown {
                     Text("\(countdown)")
-                        .font(.system(size: 17, weight: .bold).monospacedDigit())
+                        .font(Font(Typography.fraunces(size: 20, weight: 560)))
                         .foregroundStyle(.white)
                         .contentTransition(.numericText(countsDown: true))
                 } else {
-                    Circle().fill(.white).frame(width: 12, height: 12)
+                    Circle().fill(.white).frame(width: 14, height: 14)
                 }
             }
-            .frame(width: 44, height: 44)
-            .scaleEffect(hovered && countdown == nil ? 1.06 : 1)
-            .shadow(color: .red.opacity(0.4), radius: hovered ? 8 : 4)
+            .frame(width: 46, height: 46)
+            .scaleEffect(hovered && countdown == nil ? 1.05 : 1)
+            .shadow(color: Color.rec.opacity(0.35), radius: hovered ? 8 : 4, y: 2)
         }
         .buttonStyle(.plain)
         .keyboardShortcut(.defaultAction)
@@ -373,18 +371,7 @@ private struct OptionChip<Value: Hashable>: View {
                 }
             }
         } label: {
-            VStack(spacing: 1) {
-                Text(caption)
-                    .font(.system(size: 8, weight: .semibold))
-                    .tracking(0.6)
-                    .foregroundStyle(.secondary)
-                Text(value)
-                    .font(.system(size: 12, weight: .semibold).monospacedDigit())
-                    .lineLimit(1)
-            }
-            .frame(width: 56, height: 36)
-            .background(RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(Color.primary.opacity(hovered ? 0.14 : 0.07)))
+            ChipFace(caption: caption, value: value, hovered: hovered)
             .contentShape(Rectangle())
         }
         .menuStyle(.button)
@@ -392,6 +379,30 @@ private struct OptionChip<Value: Hashable>: View {
         .menuIndicator(.hidden)
         .fixedSize()
         .onHover { hovered = $0 }
+    }
+}
+
+/// A chip's face: the label on top, the value in Fraunces.
+private struct ChipFace: View {
+    let caption: String
+    let value: String
+    let hovered: Bool
+
+    var body: some View {
+        VStack(spacing: 2) {
+            Text(caption)
+                .textStyle(ThemeTokens.label)
+                .foregroundStyle(Color.ink3)
+                .lineLimit(1)
+            Text(value)
+                .textStyle(ThemeTokens.chip)
+                .foregroundStyle(Color.ink)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        }
+        .frame(width: 66, height: 42)
+        .background(RoundedRectangle(cornerRadius: ThemeTokens.Radius.control, style: .continuous)
+            .fill(hovered ? Color.rule : Color.key))
     }
 }
 
@@ -406,13 +417,13 @@ private struct ToggleIcon: View {
         Button(action: action) {
             Image(systemName: symbol)
                 .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(isOn ? Color.white : .secondary)
+                .foregroundStyle(isOn ? Theme.shared.onAccent : Color.ink2)
                 .frame(width: 32, height: 32)
-                .background(Circle().fill(isOn ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(Color.primary.opacity(hovered ? 0.14 : 0.07))))
+                .background(Circle().fill(isOn ? Theme.shared.accent : hovered ? Color.rule : Color.key))
                 .overlay {
                     if !isOn {
                         // A slash marks "off" without a second symbol.
-                        Capsule().fill(Color.secondary).frame(width: 1.5, height: 18).rotationEffect(.degrees(-45))
+                        Capsule().fill(Color.ink3).frame(width: 1.5, height: 18).rotationEffect(.degrees(-45))
                     }
                 }
         }
@@ -435,7 +446,7 @@ private struct PanelIconButton: View {
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(tint)
                 .frame(width: 32, height: 32)
-                .background(Circle().fill(Color.primary.opacity(hovered ? 0.15 : 0.07)))
+                .background(Circle().fill(hovered ? Color.rule : Color.key))
         }
         .buttonStyle(.plain)
         .help(help)
@@ -461,9 +472,9 @@ private struct PositionMenu: View {
         } label: {
             Image(systemName: side.symbol)
                 .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.ink2)
                 .frame(width: 32, height: 32)
-                .background(Circle().fill(Color.primary.opacity(0.07)))
+                .background(Circle().fill(Color.key))
         }
         .menuStyle(.button)
         .buttonStyle(.plain)
@@ -473,9 +484,39 @@ private struct PositionMenu: View {
     }
 }
 
+/// A tear-off line between groups: a row of perforation dots across the panel.
 private struct Separator: View {
+    /// The panel is a column, so the line runs across it.
+    let across: Bool
+
     var body: some View {
-        Circle().fill(Color.primary.opacity(0.25)).frame(width: 3, height: 3)
+        let layout = across ? AnyLayout(HStackLayout(spacing: 4.5)) : AnyLayout(VStackLayout(spacing: 4.5))
+        layout {
+            ForEach(0..<(across ? 7 : 4), id: \.self) { _ in
+                Circle().fill(Color.border).frame(width: 2.6, height: 2.6)
+            }
+        }
+        .padding(across ? .vertical : .horizontal, 2)
+        .accessibilityHidden(true)
+    }
+}
+
+/// A clock whose digits sit in fixed cells: Fraunces has no tabular figures, and the time
+/// mustn't jitter as it counts.
+struct TimerText: View {
+    let text: String
+    var style = ThemeTokens.timer
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(Array(text.enumerated()), id: \.offset) { _, character in
+                Text(String(character))
+                    .frame(width: style.size * (character == ":" ? 0.3 : 0.62))
+            }
+        }
+        .font(Typography.font(style))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(text)
     }
 }
 
@@ -494,15 +535,13 @@ private struct LiveIndicator: View {
                 dots {
                     ForEach(0..<4, id: \.self) { index in
                         Circle()
-                            .fill(paused ? Color.secondary : Color.red)
+                            .fill(paused ? Color.ink3 : Color.rec)
                             .frame(width: 5, height: 5)
-                            .opacity(paused ? 0.5 : 0.3 + 0.7 * max(0, sin(t * 5 - Double(index) * 0.8)))
+                            .opacity(paused ? 0.6 : 0.3 + 0.7 * max(0, sin(t * 5 - Double(index) * 0.8)))
                     }
                 }
-                Text(RecordingMath.clock(model.elapsed(at: context.date)))
-                    .font(.system(size: 13, weight: .semibold).monospacedDigit())
-                    .foregroundStyle(paused ? .secondary : .primary)
-                    .frame(minWidth: 40)
+                TimerText(text: RecordingMath.clock(model.elapsed(at: context.date)))
+                    .foregroundStyle(paused ? Color.ink3 : Color.ink)
             }
         }
     }
@@ -518,25 +557,16 @@ private struct AudioChip: View {
     var body: some View {
         let count = model.options.audioTracks.filter { !$0.sources.isEmpty }.count
         Button { model.editingAudio.toggle() } label: {
-            VStack(spacing: 1) {
-                Text("AUDIO")
-                    .font(.system(size: 8, weight: .semibold))
-                    .tracking(0.6)
-                    .foregroundStyle(.secondary)
-                Text(count == 0 ? "Off" : count == 1 ? "1 track" : "\(count) tracks")
-                    .font(.system(size: 12, weight: .semibold))
-                    .lineLimit(1)
-            }
-            .frame(width: 56, height: 36)
-            .background(RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(Color.primary.opacity(hovered || model.editingAudio ? 0.14 : 0.07)))
-            .contentShape(Rectangle())
+            ChipFace(caption: "Audio", value: count == 0 ? "Off" : count == 1 ? "1 track" : "\(count) tracks",
+                     hovered: hovered || model.editingAudio)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .onHover { hovered = $0 }
         .help("Audio tracks: system audio, microphones, single apps")
         .popover(isPresented: $model.editingAudio, arrowEdge: arrowEdge) {
             AudioTracksEditor(model: model)
+                .presentationBackground(Color.card)
         }
     }
 
@@ -559,17 +589,17 @@ private struct AudioTracksEditor: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
-                Text("Audio").font(.headline)
+                Text("Audio").textStyle(ThemeTokens.chip).foregroundStyle(Color.ink)
                 Text("Each track stays separate in the video; the sources in a track are mixed together.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 12))
+                    .foregroundStyle(Color.ink2)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
             if tracks.isEmpty {
                 Text("No sound. Add a track for system audio, a microphone or single apps.")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 13))
+                    .foregroundStyle(Color.ink2)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
@@ -582,7 +612,7 @@ private struct AudioTracksEditor: View {
             } label: {
                 Label("Add Track", systemImage: "plus")
             }
-            .controlSize(.small)
+            .buttonStyle(.paperSecondary)
         }
         .padding(14)
         .frame(width: 300)
@@ -597,12 +627,12 @@ private struct TrackCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Text("Track \(number)").font(.subheadline.weight(.semibold))
+                Text("Track \(number)").textStyle(ThemeTokens.label).foregroundStyle(Color.ink3)
                 Spacer()
                 Button {
                     model.options.audioTracks.removeAll { $0.id == track.id }
                 } label: {
-                    Image(systemName: "trash").foregroundStyle(.secondary)
+                    Image(systemName: "trash").foregroundStyle(Color.ink2)
                 }
                 .buttonStyle(.plain)
                 .help("Remove the track")
@@ -613,26 +643,26 @@ private struct TrackCard: View {
                         if let icon = AudioSourceCatalog.icon(for: source) {
                             Image(nsImage: icon).resizable()
                         } else {
-                            Image(systemName: source.symbol).foregroundStyle(.secondary)
+                            Image(systemName: source.symbol).foregroundStyle(Color.ink2)
                         }
                     }
                     .frame(width: 16, height: 16)
-                    Text(source.title).lineLimit(1)
+                    Text(source.title).foregroundStyle(Color.ink).lineLimit(1)
                     Spacer()
                     Button {
                         update { $0.sources.removeAll { $0 == source } }
                     } label: {
-                        Image(systemName: "xmark.circle.fill").foregroundStyle(.tertiary)
+                        Image(systemName: "xmark.circle.fill").foregroundStyle(Color.ink3)
                     }
                     .buttonStyle(.plain)
                     .help("Remove from the track")
                 }
-                .font(.callout)
+                .font(.system(size: 13))
             }
             AddSourceMenu(model: model) { source in update { $0.sources.append(source) } }
         }
         .padding(10)
-        .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color.primary.opacity(0.06)))
+        .background(RoundedRectangle(cornerRadius: ThemeTokens.Radius.control, style: .continuous).fill(Color.key))
     }
 
     private func update(_ change: (inout AudioTrack) -> Void) {
@@ -674,11 +704,11 @@ private struct AddSourceMenu: View {
             }
         } label: {
             Label("Add Source", systemImage: "plus.circle")
-                .font(.callout)
+                .font(.system(size: 13, weight: .medium))
         }
         .menuStyle(.button)
         .buttonStyle(.plain)
-        .foregroundStyle(Color.accentColor)
+        .foregroundStyle(Theme.shared.accent)
         .fixedSize()
     }
 

@@ -11,6 +11,7 @@ section is what the update window shows, so write it for users. Versions follow
 - Accent color in Settings → General → Appearance: Ink, Sage, Stamp, Ochre or your macOS accent
 
 ### Changed
+- The recording controls are paper too: chips with Fraunces values, a red record button, a steady timer
 - The editor's bars, tooltips and background panel are paper; the canvas stays neutral. Background presets are now Sleeve, Sage, Stamp, Peach and Ink — a saved one moves to its nearest new match
 - The installer window: Glassine and Applications on postage stamps, a perforated arrow between them
 - The welcome and update windows, notices and the timer countdown are set on paper too, with Fraunces titles and shortcuts shown as keys

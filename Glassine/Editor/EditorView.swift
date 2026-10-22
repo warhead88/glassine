@@ -421,20 +421,6 @@ private struct StatusToast: View {
     }
 }
 
-extension View {
-    /// Liquid Glass on macOS 26+, a translucent material with a hairline and shadow before.
-    @ViewBuilder
-    func glassPanel(in shape: some Shape) -> some View {
-        if #available(macOS 26.0, *) {
-            glassEffect(.regular, in: shape)
-        } else {
-            background(.regularMaterial, in: shape)
-                .overlay(shape.stroke(Color.white.opacity(0.12), lineWidth: 0.5))
-                .shadow(color: .black.opacity(0.3), radius: 12, y: 4)
-        }
-    }
-}
-
 extension RGBA {
     init?(_ color: Color) {
         guard let rgb = NSColor(color).usingColorSpace(.sRGB) else { return nil }
