@@ -153,3 +153,13 @@ leaks $PID | grep "leaks for"                     # утечки
 - [ ] В простое ~10 МБ и 0 % CPU
 - [ ] «Overlay ready» < 150 мс (кроме первого захвата после запуска)
 - [ ] После 10 снимков с превью память перестаёт расти, `leaks` — 0
+
+## 11. Удаление и установка
+
+- [ ] Пробный прогон: `open /Applications/Glassine.app --args --debug-uninstall-plan`, в логе «Uninstall plan: …»
+      — только пути с `com.warhead88.glassine`, `~/Pictures/Glassine` и `/Applications/Glassine.app`
+- [ ] Settings → General → Uninstall…: диалог; галочка про скриншоты — только для стандартной папки
+- [ ] После удаления: приложение, настройки и кэш — в Корзине; в Login Items и Screen Recording Glassine нет;
+      скриншоты на месте (если галочка не стояла). Вернуть: `scripts/install.sh`
+- [ ] `scripts/release.sh` → DMG в `dist/`; открыть, перетащить в «Программы», запустить
+

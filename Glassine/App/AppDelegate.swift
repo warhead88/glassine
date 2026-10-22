@@ -40,6 +40,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if CommandLine.arguments.contains("--debug-editor") {
             editor.openDebugSample()
         }
+        if CommandLine.arguments.contains("--debug-uninstall-plan") {
+            // Dry run: lists what Uninstall would move to the Trash, changes nothing.
+            let screenshots = Uninstaller.removableScreenshotFolder(saveFolder: Preferences.saveFolder,
+                                                                    defaultFolder: AppPaths.defaultSaveFolder)
+            for url in Uninstaller.plan(screenshots: screenshots).trash {
+                Log.app.notice("Uninstall plan: \(url.path, privacy: .public)")
+            }
+        }
         #endif
 
         KeyboardShortcuts.onKeyUp(for: .captureArea) { [weak self] in self?.capture.captureArea() }

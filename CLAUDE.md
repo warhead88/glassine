@@ -13,6 +13,14 @@ scripts/install.sh            # Debug; pass Release for a release build
 
 Builds go to `build.noindex/` so Spotlight doesn't show duplicate copies of the app.
 
+Release DMG (`dist/Glassine-<version>.dmg`, drag to Applications):
+
+```bash
+scripts/release.sh            # DEVELOPER_ID=… NOTARY_PROFILE=… to sign for distribution and notarize
+```
+
+Without a Developer ID (paid program) the DMG runs on this Mac; elsewhere Gatekeeper asks first.
+
 Unit tests (Swift Testing, `Tests/`), run before every commit that touches logic:
 
 ```bash
@@ -26,7 +34,8 @@ the test host starts the app bare (no delegate), so tests never touch hotkeys, w
 
 - Agent app (`LSUIElement`): no Dock icon. Menu bar icon is optional and off by default.
   Relaunching the app opens Settings; first launch (or missing permission) opens the Welcome window.
-- Clean uninstall: write only to paths listed in `Glassine/Core/AppPaths.swift`
+- Clean uninstall (Settings → General → Uninstall…, `Core/Uninstaller.swift`, moves to Trash; dry run:
+  `--debug-uninstall-plan` logs the plan): write only to paths listed in `Glassine/Core/AppPaths.swift`
   (Application Support / Caches / Logs / Preferences, all named by bundle ID).
   No privileged helpers, LaunchDaemons or .pkg installers. Login item only via `SMAppService.mainApp`.
   Saved screenshots are user content and are never deleted by the app.

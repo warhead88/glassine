@@ -49,6 +49,19 @@ private struct GeneralSettings: View {
                     Button("Quit Glassine") { NSApp.terminate(nil) }
                 }
             }
+
+            Section {
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Uninstall Glassine")
+                        Text("Moves the app, its settings and caches to the Trash and removes its permissions.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Button("Uninstall…", role: .destructive) { Uninstaller.confirmAndRun() }
+                }
+            }
         }
         .formStyle(.grouped)
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
