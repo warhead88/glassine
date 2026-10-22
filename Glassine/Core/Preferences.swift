@@ -26,6 +26,10 @@ enum PrefKey {
     /// Seconds before the preview closes itself; 0 keeps it until closed.
     static let quickAccessAutoClose = "quickAccessAutoClose"
     static let hasLaunchedBefore = "hasLaunchedBefore"
+    /// The system Screen Recording prompt has been shown (macOS shows it only once).
+    static let screenAccessPrompted = "screenAccessPrompted"
+    /// "You're all set" was shown after permission arrived.
+    static let screenAccessConfirmed = "screenAccessConfirmed"
 
     static let showMagnifier = "showMagnifier"
     /// When on, releasing the mouse leaves an adjustable selection; Return captures it.

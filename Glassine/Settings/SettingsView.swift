@@ -35,7 +35,7 @@ private struct GeneralSettings: View {
                     if hasScreenAccess {
                         Label("Granted", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
                     } else {
-                        Button("Grant Access…", action: ScreenAccess.request)
+                        Button(ScreenAccess.requestTitle, action: ScreenAccess.request)
                     }
                 }
             }

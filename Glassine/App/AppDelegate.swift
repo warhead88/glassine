@@ -40,6 +40,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if CommandLine.arguments.contains("--debug-editor") {
             editor.openDebugSample()
         }
+        if CommandLine.arguments.contains("--debug-welcome") {
+            WelcomeView.debugShowsSteps = true
+            welcome.show()
+        }
         if CommandLine.arguments.contains("--debug-uninstall-plan") {
             // Dry run: lists what Uninstall would move to the Trash, changes nothing.
             let screenshots = Uninstaller.removableScreenshotFolder(saveFolder: Preferences.saveFolder,
@@ -72,7 +76,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // With no Dock icon and the menu bar icon off by default, introduce the app
         // on first launch so the user knows it is running and how to use it.
         let defaults = UserDefaults.standard
-        if !defaults.bool(forKey: PrefKey.hasLaunchedBefore) || !ScreenAccess.isGranted {
+        // After "Quit & Reopen" the permission is on: close the loop once with "you're all set".
+        let justGranted = ScreenAccess.isGranted && ScreenAccess.hasPrompted && !defaults.bool(forKey: PrefKey.screenAccessConfirmed)
+        if justGranted { defaults.set(true, forKey: PrefKey.screenAccessConfirmed) }
+        if !defaults.bool(forKey: PrefKey.hasLaunchedBefore) || !ScreenAccess.isGranted || justGranted {
             defaults.set(true, forKey: PrefKey.hasLaunchedBefore)
             welcome.show()
         }

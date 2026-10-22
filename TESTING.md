@@ -21,7 +21,10 @@ scripts/install.sh                                                     # соб�
 
 - [ ] Первый запуск (`defaults delete com.warhead88.glassine`, перезапуск) — окно приветствия с хоткеями
 - [ ] Повторный запуск из Spotlight открывает настройки
-- [ ] Без разрешения на запись экрана ⌘⇧2 открывает окно приветствия, «Grant Access…» ведёт в System Settings
+- [ ] Без разрешения: окно приветствия с тремя шагами; «Allow Screen Recording…» показывает только системный
+      запрос (никаких других окон); его «Open System Settings» → включить Glassine → «Quit & Reopen»
+- [ ] После перезапуска с разрешением — окно «Screen Recording is on — you're all set» (один раз)
+- [ ] Если системный запрос уже был, кнопка называется «Open System Settings…» и открывает раздел сразу
 - [ ] После пересборки (`scripts/install.sh`) разрешение сохраняется
 - [ ] Glassine не появляется в Dock; иконка в меню-баре — только если включена
 
@@ -161,5 +164,6 @@ leaks $PID | grep "leaks for"                     # утечки
 - [ ] Settings → General → Uninstall…: диалог; галочка про скриншоты — только для стандартной папки
 - [ ] После удаления: приложение, настройки и кэш — в Корзине; в Login Items и Screen Recording Glassine нет;
       скриншоты на месте (если галочка не стояла). Вернуть: `scripts/install.sh`
-- [ ] `scripts/release.sh` → DMG в `dist/`; открыть, перетащить в «Программы», запустить
+- [ ] `scripts/release.sh` → DMG в `dist/`; открывается окно Finder: Glassine → стрелка → Applications,
+      подпись видна; перетащить, запустить из «Программ»
 
