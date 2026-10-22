@@ -91,15 +91,25 @@ private struct CaptureSettings: View {
     @AppStorage(PrefKey.colorFormat) private var colorFormat = ColorFormat.hex.rawValue
     @AppStorage(PrefKey.captureStartSound) private var startSound = true
     @AppStorage(PrefKey.areaFrameStyle) private var frameStyle = AreaFrameStyle.notch.rawValue
+    @AppStorage(PrefKey.frameBottomCorners) private var bottomCorners = FrameBottomCorners.rounded.rawValue
     @AppStorage(PrefKey.playSound) private var afterCaptureSound = true
+
+    private var frameIsOff: Bool { frameStyle == AreaFrameStyle.off.rawValue }
 
     var body: some View {
         Form {
             Section("Area Capture") {
                 OptionCards(title: "Screen frame", note: "Displays without a notch always get the straight frame.",
                             options: AreaFrameStyle.allCases.map { ($0.rawValue, $0.title) }, selection: $frameStyle) { style in
-                    FrameStylePreview(style: AreaFrameStyle(rawValue: style) ?? .notch)
+                    FrameStylePreview(style: AreaFrameStyle(rawValue: style) ?? .notch,
+                                      bottom: FrameBottomCorners(rawValue: bottomCorners) ?? .rounded)
                 }
+                OptionCards(title: "Frame bottom corners", note: "MacBook screens are square at the bottom; windows are rounded.",
+                            options: FrameBottomCorners.allCases.map { ($0.rawValue, $0.title) }, selection: $bottomCorners) { corners in
+                    FrameCornerPreview(bottom: FrameBottomCorners(rawValue: corners) ?? .rounded)
+                }
+                .disabled(frameIsOff)
+                .opacity(frameIsOff ? 0.45 : 1)
                 OptionCards(title: "After selecting an area",
                             options: [(false, "Capture at once"), (true, "Adjust, then ↩")], selection: $adjustBeforeCapture) { adjust in
                     SelectionModePreview(adjust: adjust)

@@ -145,7 +145,9 @@ private final class SelectionView: NSView {
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 
     /// The notch to trace around, when the user chose that frame style and the screen has one.
-    private lazy var frameNotch: CGRect? = Preferences.areaFrameStyle == .notch ? snapshot.screen.notchRect : nil
+    private lazy var frameStyle = Preferences.areaFrameStyle
+    private lazy var frameNotch: CGRect? = frameStyle == .notch ? snapshot.screen.notchRect : nil
+    private lazy var frameBottomRadius = Preferences.frameBottomCorners.radius
 
     /// 0…1 while the area frame animates in; 1 when shown without animation.
     private var frameProgress: CGFloat = 1
@@ -166,7 +168,7 @@ private final class SelectionView: NSView {
 
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
-        if mode == .capture {
+        if mode == .capture && frameStyle != .off {
             animateFrameIn()
         }
         window?.makeFirstResponder(self)
@@ -218,15 +220,15 @@ private final class SelectionView: NSView {
             ctx.stroke(hovered.insetBy(dx: 0.5, dy: 0.5))
         }
 
-        if mode == .capture {
+        if mode == .capture && frameStyle != .off {
             // Marks the whole screen as "in area capture" without singling out any window.
-            // Rounded more than MacBook display corners (most at the top) so no corner is cut off;
-            // optionally it dips under the camera notch.
+            // Rounded more than MacBook display corners at the top so no corner is cut off;
+            // optionally it dips under the camera notch, and its bottom corners can be square.
             // It eases in from slightly inside the edge.
             let inset = 1.5 + (1 - frameProgress) * 14
             ctx.setStrokeColor(NSColor.white.withAlphaComponent(0.9 * frameProgress).cgColor)
             ctx.setLineWidth(3)
-            ctx.addPath(ScreenFrame.path(in: bounds, inset: inset, notch: frameNotch))
+            ctx.addPath(ScreenFrame.path(in: bounds, inset: inset, notch: frameNotch, bottomRadius: frameBottomRadius))
             ctx.strokePath()
         }
 

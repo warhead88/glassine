@@ -41,6 +41,7 @@ enum PrefKey {
     static let captureStartSound = "captureStartSound"
     static let colorFormat = "colorFormat"
     static let areaFrameStyle = "areaFrameStyle"
+    static let frameBottomCorners = "frameBottomCorners"
 
     static let imageFormat = "imageFormat"
     static let fileNamePrefix = "fileNamePrefix"
@@ -86,6 +87,7 @@ enum Preferences {
             PrefKey.captureStartSound: true,
             PrefKey.colorFormat: ColorFormat.hex.rawValue,
             PrefKey.areaFrameStyle: AreaFrameStyle.notch.rawValue,
+            PrefKey.frameBottomCorners: FrameBottomCorners.rounded.rawValue,
             PrefKey.imageFormat: ImageFormat.png.rawValue,
             PrefKey.fileNamePrefix: "Glassine",
             PrefKey.saveAtStandardResolution: false,
@@ -101,6 +103,10 @@ enum Preferences {
 
     static var areaFrameStyle: AreaFrameStyle {
         AreaFrameStyle(rawValue: defaults.string(forKey: PrefKey.areaFrameStyle) ?? "") ?? .notch
+    }
+
+    static var frameBottomCorners: FrameBottomCorners {
+        FrameBottomCorners(rawValue: defaults.string(forKey: PrefKey.frameBottomCorners) ?? "") ?? .rounded
     }
 
     static var colorFormat: ColorFormat {

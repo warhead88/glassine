@@ -6,6 +6,8 @@ enum AreaFrameStyle: String, CaseIterable, Identifiable {
     case straight
     /// Along the edge, dipping under the camera notch on displays that have one.
     case notch
+    /// Only the dimming marks area capture.
+    case off
 
     var id: Self { self }
 
@@ -13,6 +15,30 @@ enum AreaFrameStyle: String, CaseIterable, Identifiable {
         switch self {
         case .straight: "Straight"
         case .notch: "Around the notch"
+        case .off: "No frame"
+        }
+    }
+}
+
+/// The frame's bottom corners. MacBook displays are square at the bottom, but some prefer the
+/// frame rounded like windows.
+enum FrameBottomCorners: String, CaseIterable, Identifiable {
+    case rounded
+    case square
+
+    var id: Self { self }
+
+    var title: String {
+        switch self {
+        case .rounded: "Rounded"
+        case .square: "Square"
+        }
+    }
+
+    var radius: CGFloat {
+        switch self {
+        case .rounded: ScreenFrame.bottomRadius
+        case .square: 0
         }
     }
 }
@@ -33,9 +59,9 @@ enum ScreenFrame {
 
     /// Frame path inset by `inset` from the screen edge (flipped: y grows downward). With a notch,
     /// the top edge runs `inset` outside the notch's sides and bottom.
-    static func path(in bounds: CGRect, inset: CGFloat, notch: CGRect?) -> CGPath {
+    static func path(in bounds: CGRect, inset: CGFloat, notch: CGRect?, bottomRadius bottom: CGFloat = bottomRadius) -> CGPath {
         let rect = bounds.insetBy(dx: inset, dy: inset)
-        let top = topRadius, bottom = bottomRadius
+        let top = topRadius
         let path = CGMutablePath()
         path.move(to: CGPoint(x: rect.minX + top, y: rect.minY))
 

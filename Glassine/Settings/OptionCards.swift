@@ -107,10 +107,11 @@ struct MiniWindow: View {
     }
 }
 
-/// Area capture: the dimmed screen and its frame, straight or tracing the notch —
+/// Area capture: the dimmed screen and its frame (straight, tracing the notch, or none) —
 /// drawn with the same path code as the real frame.
 struct FrameStylePreview: View {
     let style: AreaFrameStyle
+    var bottom = FrameBottomCorners.rounded
 
     var body: some View {
         ZStack {
@@ -118,10 +119,38 @@ struct FrameStylePreview: View {
             Canvas { context, size in
                 let notch = CGRect(x: size.width / 2 - 17, y: 0, width: 34, height: 8)
                 context.fill(Path(roundedRect: notch, cornerRadius: 3), with: .color(.black))
+                guard style != .off else { return }
                 let path = ScreenFrame.path(in: CGRect(origin: .zero, size: size), inset: 2,
-                                            notch: style == .notch ? notch : nil)
+                                            notch: style == .notch ? notch : nil, bottomRadius: bottom.radius)
                 context.stroke(Path(path), with: .color(.white.opacity(0.95)), lineWidth: 2)
             }
+        }
+    }
+}
+
+/// Close-up of the screen's bottom-left corner inside the bezel — the display itself is square
+/// there — with the frame rounded or square.
+struct FrameCornerPreview: View {
+    let bottom: FrameBottomCorners
+
+    var body: some View {
+        GeometryReader { geo in
+            let bezel: CGFloat = 12
+            // The screen runs off the card at the top and right; only its bottom-left corner shows.
+            let screen = CGRect(x: bezel, y: -60, width: geo.size.width + 60, height: geo.size.height - bezel + 60)
+            ZStack(alignment: .topLeading) {
+                Color(white: 0.1)
+                LinearGradient(colors: [Color(red: 0.25, green: 0.33, blue: 0.62), Color(red: 0.55, green: 0.32, blue: 0.6)],
+                               startPoint: .topLeading, endPoint: .bottomTrailing)
+                    .overlay(Color.black.opacity(0.4))
+                    .frame(width: screen.width, height: screen.height)
+                    .offset(x: screen.minX, y: screen.minY)
+                Canvas { context, _ in
+                    let path = ScreenFrame.path(in: screen, inset: 2, notch: nil, bottomRadius: bottom.radius * 1.5)
+                    context.stroke(Path(path), with: .color(.white.opacity(0.95)), lineWidth: 3)
+                }
+            }
+            .clipped()
         }
     }
 }

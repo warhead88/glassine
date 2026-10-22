@@ -39,4 +39,12 @@ struct ScreenFrameTests {
         let path = ScreenFrame.path(in: screen, inset: 1.5, notch: nil)
         #expect(path.contains(CGPoint(x: 756, y: 10)))
     }
+
+    @Test func squareBottomReachesTheCorners() {
+        let corner = CGPoint(x: 3, y: screen.maxY - 3)
+        #expect(!ScreenFrame.path(in: screen, inset: 1.5, notch: nil).contains(corner))
+        #expect(ScreenFrame.path(in: screen, inset: 1.5, notch: nil, bottomRadius: FrameBottomCorners.square.radius).contains(corner))
+        // The top stays rounded either way.
+        #expect(!ScreenFrame.path(in: screen, inset: 1.5, notch: nil, bottomRadius: 0).contains(CGPoint(x: 3, y: 3)))
+    }
 }
