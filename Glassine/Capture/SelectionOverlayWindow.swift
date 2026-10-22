@@ -270,11 +270,11 @@ private final class SelectionView: NSView {
     private func drawHint(_ text: String) {
         let attributes: [NSAttributedString.Key: Any] = [
             .font: NSFont.systemFont(ofSize: 13, weight: .medium),
-            .foregroundColor: NSColor.white,
+            .foregroundColor: NSColor.tagText,
         ]
         let size = (text as NSString).size(withAttributes: attributes)
         let box = NSRect(x: bounds.midX - size.width / 2 - 14, y: 44, width: size.width + 28, height: size.height + 12)
-        NSColor.black.withAlphaComponent(0.7).setFill()
+        NSColor.tagFill.setFill()
         NSBezierPath(roundedRect: box, xRadius: box.height / 2, yRadius: box.height / 2).fill()
         (text as NSString).draw(at: NSPoint(x: box.minX + 14, y: box.minY + 6), withAttributes: attributes)
     }
@@ -370,8 +370,8 @@ private final class SelectionView: NSView {
 
     private func drawLabel(_ text: String, at origin: NSPoint, width: CGFloat?) {
         let attributes: [NSAttributedString.Key: Any] = [
-            .font: NSFont.monospacedDigitSystemFont(ofSize: 11, weight: .medium),
-            .foregroundColor: NSColor.white,
+            .font: NSFont.monospacedSystemFont(ofSize: 11, weight: .medium),
+            .foregroundColor: NSColor.tagText,
         ]
         let string = text as NSString
         let size = string.boundingRect(with: NSSize(width: 400, height: 100), options: .usesLineFragmentOrigin, attributes: attributes).size
@@ -380,7 +380,7 @@ private final class SelectionView: NSView {
             origin: origin,
             size: NSSize(width: width ?? (size.width + padding.width * 2), height: size.height + padding.height * 2)
         )
-        NSColor.black.withAlphaComponent(0.75).setFill()
+        NSColor.tagFill.setFill()
         NSBezierPath(roundedRect: background, xRadius: 4, yRadius: 4).fill()
         string.draw(
             with: NSRect(x: origin.x + padding.width, y: origin.y + padding.height, width: size.width, height: size.height),

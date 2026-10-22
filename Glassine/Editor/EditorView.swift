@@ -269,7 +269,7 @@ private struct FillSwatch<Preview: View>: View {
                 .frame(width: 30, height: 30)
                 .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(Color.primary.opacity(0.2), lineWidth: 0.5))
                 .padding(2)
-                .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(fill == current ? Color.accentColor : .clear, lineWidth: 2))
+                .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(fill == current ? Theme.shared.accent : .clear, lineWidth: 2))
         }
         .buttonStyle(.plain)
         .help(help)

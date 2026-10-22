@@ -147,11 +147,10 @@ private final class PinView: NSView {
     private let capture: CapturedImage
     private unowned let panel: PinPanel
 
-    private let closeButton = FirstMouseButton(
-        image: NSImage(systemSymbolName: "xmark.circle.fill", accessibilityDescription: "Close pin")!,
-        target: nil, action: nil
-    )
+    private lazy var closeButton = CircleIconButton(symbol: "xmark", help: "Close pin (Esc)",
+                                                    target: panel, action: #selector(PinPanel.closePin))
     private let badge = NSTextField(labelWithString: "")
+    private var highlighted = false
     private var hideBadge: Task<Void, Never>?
 
     init(capture: CapturedImage, panel: PinPanel) {
@@ -163,34 +162,29 @@ private final class PinView: NSView {
         layer?.contents = capture.image
         layer?.contentsGravity = .resize
         layer?.minificationFilter = .trilinear
+        // The capture stays as it is, no paper around it (DECISIONS 4): only a hairline edge.
         layer?.cornerRadius = 6
         layer?.cornerCurve = .continuous
         layer?.masksToBounds = true
-        layer?.borderWidth = 1
-        layer?.borderColor = NSColor.white.withAlphaComponent(0.15).cgColor
+        applyBorder()
 
-        closeButton.target = panel
-        closeButton.action = #selector(PinPanel.closePin)
-        closeButton.isBordered = false
-        closeButton.contentTintColor = .white
-        closeButton.symbolConfiguration = .init(pointSize: 16, weight: .regular)
-        closeButton.alphaValue = 0
-        closeButton.translatesAutoresizingMaskIntoConstraints = false
+        // A paper button in the corner, like the previews'.
+        closeButton.alphaValue = CommandLine.arguments.contains("hover") ? 1 : 0 // `--debug-pins hover`
         addSubview(closeButton)
 
-        badge.font = .monospacedDigitSystemFont(ofSize: 11, weight: .semibold)
-        badge.textColor = .white
+        badge.font = .monospacedSystemFont(ofSize: 11, weight: .medium)
+        badge.textColor = .tagText
         badge.alignment = .center
         badge.wantsLayer = true
-        badge.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.7).cgColor
+        badge.layer?.backgroundColor = NSColor.tagFill.cgColor
         badge.layer?.cornerRadius = 5
         badge.alphaValue = 0
         badge.translatesAutoresizingMaskIntoConstraints = false
         addSubview(badge)
 
         NSLayoutConstraint.activate([
-            closeButton.topAnchor.constraint(equalTo: topAnchor, constant: 5),
-            closeButton.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 5),
+            closeButton.topAnchor.constraint(equalTo: topAnchor, constant: 6),
+            closeButton.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 6),
             badge.centerXAnchor.constraint(equalTo: centerXAnchor),
             badge.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -8),
         ])
@@ -221,8 +215,21 @@ private final class PinView: NSView {
 
     /// Shown while ⌥⌘ makes a click-through pin interactive.
     func setHighlighted(_ highlighted: Bool) {
-        layer?.borderWidth = highlighted ? 2 : 1
-        layer?.borderColor = NSColor.white.withAlphaComponent(highlighted ? 0.8 : 0.15).cgColor
+        self.highlighted = highlighted
+        applyBorder()
+    }
+
+    /// A hairline of the theme's border; the accent while ⌥⌘ makes the pin usable.
+    private func applyBorder() {
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            layer?.borderWidth = highlighted ? 2 : 1
+            layer?.borderColor = (highlighted ? Theme.shared.nsAccent : NSColor.border).cgColor
+        }
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        applyBorder()
     }
 
     // MARK: Mouse

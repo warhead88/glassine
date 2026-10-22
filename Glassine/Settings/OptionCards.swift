@@ -332,7 +332,7 @@ struct MenuBarIconPreview: View {
                     Image(systemName: "viewfinder")
                         .font(.system(size: 10, weight: .semibold))
                         .padding(3)
-                        .background(Color.accentColor.opacity(0.35), in: RoundedRectangle(cornerRadius: 3))
+                        .background(Theme.shared.accent.opacity(0.35), in: RoundedRectangle(cornerRadius: 3))
                 }
                 ForEach(["wifi", "battery.75percent", "magnifyingglass"], id: \.self) {
                     Image(systemName: $0).font(.system(size: 9))

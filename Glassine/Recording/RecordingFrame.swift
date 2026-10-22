@@ -161,13 +161,12 @@ private final class FrameView: NSView {
         let pixels = RecordingMath.pixelSize(points: rect.size, scale: scale)
         let text = NSAttributedString(string: "\(pixels.width) × \(pixels.height)", attributes: [
             .font: NSFont.monospacedSystemFont(ofSize: 11, weight: .medium),
-            .foregroundColor: NSColor(srgbRed: 0xF7 / 255, green: 0xF6 / 255, blue: 0xF1 / 255, alpha: 1),
+            .foregroundColor: NSColor.tagText,
         ])
         let size = text.size()
         var box = CGRect(x: rect.midX - size.width / 2 - 8, y: rect.maxY + 10, width: size.width + 16, height: size.height + 6)
         if box.maxY > bounds.maxY { box.origin.y = rect.maxY - box.height - 10 }
-        // A dark ink tag in both themes: it sits on whatever is on screen, like the dashes.
-        NSColor(srgbRed: 0x1C / 255, green: 0x22 / 255, blue: 0x30 / 255, alpha: 0.92).setFill()
+        NSColor.tagFill.setFill()
         NSBezierPath(roundedRect: box, xRadius: 6, yRadius: 6).fill()
         text.draw(at: CGPoint(x: box.minX + 8, y: box.minY + 3))
     }

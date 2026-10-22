@@ -82,8 +82,9 @@ final class PinController {
     }
 
     #if DEBUG
-    /// Debug hook (`--debug-pins`): pins two crops of the main screen, one zoomed out at
-    /// 50% opacity, without the hotkey or touching the clipboard and save folder.
+    /// Debug hook (`--debug-pins [hover]`): pins two crops of the main screen, one zoomed out at
+    /// 50% opacity, without the hotkey or touching the clipboard and save folder. `hover` shows the
+    /// close buttons and the first pin's ⌥⌘ ring.
     func showDebugPins() {
         Task {
             guard let snapshot = try? await ScreenSnapshotter.snapshotAllScreens().first else { return }
@@ -101,6 +102,8 @@ final class PinController {
                     panel.setZoom(panel.zoom * 0.6)
                     panel.setOpacity(0.5)
                 }
+                // `hover`: the first pin as if ⌥⌘ were held over a click-through pin.
+                if index == 0, CommandLine.arguments.contains("hover") { pins.last?.setHighlighted(true) }
             }
         }
     }

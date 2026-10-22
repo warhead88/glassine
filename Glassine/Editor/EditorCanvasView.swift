@@ -188,7 +188,7 @@ final class EditorCanvasView: NSView, NSTextFieldDelegate, NSMenuItemValidation 
             let outline = NSBezierPath(rect: viewRect(renderer.bounds(of: annotation)).insetBy(dx: -3, dy: -3))
             outline.setLineDash([4, 3], count: 2, phase: 0)
             outline.lineWidth = 1
-            NSColor.controlAccentColor.setStroke()
+            Theme.shared.nsAccent.setStroke()
             outline.stroke()
         }
         for (_, point) in handles {
@@ -197,7 +197,7 @@ final class EditorCanvasView: NSView, NSTextFieldDelegate, NSMenuItemValidation 
                                                   width: handleRadius * 2, height: handleRadius * 2))
             NSColor.white.setFill()
             dot.fill()
-            NSColor.controlAccentColor.setStroke()
+            Theme.shared.nsAccent.setStroke()
             dot.lineWidth = 1.5
             dot.stroke()
         }

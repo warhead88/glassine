@@ -86,8 +86,9 @@ G на иконке. Интерфейс — SF Pro. Метки-капитель 
 
 ## 10. Голос и регистр
 
-**Решение.** Кнопки и подписи — sentence case («Skip this version», «Copy QR link»), везде
-одинаково. Пункты меню — Title Case по конвенции macOS («Check for Updates…»).
+**Решение.** Title Case для кнопок и пунктов меню, как в Apple HIG («Skip This Version», «Copy QR Link»,
+«Check for Updates…»). Подписи, подсказки и описания — обычные предложения. Моноширинные метки — капитель.
+(Сначала предлагался sentence case для кнопок; 22.10.2026 оставили Title Case, как рекомендует Apple.)
 
 ## 11. Редактор
 

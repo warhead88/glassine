@@ -102,6 +102,13 @@ final class CircleIconButton: FirstMouseButton {
     }
 }
 
+extension NSColor {
+    /// Tags over screen content (sizes, hints, a pin's zoom): dark ink in both themes, since they
+    /// sit on anything; the text is paper.
+    static var tagFill: NSColor { NSColor(srgbRed: 0x1C / 255, green: 0x22 / 255, blue: 0x30 / 255, alpha: 0.92) }
+    static var tagText: NSColor { NSColor(srgbRed: 0xF7 / 255, green: 0xF6 / 255, blue: 0xF1 / 255, alpha: 1) }
+}
+
 /// A card of the theme's paper for AppKit panels (countdown, controls): its color and hairline
 /// follow light and dark.
 final class PaperCardView: NSView {
