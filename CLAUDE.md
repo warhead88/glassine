@@ -33,8 +33,10 @@ patch = fixes); the build number is the commit count, set by `release.sh`. A rel
 
 Updates (`Glassine/Updates/`) use Sparkle with Glassine's own window. Debug: `--debug-update` (sample window),
 `--debug-feed <url> --debug-check-updates` (check a local appcast). A future App Store build leaves this folder out.
-The DMG window (arrow, caption) is laid out by `scripts/dmg-settings.py` (dmgbuild, private venv in
-`build.noindex`) over `Design/dmg/background.tiff`, rendered by `Design/tools/dmg-background.swift`.
+The DMG window (icons on stamps, a perforated arrow, Fraunces caption) is laid out by `scripts/dmg-settings.py`
+(dmgbuild, private venv in `build.noindex`) over `Design/dmg/background.tiff`, rendered with its 1x/2x PNGs by
+`swift Design/tools/dmg-background.swift Design/dmg` from the 0.4 tokens. Keep what matters above y = 330:
+Finder's path and status bars (global settings) can cover the bottom of the window.
 
 Screen Recording permission: request only through `ScreenAccess.request()` — the system prompt the
 first time, the settings pane after. Never both.

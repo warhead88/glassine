@@ -1,5 +1,5 @@
 # dmgbuild settings for scripts/release.sh: a Finder window with Glassine on the left,
-# an Applications link on the right and an arrow between them — drag to install.
+# an Applications link on the right, each on a stamp, a perforated arrow between them.
 # `app` and `background` are passed with -D by release.sh.
 import os.path
 
@@ -19,6 +19,6 @@ show_pathbar = False
 icon_size = 112
 text_size = 13
 icon_locations = {
-    os.path.basename(app): (170, 150),
-    "Applications": (470, 150),
+    os.path.basename(app): (170, 168),
+    "Applications": (470, 168),
 }

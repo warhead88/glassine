@@ -12,7 +12,7 @@
 | `readme/` | README icon (rendered from `glassine.icon` with `ictool`) |
 | `demo/` | Tooling for future README GIFs: scripted input driver (backs up the clipboard), MOV → GIF converter, a demo scene. GIFs were removed for now — see ROADMAP |
 | `0.4/` | The 0.4 redesign: decisions, tokens (`tokens.json` → the app's theme colors), scenes, backlog |
-| `dmg/`, `tools/dmg-background.swift` | DMG window background (1x/2x) used by `scripts/release.sh` |
+| `dmg/`, `tools/dmg-background.swift` | DMG window background (1x, 2x, TIFF) in the 0.4 look, used by `scripts/release.sh` |
 
 **The G:** Fraunces Italic, weight 400, optical size 144, softness (SOFT) 100. Color `#cccccc` on `#1a1a1a`.
 

@@ -242,6 +242,7 @@ leaks $PID | grep "leaks for"                     # утечки
 - [ ] Settings → General → Uninstall…: диалог; галочка про скриншоты — только для стандартной папки
 - [ ] После удаления: приложение, настройки и кэш — в Корзине; в Login Items и Screen Recording Glassine нет;
       скриншоты на месте (если галочка не стояла). Вернуть: `scripts/install.sh`
-- [ ] `scripts/release.sh` → DMG в `dist/`; открывается окно Finder: Glassine → стрелка → Applications,
-      подпись видна; перетащить, запустить из «Программ»
+- [ ] `scripts/release.sh` → DMG в `dist/`; окно Finder на бумаге: «Install Glassine» шрифтом Fraunces, Glassine
+      и Applications на марках, между ними перфорированная стрелка, курсивная подпись; подписи иконок читаются
+      и в тёмной теме; со строкой пути и строкой состояния Finder ничего важного не закрыто; перетащить, запустить
 
