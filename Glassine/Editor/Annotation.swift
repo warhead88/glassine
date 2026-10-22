@@ -93,9 +93,6 @@ enum EditorTool: String, CaseIterable, Identifiable {
         case .select, .pen, .marker, .step, .crop: false
         }
     }
-
-    /// Tools remembered as "last used" for the next editor window.
-    var isDrawingTool: Bool { self != .select && self != .crop }
 }
 
 /// sRGB color stored as plain components so annotations stay value types.

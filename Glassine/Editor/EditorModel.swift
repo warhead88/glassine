@@ -24,9 +24,9 @@ final class EditorModel {
     @ObservationIgnored private var backgroundEditOriginal: BackgroundSettings?
     var selectedID: UUID? { didSet { changed() } }
 
-    var tool: EditorTool = EditorPrefs.tool {
+    /// Every editor starts with Select, so the first click never draws by accident.
+    var tool: EditorTool = .select {
         didSet {
-            if tool.isDrawingTool && persistsPreferences { EditorPrefs.tool = tool }
             if tool != .select { selectedID = nil }
             changed()
         }
@@ -241,14 +241,9 @@ extension Annotation {
     }
 }
 
-/// Last used drawing tool, color and width, remembered between editor windows and launches.
+/// Last used color, width and background, remembered between editor windows and launches.
 enum EditorPrefs {
     private static var defaults: UserDefaults { .standard }
-
-    static var tool: EditorTool {
-        get { EditorTool(rawValue: defaults.string(forKey: "editorTool") ?? "") ?? .arrow }
-        set { defaults.set(newValue.rawValue, forKey: "editorTool") }
-    }
 
     static var color: RGBA {
         get {

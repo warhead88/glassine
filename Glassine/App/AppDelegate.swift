@@ -70,10 +70,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    /// Launching Glassine again (Finder, Spotlight, Launchpad) opens settings.
+    /// Launching Glassine again (Finder, Spotlight) or clicking its Dock icon: bring back open
+    /// editors, including minimized ones; with none open, show settings.
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        settings.show()
-        return true
+        if editor.hasWindows {
+            editor.showAll()
+        } else {
+            settings.show()
+        }
+        return false
     }
 
     @objc func showSettings(_ sender: Any?) {

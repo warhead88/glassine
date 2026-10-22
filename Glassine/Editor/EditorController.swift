@@ -33,6 +33,14 @@ final class EditorController {
     }
     #endif
 
+    var hasWindows: Bool { !windows.isEmpty }
+
+    /// Brings every editor back, including minimized ones (clicking the Dock icon).
+    func showAll() {
+        AppActivation.bringToFront()
+        windows.forEach { $0.restore() }
+    }
+
     fileprivate func closed(_ controller: EditorWindowController) {
         windows.removeAll { $0 === controller }
         if windows.isEmpty {
@@ -82,6 +90,11 @@ private final class EditorWindowController: NSObject, NSWindowDelegate {
         window.isReleasedWhenClosed = false
         window.delegate = self
         window.center()
+    }
+
+    func restore() {
+        if window.isMiniaturized { window.deminiaturize(nil) }
+        window.makeKeyAndOrderFront(nil)
     }
 
     func show() {
