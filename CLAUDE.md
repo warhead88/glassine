@@ -45,6 +45,8 @@ the test host starts the app bare (no delegate), so tests never touch hotkeys, w
   No privileged helpers, LaunchDaemons or .pkg installers. Login item only via `SMAppService.mainApp`.
   Saved screenshots are user content and are never deleted by the app.
 - Not sandboxed (Developer ID distribution).
+- License GPLv3 (`LICENSE`); the name Glassine and the icon are not covered (README → License).
+  Third-party code must be GPLv3-compatible.
 - Features go in their own folder under `Glassine/` (`Capture/`, `Settings/`, …).
 - Plan and priorities live in `ROADMAP.md`; tick items off there when they ship.
 - Manual QA checklist: `TESTING.md` — extend it when a feature ships.

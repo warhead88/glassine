@@ -87,3 +87,14 @@ scripts/release.sh     # Release build packed as dist/Glassine-<version>.dmg
 The Xcode project is generated from `project.yml`. Code lives in `Glassine/` by feature —
 `Capture`, `QuickAccess`, `Editor`, `Pins`, `Smart`, `Settings`; design sources and the icon in `Design/`.
 See [ROADMAP.md](ROADMAP.md) for what's next and [TESTING.md](TESTING.md) for the manual checklist.
+
+## License
+
+Glassine is free software under the [GNU General Public License v3.0](LICENSE): read it, build it,
+change it and share your changes under the same license. Copyright © 2026 warhead88.
+
+The name **Glassine** and the Glassine icon are not covered by the license. Forks are welcome under
+their own name and icon, so nobody mistakes them for the original.
+
+Third-party: [KeyboardShortcuts](https://github.com/sindresorhus/KeyboardShortcuts) (MIT); the Fraunces font
+in `Design/fonts`, used to draw the icon (SIL Open Font License).
