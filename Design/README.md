@@ -9,8 +9,8 @@
 | `g-candidates.png` | Font comparison the G was chosen from (variant 6) |
 | `fonts/` | Fraunces Italic, SIL Open Font License (see `Fraunces-Italic-OFL.txt`) |
 | `tools/glyphs.swift` | Renders the comparison sheet and exports the G as outlines |
-| `readme/` | README icon (rendered from `glassine.icon` with `ictool`) and demo GIFs |
-| `demo/` | Re-recording the README GIFs: `demo/record-gifs.sh` (neutral demo scene, scripted input, MOV → GIF) |
+| `readme/` | README icon (rendered from `glassine.icon` with `ictool`) |
+| `demo/` | Tooling for future README GIFs: scripted input driver (backs up the clipboard), MOV → GIF converter, a demo scene. GIFs were removed for now — see ROADMAP |
 | `dmg/`, `tools/dmg-background.swift` | DMG window background (1x/2x) used by `scripts/release.sh` |
 
 **The G:** Fraunces Italic, weight 400, optical size 144, softness (SOFT) 100. Color `#cccccc` on `#1a1a1a`.

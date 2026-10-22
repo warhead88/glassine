@@ -166,16 +166,9 @@ final class CaptureCoordinator {
             }
         }
         if isArea && defaults.bool(forKey: PrefKey.captureStartSound) {
-            Self.startSound?.play()
+            SoundEffects.play("Pop", volume: 0.35) // a soft click
         }
     }
-
-    /// A soft click when area capture starts.
-    private static let startSound: NSSound? = {
-        let sound = NSSound(named: "Pop")
-        sound?.volume = 0.35
-        return sound
-    }()
 
     private func finish(with result: OverlayResult, from snapshot: ScreenSnapshot) {
         overlays.forEach { $0.orderOut(nil) }

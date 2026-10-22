@@ -23,8 +23,6 @@ Press <kbd>⇧⌘4</kbd> and the screen freezes, so menus and hover states hold 
 A magnifier shows the pixels, coordinates and color under the pointer. Every capture lands in a small
 floating preview — drag it straight into any app, or click it to annotate.
 
-<p align="center"><img src="Design/readme/capture.gif" width="820" alt="Selecting an area, then dragging the preview"></p>
-
 | Shortcut | Action |
 |---|---|
 | <kbd>⇧⌘4</kbd> | Capture an area — drag to select (<kbd>⇧</kbd> square, <kbd>⌥</kbd> from center, hold <kbd>Space</kbd> to move) |
@@ -44,21 +42,15 @@ Arrows, shapes, text, pen, marker, numbered steps, blur, pixelate and redact —
 Shapes switch back to Select when you finish, so you can resize them right away. Add padding, rounded
 corners, a shadow and a background; it grows by itself when an arrow points past the edge.
 
-<p align="center"><img src="Design/readme/editor.gif" width="820" alt="Annotating a capture in the editor"></p>
-
 ## Pin
 
 Keep a capture floating above every window — as a reference while you design or code. Scroll to zoom,
 <kbd>⌥</kbd>-scroll for opacity, or let clicks pass through it.
 
-<p align="center"><img src="Design/readme/pin.gif" width="820" alt="Pinning a capture and moving it around"></p>
-
 ## Copy text from the screen
 
 Select any text — in an image, a video, a locked PDF — and it's on your clipboard. Recognition runs on
 your Mac with Vision; QR codes are read too, with a button to open links.
-
-<p align="center"><img src="Design/readme/text.gif" width="820" alt="Copying text from the screen"></p>
 
 ## Install
 

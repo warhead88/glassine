@@ -153,7 +153,7 @@ enum CaptureOutput {
             try capture.save()
         }
         if defaults.bool(forKey: PrefKey.playSound) {
-            NSSound(named: "Tink")?.play()
+            SoundEffects.play("Tink")
         }
     }
 }
