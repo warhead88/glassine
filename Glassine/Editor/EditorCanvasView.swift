@@ -244,6 +244,13 @@ final class EditorCanvasView: NSView, NSTextFieldDelegate, NSMenuItemValidation 
         let location = convert(event.locationInWindow, from: nil)
         let point = imagePoint(location)
 
+        // New marks start on the document (the capture or its background), never on the empty
+        // backdrop around it — otherwise a stray click far away stretches the background to it.
+        let onDocument = viewRect(model.canvasRect).insetBy(dx: -6, dy: -6).contains(location)
+        if !onDocument && model.tool != .select {
+            return
+        }
+
         switch model.tool {
         case .select:
             if let handle = handle(at: location), let selected = model.selected {
@@ -282,7 +289,10 @@ final class EditorCanvasView: NSView, NSTextFieldDelegate, NSMenuItemValidation 
 
     override func mouseDragged(with event: NSEvent) {
         guard let drag else { return }
-        let point = imagePoint(event)
+        // Dragging past the window edge keeps going in AppKit; stop at what's visible, so marks
+        // (and the background growing with them) can't run off arbitrarily far.
+        let location = convert(event.locationInWindow, from: nil)
+        let point = imagePoint(SelectionGeometry.clamped(location, to: bounds))
         let shift = event.modifierFlags.contains(.shift)
 
         switch drag {
