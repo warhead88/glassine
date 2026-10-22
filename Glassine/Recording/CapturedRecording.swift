@@ -12,13 +12,19 @@ final class CapturedRecording {
     let thumbnail: CGImage?
     /// Size in points, as it looked on screen.
     let pointSize: CGSize
+    /// "MP4 · 2 tracks", for the preview's caption.
+    let summary: String
+    let date: Date
 
-    init(url: URL, format: RecordingFormat, duration: Double, thumbnail: CGImage?, pointSize: CGSize) {
+    init(url: URL, format: RecordingFormat, duration: Double, thumbnail: CGImage?, pointSize: CGSize,
+         summary: String, date: Date = .now) {
         self.url = url
         self.format = format
         self.duration = duration
         self.thumbnail = thumbnail
         self.pointSize = pointSize
+        self.summary = summary
+        self.date = date
     }
 
     var isSaved: Bool { !url.path.hasPrefix(AppPaths.temporaryFiles.path) }

@@ -149,7 +149,8 @@ enum ScreenGeometry {
 /// Layout of capture previews in the screen corner.
 enum QuickAccessLayout {
     static let maxSize = CGSize(width: 220, height: 150)
-    static let minSize = CGSize(width: 140, height: 90)
+    /// Room for two buttons below the corner buttons.
+    static let minSize = CGSize(width: 140, height: 100)
 
     /// Tall enough for three buttons (Copy, Save, QR) clear of the corner buttons.
     static let minHeightWithQR: CGFloat = 150
@@ -161,6 +162,56 @@ enum QuickAccessLayout {
             width: max((size.width * fit).rounded(), minSize.width),
             height: max((size.height * fit).rounded(), hasQR ? minHeightWithQR : minSize.height)
         )
+    }
+
+    /// The preview is a postage stamp: the capture in a paper mat with a caption strip below.
+    static let matMargin: CGFloat = 12
+    static let captionHeight: CGFloat = 40
+
+    /// The stamp around an image area of `image` points.
+    static func stampSize(image: CGSize) -> CGSize {
+        CGSize(width: image.width + matMargin * 2, height: image.height + matMargin + captionHeight)
+    }
+
+    /// Centers of the perforation holes along every edge of `rect`, `pitch` apart, the corners
+    /// left whole — like a stamp torn from a sheet.
+    static func perforation(of rect: CGRect, pitch: CGFloat) -> [CGPoint] {
+        let edges = [(CGPoint(x: rect.minX, y: rect.minY), CGPoint(x: rect.maxX, y: rect.minY)),
+                     (CGPoint(x: rect.minX, y: rect.maxY), CGPoint(x: rect.maxX, y: rect.maxY)),
+                     (CGPoint(x: rect.minX, y: rect.minY), CGPoint(x: rect.minX, y: rect.maxY)),
+                     (CGPoint(x: rect.maxX, y: rect.minY), CGPoint(x: rect.maxX, y: rect.maxY))]
+        return edges.flatMap { a, b -> [CGPoint] in
+            let count = max(2, Int((hypot(b.x - a.x, b.y - a.y) / pitch).rounded()))
+            return (1..<count).map { i in
+                let t = CGFloat(i) / CGFloat(count)
+                return CGPoint(x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t)
+            }
+        }
+    }
+
+    /// The postmark under a preview: "22 Oct · 16:14" (in the user's language and clock).
+    static func postmark(_ date: Date, locale: Locale = .current, timeZone: TimeZone = .current) -> String {
+        let day = DateFormatter()
+        day.locale = locale
+        day.timeZone = timeZone
+        day.setLocalizedDateFormatFromTemplate("dMMM")
+        let time = DateFormatter()
+        time.locale = locale
+        time.timeZone = timeZone
+        time.setLocalizedDateFormatFromTemplate("jmm")
+        return "\(day.string(from: date)) · \(time.string(from: date))"
+    }
+
+    /// How many of the newest previews fit one above another in `height` (at least one).
+    static func fittingCount(sizes: [CGSize], height: CGFloat, margin: CGFloat, spacing: CGFloat) -> Int {
+        var used = margin * 2 - spacing
+        var count = 0
+        for size in sizes.reversed() {
+            used += size.height + spacing
+            guard used <= height || count == 0 else { break }
+            count += 1
+        }
+        return count
     }
 
     /// Frames for a stack in the bottom-right corner of `visible`; `sizes` are oldest first,

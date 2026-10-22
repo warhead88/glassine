@@ -55,7 +55,7 @@
 | Date | Fraunces Italic | 14 | 440 | |
 | Body | SF Pro | 14 | 400 | |
 | Note | SF Pro | 13 | 400 | `ink2` |
-| Label | SF Mono | 9,5 | 500 | капитель, трекинг 1,1 |
+| Label | SF Mono | 11 | 500 | капитель, трекинг 1,1; не меньше 11 — минимум Apple для текста |
 
 Fraunces: SOFT 100, WONK 0, оптический размер — авто.
 

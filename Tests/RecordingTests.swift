@@ -38,6 +38,13 @@ struct RecordingTests {
         #expect(RecordingMath.gifFrameTimes(duration: 0.01, fps: 15) == [0])
     }
 
+    @Test func summaryForThePreview() {
+        #expect(RecordingMath.summary(format: .video, codec: .h264, tracks: 2) == "MP4 · 2 tracks")
+        #expect(RecordingMath.summary(format: .video, codec: .hevc, tracks: 1) == "MP4 · 1 track")
+        #expect(RecordingMath.summary(format: .video, codec: .prores, tracks: 0) == "MOV · ProRes")
+        #expect(RecordingMath.summary(format: .gif, codec: .h264, tracks: 2) == "GIF")
+    }
+
     @Test func clock() {
         #expect(RecordingMath.clock(7.9) == "0:07")
         #expect(RecordingMath.clock(65) == "1:05")

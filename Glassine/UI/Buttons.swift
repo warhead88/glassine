@@ -7,32 +7,97 @@ class FirstMouseButton: NSButton {
 
 /// High-contrast button drawn by hand: system bezels render faded in a panel
 /// that never becomes active, which is exactly how previews and pins work.
+/// Paper (card with ink) by default; Stamp for what Glassine found, like QR codes.
 final class PillButton: FirstMouseButton {
-    convenience init(label: String, target: AnyObject, action: Selector) {
+    enum Style { case paper, stamp }
+
+    private var style = Style.paper
+    private var label = ""
+
+    convenience init(label: String, style: Style = .paper, symbol: String? = nil, target: AnyObject, action: Selector) {
         self.init(frame: .zero)
+        self.style = style
         self.target = target
         self.action = action
         isBordered = false
         wantsLayer = true
-        layer?.cornerRadius = 7
+        layer?.cornerRadius = 12.5
         layer?.cornerCurve = .continuous
+        if let symbol {
+            image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)
+            symbolConfiguration = .init(pointSize: 11, weight: .semibold)
+            imagePosition = .imageLeading
+        }
         setLabel(label)
-        highlight(false)
     }
 
     func setLabel(_ label: String) {
-        attributedTitle = NSAttributedString(string: label, attributes: [
-            .font: NSFont.systemFont(ofSize: 12, weight: .semibold),
-            .foregroundColor: NSColor.black.withAlphaComponent(0.85),
-        ])
+        self.label = label
+        applyColors()
         invalidateIntrinsicContentSize()
     }
 
+    private var fill: NSColor { style == .paper ? .card : .accentStamp }
+    private var text: NSColor { style == .paper ? .ink : .onAccentStamp }
+
+    private func applyColors() {
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            attributedTitle = NSAttributedString(string: label, attributes: [
+                .font: NSFont.systemFont(ofSize: 13, weight: .semibold),
+                .foregroundColor: text,
+            ])
+            contentTintColor = text
+            layer?.backgroundColor = (isHighlighted ? fill.blended(withFraction: 0.12, of: .ink) ?? fill : fill).cgColor
+        }
+    }
+
     override func highlight(_ flag: Bool) {
-        layer?.backgroundColor = NSColor.white.withAlphaComponent(flag ? 0.7 : 0.92).cgColor
+        super.highlight(flag)
+        applyColors()
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        applyColors()
     }
 
     override var intrinsicContentSize: NSSize {
-        NSSize(width: super.intrinsicContentSize.width + 24, height: 24)
+        NSSize(width: super.intrinsicContentSize.width + 28, height: 25)
+    }
+}
+
+/// A small round icon button on paper, for the corners of previews.
+final class CircleIconButton: FirstMouseButton {
+    static let size: CGFloat = 20
+
+    convenience init(symbol: String, help: String, target: AnyObject, action: Selector) {
+        self.init(frame: NSRect(x: 0, y: 0, width: Self.size, height: Self.size))
+        self.target = target
+        self.action = action
+        image = NSImage(systemSymbolName: symbol, accessibilityDescription: help)
+        symbolConfiguration = .init(pointSize: 9.5, weight: .bold)
+        imagePosition = .imageOnly
+        isBordered = false
+        toolTip = help
+        wantsLayer = true
+        layer?.cornerRadius = Self.size / 2
+        translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            widthAnchor.constraint(equalToConstant: Self.size),
+            heightAnchor.constraint(equalToConstant: Self.size),
+        ])
+        applyColors()
+    }
+
+    private func applyColors() {
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            contentTintColor = .ink
+            layer?.backgroundColor = NSColor.card.cgColor
+        }
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        applyColors()
     }
 }

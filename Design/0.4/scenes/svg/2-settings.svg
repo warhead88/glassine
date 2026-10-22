@@ -36,7 +36,7 @@
 <text x="366.0" y="67" class="s" fill="#585F6C" text-anchor="middle" style="font-size:13.5px;font-weight:400">Output</text>
 <text x="458.0" y="67" class="s" fill="#585F6C" text-anchor="middle" style="font-size:13.5px;font-weight:400">Shortcuts</text>
 <text x="34" y="132" class="f" fill="#1C2230" text-anchor="start" style="font-size:28px;font-weight:460;letter-spacing:-0.3px">Area capture</text>
-<text x="36" y="160" class="m" fill="#666C77" text-anchor="start" style="font-size:9.5px;font-weight:500;letter-spacing:1.1px">SCREEN FRAME</text>
+<text x="36" y="160" class="m" fill="#666C77" text-anchor="start" style="font-size:11px;font-weight:500;letter-spacing:1.1px">SCREEN FRAME</text>
 <rect x="34.0" y="172" width="181" height="84" rx="9" fill="#DCDCD4" />
 <rect x="48.0" y="194" width="68.78" height="35.28" rx="3" fill="#F9F9F6" />
 <rect x="99.16" y="208.96" width="65.16" height="33.6" rx="3" fill="#EAC9A6" />

@@ -38,8 +38,11 @@ final class QuickAccessController {
     private func present(_ panel: PreviewPanel, on screen: NSScreen) {
         self.screen = screen
         panels.append(panel)
-        if panels.count > maxVisible {
-            panels.first?.dismiss()
+        // The oldest go when there are too many, or when the stack would run off the screen.
+        let fitting = QuickAccessLayout.fittingCount(sizes: panels.map(\.preferredSize), height: screen.visibleFrame.height,
+                                                     margin: margin, spacing: spacing)
+        for old in panels.prefix(panels.count - min(fitting, maxVisible)) {
+            old.dismiss()
         }
 
         // The new panel slides in from the screen edge while older ones move up.

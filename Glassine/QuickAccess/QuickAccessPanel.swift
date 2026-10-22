@@ -91,7 +91,8 @@ final class QuickAccessPanel: PreviewPanel {
         self.onPin = onPin
         self.onEdit = onEdit
         self.onResize = onResize
-        super.init(size: QuickAccessLayout.thumbnailSize(for: capture.pointSize), autoClose: autoClose, onClose: onClose)
+        super.init(size: QuickAccessLayout.stampSize(image: QuickAccessLayout.thumbnailSize(for: capture.pointSize)),
+                   autoClose: autoClose, onClose: onClose)
 
         let thumbnail = ThumbnailView(capture: capture, panel: self)
         contentView = thumbnail
@@ -101,7 +102,7 @@ final class QuickAccessPanel: PreviewPanel {
             let codes = await BarcodeDetector.detect(image)
             guard let self, !codes.isEmpty, !isDismissing else { return }
             thumbnail.showCodes(codes)
-            preferredSize = QuickAccessLayout.thumbnailSize(for: capture.pointSize, hasQR: true)
+            preferredSize = QuickAccessLayout.stampSize(image: QuickAccessLayout.thumbnailSize(for: capture.pointSize, hasQR: true))
             onResize(self)
         }
     }
@@ -120,24 +121,14 @@ final class QuickAccessPanel: PreviewPanel {
 }
 
 @MainActor
-private final class ThumbnailView: NSView, NSDraggingSource {
+private final class ThumbnailView: PreviewStampView, NSDraggingSource {
     private let capture: CapturedImage
     private unowned let panel: QuickAccessPanel
 
-    private let overlay = NSView()
     private lazy var copyButton = PillButton(label: "Copy", target: self, action: #selector(copyImage))
     private lazy var saveButton = PillButton(label: "", target: self, action: #selector(saveOrReveal))
-    private lazy var qrButton = PillButton(label: "", target: self, action: #selector(qrAction))
-    private let qrBadge = NSImageView()
+    private lazy var qrButton = PillButton(label: "", style: .stamp, symbol: "qrcode", target: self, action: #selector(qrAction))
     private var codes: [String] = []
-    private lazy var closeButton = FirstMouseButton(
-        image: NSImage(systemSymbolName: "xmark.circle.fill", accessibilityDescription: "Close")!,
-        target: self, action: #selector(close)
-    )
-    private lazy var pinButton = FirstMouseButton(
-        image: NSImage(systemSymbolName: "pin.circle.fill", accessibilityDescription: "Pin")!,
-        target: self, action: #selector(pin)
-    )
 
     private var mouseDownPoint: NSPoint?
     private var resetCopyTitle: Task<Void, Never>?
@@ -145,81 +136,21 @@ private final class ThumbnailView: NSView, NSDraggingSource {
     init(capture: CapturedImage, panel: QuickAccessPanel) {
         self.capture = capture
         self.panel = panel
-        super.init(frame: NSRect(origin: .zero, size: panel.frame.size))
-
-        wantsLayer = true
-        // Aspect-fit on a neutral backdrop, so tall or tiny captures are shown whole.
-        layer?.contents = capture.image
-        layer?.contentsGravity = .resizeAspect
-        layer?.backgroundColor = NSColor(white: 0.12, alpha: 0.95).cgColor
-        layer?.cornerRadius = 10
-        layer?.cornerCurve = .continuous
-        layer?.masksToBounds = true
-        layer?.borderWidth = 1
-        layer?.borderColor = NSColor.white.withAlphaComponent(0.2).cgColor
-
-        setUpOverlay()
-        updateSaveTitle()
-
-        addTrackingArea(NSTrackingArea(
-            rect: .zero,
-            options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect],
-            owner: self
-        ))
-    }
-
-    @available(*, unavailable)
-    required init?(coder: NSCoder) { fatalError() }
-
-    private func setUpOverlay() {
-        overlay.wantsLayer = true
-        overlay.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.35).cgColor
-        overlay.alphaValue = 0
-        overlay.frame = bounds
-        overlay.autoresizingMask = [.width, .height]
-        addSubview(overlay)
+        super.init(panel: panel, image: capture.image, date: capture.date,
+                   detail: "\(capture.image.width) × \(capture.image.height)")
 
         qrButton.isHidden = true
-        let stack = NSStackView(views: [copyButton, saveButton, qrButton])
-        stack.orientation = .vertical
-        stack.spacing = 6
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        overlay.addSubview(stack)
-
-        for button in [closeButton, pinButton] {
-            button.isBordered = false
-            button.contentTintColor = .white
-            button.symbolConfiguration = .init(pointSize: 16, weight: .regular)
-            button.translatesAutoresizingMaskIntoConstraints = false
-            overlay.addSubview(button)
+        for button in [copyButton, saveButton, qrButton] {
+            buttons.addArrangedSubview(button)
         }
-        pinButton.toolTip = "Pin to screen"
-
         NSLayoutConstraint.activate([
-            stack.centerXAnchor.constraint(equalTo: overlay.centerXAnchor),
-            stack.centerYAnchor.constraint(equalTo: overlay.centerYAnchor),
             copyButton.widthAnchor.constraint(equalTo: saveButton.widthAnchor),
-            qrButton.widthAnchor.constraint(greaterThanOrEqualTo: saveButton.widthAnchor),
-            closeButton.topAnchor.constraint(equalTo: overlay.topAnchor, constant: 6),
-            closeButton.leadingAnchor.constraint(equalTo: overlay.leadingAnchor, constant: 6),
-            pinButton.topAnchor.constraint(equalTo: overlay.topAnchor, constant: 6),
-            pinButton.trailingAnchor.constraint(equalTo: overlay.trailingAnchor, constant: -6),
+            copyButton.widthAnchor.constraint(greaterThanOrEqualToConstant: 96),
         ])
-    }
-
-    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
-
-    // MARK: Hover
-
-    override func mouseEntered(with event: NSEvent) { setHovering(true) }
-    override func mouseExited(with event: NSEvent) { setHovering(false) }
-
-    private func setHovering(_ hovering: Bool) {
-        panel.setHovering(hovering)
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.15
-            overlay.animator().alphaValue = hovering ? 1 : 0
-        }
+        topLeading.addArrangedSubview(CircleIconButton(symbol: "xmark", help: "Close", target: self, action: #selector(close)))
+        topTrailing.addArrangedSubview(CircleIconButton(symbol: "pencil", help: "Edit", target: self, action: #selector(edit)))
+        topTrailing.addArrangedSubview(CircleIconButton(symbol: "pin", help: "Pin to screen", target: self, action: #selector(pin)))
+        updateSaveTitle()
     }
 
     // MARK: Click & drag
@@ -346,21 +277,20 @@ private final class ThumbnailView: NSView, NSDraggingSource {
         qrButton.setLabel(qrTitle)
         qrButton.isHidden = false
 
-        qrBadge.image = NSImage(systemSymbolName: "qrcode", accessibilityDescription: "QR code found")
-        qrBadge.symbolConfiguration = .init(pointSize: 11, weight: .semibold)
-        qrBadge.contentTintColor = .white
-        qrBadge.wantsLayer = true
-        qrBadge.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.6).cgColor
-        qrBadge.layer?.cornerRadius = 5
-        qrBadge.toolTip = codes.count == 1 ? "QR code found" : "\(codes.count) QR codes found"
-        qrBadge.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(qrBadge, positioned: .below, relativeTo: overlay)
+        let badge = NSImageView(image: NSImage(systemSymbolName: "qrcode", accessibilityDescription: "QR code found")!)
+        badge.symbolConfiguration = .init(pointSize: 10, weight: .semibold)
+        badge.wantsLayer = true
+        badge.layer?.cornerRadius = 10
+        badge.toolTip = codes.count == 1 ? "QR code found" : "\(codes.count) QR codes found"
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            badge.contentTintColor = .onAccentStamp
+            badge.layer?.backgroundColor = NSColor.accentStamp.cgColor
+        }
         NSLayoutConstraint.activate([
-            qrBadge.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 6),
-            qrBadge.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -6),
-            qrBadge.widthAnchor.constraint(equalToConstant: 20),
-            qrBadge.heightAnchor.constraint(equalToConstant: 20),
+            badge.widthAnchor.constraint(equalToConstant: 20),
+            badge.heightAnchor.constraint(equalToConstant: 20),
         ])
+        addBadge(badge)
     }
 
     private var qrTitle: String {

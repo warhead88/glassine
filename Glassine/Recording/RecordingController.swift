@@ -176,8 +176,13 @@ final class RecordingController {
                     try? FileManager.default.removeItem(at: video)
                 }
 
-                let recording = CapturedRecording(url: file, format: session.options.format, duration: duration,
-                                                  thumbnail: thumbnail, pointSize: session.pointSize)
+                let options = session.options
+                let recording = CapturedRecording(
+                    url: file, format: options.format, duration: duration, thumbnail: thumbnail,
+                    pointSize: session.pointSize,
+                    summary: RecordingMath.summary(format: options.format, codec: options.codec,
+                                                   tracks: options.recordedTracks.count)
+                )
                 deliver(recording, on: session.screen)
             } catch {
                 Alerts.present(error, log: Log.capture)

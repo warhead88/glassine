@@ -131,6 +131,15 @@ enum RecordingMath {
         return (0..<count).map { Double($0) / Double(fps) }
     }
 
+    /// The file in a few words: "MP4 · 2 tracks", "MOV · ProRes", "GIF".
+    static func summary(format: RecordingFormat, codec: VideoCodec, tracks: Int) -> String {
+        guard format == .video else { return "GIF" }
+        var parts = [codec.fileExtension.uppercased()]
+        if codec == .prores { parts.append("ProRes") }
+        if tracks > 0 { parts.append(tracks == 1 ? "1 track" : "\(tracks) tracks") }
+        return parts.joined(separator: " · ")
+    }
+
     /// "0:07", "1:05:09".
     static func clock(_ seconds: Double) -> String {
         let total = max(0, Int(seconds))

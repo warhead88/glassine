@@ -35,6 +35,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         updater.start()
 
         #if DEBUG
+        if CommandLine.arguments.contains("light") {
+            NSApp.appearance = NSAppearance(named: .aqua) // with any --debug-… flag: check the light theme
+        }
         if CommandLine.arguments.contains("--debug-preview") {
             capture.showDebugPreviews()
         }

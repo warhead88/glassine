@@ -77,7 +77,7 @@ class Scene:
         self.add(f'<text x="{x}" y="{y}" class="{cls}" fill="{col}"{op} text-anchor="{anchor}" '
                  f'style="{st}">{esc(s)}</text>')
 
-    def label(self, x, y, s, fill="ink3", anchor="start", size=9.5):
+    def label(self, x, y, s, fill="ink3", anchor="start", size=11):
         """Catalogue label: small mono caps."""
         self.text(x, y, s.upper(), size, "m", fill, anchor, 500, ls=1.1)
 

@@ -20,7 +20,7 @@ enum ThemeTokens {
     static let date = TypeStyle(family: .serif, size: 14, weight: 440, tracking: 0, italic: true, uppercase: false)
     static let body = TypeStyle(family: .sans, size: 14, weight: nil, tracking: 0, italic: false, uppercase: false)
     static let note = TypeStyle(family: .sans, size: 13, weight: nil, tracking: 0, italic: false, uppercase: false)
-    static let label = TypeStyle(family: .mono, size: 9.5, weight: 500, tracking: 1.1, italic: false, uppercase: true)
+    static let label = TypeStyle(family: .mono, size: 11, weight: 500, tracking: 1.1, italic: false, uppercase: true)
 
     enum Radius {
         static let window: CGFloat = 14
@@ -29,7 +29,7 @@ enum ThemeTokens {
         static let key: CGFloat = 5
     }
 
-    /// Postage-stamp perforation: hole diameter and spacing, in points.
+    /// Postage-stamp perforation: hole radius and spacing along the edge, in points.
     enum Perforation {
         static let hole: CGFloat = 2.5
         static let pitch: CGFloat = 8.4

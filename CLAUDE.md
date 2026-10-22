@@ -72,6 +72,7 @@ the test host starts the app bare (no delegate), so tests never touch hotkeys, w
 - Plan and priorities live in `ROADMAP.md`; tick items off there when they ship.
 - Manual QA checklist: `TESTING.md` — extend it when a feature ships.
 - Logs: `/usr/bin/log stream --predicate 'subsystem == "com.warhead88.glassine"'` (plain `log` is a zsh builtin).
-- Debug builds: `open /Applications/Glassine.app --args --debug-preview` (sample previews) or `--debug-pins` (sample pins) or `--debug-editor` (editor with every annotation) or `--debug-welcome` (permission steps even when granted) or `--debug-record-panel [full] [audio]` (recording
+- Debug builds: `open /Applications/Glassine.app --args --debug-preview [hover]` (sample previews, buttons shown); add `light`
+  to any debug flag to force the light theme or `--debug-pins` (sample pins) or `--debug-editor` (editor with every annotation) or `--debug-welcome` (permission steps even when granted) or `--debug-record-panel [full] [audio]` (recording
   controls for the middle of the screen or all of it, optionally with the audio editor open) or `--debug-record <seconds> [pause|move]` (records with
   the saved options, stops by itself) — checks without the hotkey or synthetic input.

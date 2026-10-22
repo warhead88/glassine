@@ -10,6 +10,7 @@ final class CapturedImage {
     let scale: CGFloat
     /// e.g. "Glassine 2026-10-21 at 19.53.06", fixed at capture time.
     let baseName: String
+    let date: Date
     /// Format for files on disk; the clipboard always gets lossless PNG.
     let format: ImageFormat
     private let png: Data
@@ -35,6 +36,7 @@ final class CapturedImage {
         self.format = Preferences.imageFormat
         self.png = try Self.encode(self.image, scale: self.scale, as: .png)
 
+        self.date = date
         self.baseName = FileNaming.baseName(prefix: Preferences.fileNamePrefix, date: date)
     }
 

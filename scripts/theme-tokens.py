@@ -108,7 +108,7 @@ def main():
         *(f"        static let {k}: CGFloat = {swift_number(v)}" for k, v in radius.items() if isinstance(v, (int, float))),
         "    }",
         "",
-        "    /// Postage-stamp perforation: hole diameter and spacing, in points.",
+        "    /// Postage-stamp perforation: hole radius and spacing along the edge, in points.",
         "    enum Perforation {",
         f"        static let hole: CGFloat = {swift_number(perf['hole'])}",
         f"        static let pitch: CGFloat = {swift_number(perf['pitch'])}",

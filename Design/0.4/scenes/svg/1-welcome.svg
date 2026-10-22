@@ -39,7 +39,7 @@
 <g filter="url(#welcome-sh-s)">
 <path d="M482 104 H522 a18 11 0 0 0 36 0 H598 V170 a5 5 0 0 1 -5 5 H487 a5 5 0 0 1 -5 -5 Z" fill="#FBFBF8" fill-opacity=".68" stroke="#1C2230" stroke-opacity=".14"/>
 </g>
-<text x="42" y="236" class="m" fill="#666C77" text-anchor="start" style="font-size:9.5px;font-weight:500;letter-spacing:1.1px">SHORTCUTS</text>
+<text x="42" y="236" class="m" fill="#666C77" text-anchor="start" style="font-size:11px;font-weight:500;letter-spacing:1.1px">SHORTCUTS</text>
 <rect x="40" y="248" width="560" height="164" rx="12" fill="#F9F9F6" stroke="#D5D6CE" stroke-width="1" />
 <line x1="320" y1="260" x2="320" y2="400" stroke="#E3E3DC" stroke-width="1" />
 <text x="60" y="273.5" class="s" fill="#1C2230" text-anchor="start" style="font-size:14px;font-weight:400">Capture area</text>
