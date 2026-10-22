@@ -8,3 +8,6 @@ xcuserdata/
 Design/Icon Exports/
 dist/
 Config/Signing.local.xcconfig
+
+# Screen recordings for the README GIFs (large; the GIFs are in Design/readme)
+/*.mov

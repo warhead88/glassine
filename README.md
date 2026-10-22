@@ -46,6 +46,10 @@ after a countdown (3 seconds, or none — see Settings) they turn into a small p
 Until then the area can be moved and resized; while recording, drag its border to pan and a corner
 to zoom.
 
+<p align="center">
+  <img src="Design/readme/record.gif" width="720" alt="Choosing an area, setting up audio tracks, recording while moving the area, then the preview">
+</p>
+
 Video is hardware-encoded as H.264 (plays everywhere), HEVC/H.265 (half the size) or ProRes 422 (for
 editing, in a .mov), at 30 or 60 fps. Sound is recorded in tracks you put together: each track mixes
 its sources — system audio, a microphone, or single apps — and stays separate in the file, so an
@@ -59,10 +63,18 @@ Arrows, shapes, text, pen, marker, numbered steps, blur, pixelate and redact —
 Shapes switch back to Select when you finish, so you can resize them right away. Add padding, rounded
 corners, a shadow and a background; it grows by itself when an arrow points past the edge.
 
+<p align="center">
+  <img src="Design/readme/capture.gif" width="720" alt="Selecting an area, then adding a highlight, text and an arrow in the editor">
+</p>
+
 ## Pin
 
 Keep a capture floating above every window — as a reference while you design or code. Scroll to zoom,
 <kbd>⌥</kbd>-scroll for opacity, or let clicks pass through it.
+
+<p align="center">
+  <img src="Design/readme/pin.gif" width="720" alt="Pinning a capture from its preview, then moving and zooming the pin">
+</p>
 
 ## Copy text from the screen
 

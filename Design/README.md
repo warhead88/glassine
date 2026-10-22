@@ -10,8 +10,8 @@
 | `g-candidates.png` | Font comparison the G was chosen from (variant 6) |
 | `fonts/` | Fraunces roman and italic (variable: opsz, wght, SOFT, WONK), SIL Open Font License (`Fraunces-OFL.txt`). Both ship in the app |
 | `tools/glyphs.swift` | Renders the comparison sheet and exports the G as outlines |
-| `readme/` | README icon (rendered from `glassine.icon` with `ictool`) |
-| `demo/` | Tooling for future README GIFs: scripted input driver (backs up the clipboard), MOV → GIF converter, a demo scene. GIFs were removed for now — see ROADMAP |
+| `readme/` | README icon (rendered from `glassine.icon` with `ictool`) and GIFs: `capture`, `record`, `pin` (recipe below) |
+| `demo/` | Older GIF tooling: scripted input driver (backs up the clipboard), MOV → GIF converter, a demo scene. The README GIFs are now recorded by hand (below) |
 | `0.4/` | The 0.4 redesign: decisions, tokens (`tokens.json` → the app's theme colors), scenes, backlog |
 | `dmg/`, `tools/dmg-background.swift` | DMG window background (1x, 2x, TIFF) in the 0.4 look, used by `scripts/release.sh` |
 
@@ -45,3 +45,18 @@ swift Design/tools/glyphs.swift svg Design/fonts/Fraunces-Italic.ttf 400 Design/
 The build compiles it into `Assets.car` (Liquid Glass, macOS 26+) and `glassine.icns`
 (flat, macOS 14–15). Exports from Icon Composer (`Icon Exports/`) are previews only and not committed.
 If Finder keeps showing an old icon: `touch /Applications/Glassine.app`.
+
+## README GIFs
+
+Record with live input in QuickTime Player (File → New Screen Recording): Glassine leaves its own windows
+out of its recordings. Then trim, crop (Retina pixels), speed up and encode with one shared palette:
+
+```bash
+ffmpeg -ss 1.5 -to 34 -i Screenshot.mov -vf "crop=2320:1440:380:200,setpts=PTS/2,fps=12,scale=900:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=192:stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=4:diff_mode=rectangle" Design/readme/capture.gif
+```
+
+Used for 0.4: `capture` 1.5–34 s ×2, `record` 3–51.6 s ×2.5 (crop `2640:1644:384:320`), `pin` 1–27 s ×1.6
+(crop `2388:1644:636:320`). Keep each around 2–3 MB.
+`record` blurs the Add Source menu (it lists the running apps) for source seconds 12–17.5: before the crop,
+`split[m][b];[b]crop=410:1010:1290:440,boxblur=24:3[bl];[m][bl]overlay=1290:440:enable='between(t,9,14.5)'`
+(`t` counts from `-ss`).
