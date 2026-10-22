@@ -65,16 +65,20 @@ enum RecordingPanelLayout {
     }
 }
 
-/// The recording controls window and the dashed frame around the area. Both are Glassine
-/// windows, which the recording leaves out.
+/// The recording controls window and the frame around the area, which can be moved and
+/// resized. Both are Glassine windows, which the recording leaves out.
 @MainActor
 final class RecordingPanel {
     let model: RecordingPanelModel
     private let panel: ControlsPanel
     private let hosting: ControlsHostingView
-    private let outline: NSPanel?
-    private let area: NSRect
+    private let outline: RecordingFrame?
+    /// The recorded area in global Cocoa coordinates; the controls follow it.
+    private var area: NSRect
     private let screen: NSScreen
+
+    /// The area moved or resized, in the screen's flipped local points.
+    var onAreaChange: (CGRect) -> Void = { _ in }
 
     init(model: RecordingPanelModel, area: NSRect, on screen: NSScreen, framed: Bool) {
         self.model = model
@@ -86,15 +90,16 @@ final class RecordingPanel {
         panel.contentView = hosting
 
         if framed {
-            let frame = area.insetBy(dx: -OutlineView.width, dy: -OutlineView.width)
-            let outline = NSPanel(contentRect: frame, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
-            Self.configure(outline)
-            outline.ignoresMouseEvents = true
-            outline.hasShadow = false
-            outline.contentView = OutlineView(frame: NSRect(origin: .zero, size: frame.size))
-            self.outline = outline
+            let local = ScreenGeometry.localFlipped(fromGlobalCocoa: area, screenFrame: screen.frame)
+            outline = RecordingFrame(rect: local, on: screen)
         } else {
             outline = nil
+        }
+        outline?.onChange = { [weak self] local in
+            guard let self else { return }
+            self.area = screen.globalRect(fromLocalFlipped: local)
+            relayout(animated: false)
+            onAreaChange(local)
         }
         // After the view has taken the change in.
         model.onLayoutChange = { [weak self] in
@@ -106,25 +111,41 @@ final class RecordingPanel {
     /// without activating Glassine.
     func show() {
         relayout(animated: false)
-        outline?.orderFrontRegardless()
+        outline?.show()
         panel.orderFrontRegardless()
         panel.makeKey()
     }
 
+    /// Once recording, the inside of the area is the app's again: only the border and corners
+    /// move and zoom it.
+    func startRecording() {
+        outline?.mode = .recording
+        releaseKeyboard()
+    }
+
     /// Once recording, the keyboard goes back to the app being recorded.
-    func releaseKeyboard() {
+    private func releaseKeyboard() {
         guard panel.allowsKey else { return }
         panel.allowsKey = false
         panel.orderOut(nil)
         panel.orderFrontRegardless()
     }
 
+    #if DEBUG
+    /// Moves and zooms the frame as a drag would (`--debug-record … move`).
+    func debugMoveArea() {
+        guard let outline else { return }
+        let rect = outline.rect
+        outline.setRect(CGRect(x: rect.minX + 150, y: rect.minY + 80, width: rect.width * 0.75, height: rect.height * 0.75))
+    }
+    #endif
+
     func hideOutline() {
-        outline?.orderOut(nil)
+        outline?.close()
     }
 
     func close() {
-        outline?.orderOut(nil)
+        outline?.close()
         panel.orderOut(nil)
     }
 
@@ -170,20 +191,4 @@ private final class ControlsPanel: NSPanel {
 
 private final class ControlsHostingView: NSHostingView<RecordingPanelView> {
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
-}
-
-/// A thin dashed frame just outside the recorded area.
-private final class OutlineView: NSView {
-    static let width: CGFloat = 3
-
-    override func draw(_ dirtyRect: NSRect) {
-        let rect = bounds.insetBy(dx: Self.width / 2, dy: Self.width / 2)
-        for (color, width) in [(NSColor.black.withAlphaComponent(0.35), Self.width), (NSColor.white, 1.5)] {
-            let path = NSBezierPath(rect: rect)
-            path.lineWidth = width
-            path.setLineDash([8, 5], count: 2, phase: 0)
-            color.setStroke()
-            path.stroke()
-        }
-    }
 }

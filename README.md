@@ -43,6 +43,8 @@ covered), or press <kbd>↩</kbd> for the whole screen. The controls appear besi
 room, docked to the screen edge: format (MP4 or GIF), codec, frame rate, bitrate, scale, pointer,
 audio tracks, and which side the controls go. Press the red button or <kbd>↩</kbd>;
 after a 3-second countdown they turn into a small player with the time, pause, stop and discard.
+Until then the area can be moved and resized; while recording, drag its border to pan and a corner
+to zoom.
 
 Video is hardware-encoded as H.264 (plays everywhere), HEVC/H.265 (half the size) or ProRes 422 (for
 editing, in a .mov), at 30 or 60 fps. Sound is recorded in tracks you put together: each track mixes

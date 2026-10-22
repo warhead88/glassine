@@ -5,6 +5,11 @@ sections **Added**, **Changed**, **Fixed**, **Removed** (and **Security** when n
 section is what the update window shows, so write it for users. Versions follow
 [Semantic Versioning](https://semver.org).
 
+## [Unreleased]
+
+### Added
+- The recorded area can be moved and resized after you pick it. While recording, drag its border to move it and a corner to zoom in or out; the video keeps its size
+
 ## [0.2.0] - 2026-10-22
 
 ### Added

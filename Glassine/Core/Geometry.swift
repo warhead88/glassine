@@ -61,6 +61,38 @@ enum SelectionGeometry {
         }
     }
 
+    /// Resizes from a corner keeping the aspect ratio; the opposite corner stays put and the rect
+    /// stays inside `bounds`. Edge handles leave the rect as it is.
+    static func resizedKeepingAspect(_ rect: CGRect, handle: Handle, dx: CGFloat, in bounds: CGRect,
+                                     minWidth: CGFloat) -> CGRect {
+        let right = handle == .topRight || handle == .bottomRight
+        let down = handle == .bottomLeft || handle == .bottomRight
+        guard right || handle == .topLeft || handle == .bottomLeft, rect.height > 0 else { return rect }
+        let aspect = rect.width / rect.height
+        let anchor = CGPoint(x: right ? rect.minX : rect.maxX, y: down ? rect.minY : rect.maxY)
+        let roomX = right ? bounds.maxX - anchor.x : anchor.x - bounds.minX
+        let roomY = down ? bounds.maxY - anchor.y : anchor.y - bounds.minY
+        let width = min(max(rect.width + (right ? dx : -dx), minWidth), roomX, roomY * aspect)
+        let height = width / aspect
+        return CGRect(x: right ? anchor.x : anchor.x - width, y: down ? anchor.y : anchor.y - height,
+                      width: width, height: height)
+    }
+
+    /// Whether `point` is within `tolerance` of the rect's outline.
+    static func isOnBorder(_ point: CGPoint, of rect: CGRect, tolerance: CGFloat = 6) -> Bool {
+        rect.insetBy(dx: -tolerance, dy: -tolerance).contains(point)
+            && !rect.insetBy(dx: tolerance, dy: tolerance).contains(point)
+    }
+
+    /// A freely resized rect inside `bounds`, at least `minSize`.
+    static func limited(_ rect: CGRect, in bounds: CGRect, minSize: CGSize) -> CGRect {
+        var rect = rect.intersection(bounds)
+        if rect.isNull { rect = CGRect(origin: bounds.origin, size: .zero) }
+        rect.size.width = max(rect.width, minSize.width)
+        rect.size.height = max(rect.height, minSize.height)
+        return fitted(rect, in: bounds)
+    }
+
     static func clamped(_ point: CGPoint, to bounds: CGRect) -> CGPoint {
         CGPoint(x: min(max(point.x, bounds.minX), bounds.maxX), y: min(max(point.y, bounds.minY), bounds.maxY))
     }
@@ -99,6 +131,10 @@ enum ScreenGeometry {
     static func localFlipped(fromGlobalTopLeft rect: CGRect, screenFrame: CGRect, primaryHeight: CGFloat) -> CGRect {
         let screenTop = primaryHeight - screenFrame.maxY
         return rect.offsetBy(dx: -screenFrame.minX, dy: -screenTop)
+    }
+
+    static func localFlipped(fromGlobalCocoa rect: CGRect, screenFrame: CGRect) -> CGRect {
+        CGRect(x: rect.minX - screenFrame.minX, y: screenFrame.maxY - rect.maxY, width: rect.width, height: rect.height)
     }
 
     static func globalCocoa(fromLocalFlipped rect: CGRect, screenFrame: CGRect) -> CGRect {

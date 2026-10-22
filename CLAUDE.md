@@ -63,5 +63,5 @@ the test host starts the app bare (no delegate), so tests never touch hotkeys, w
 - Manual QA checklist: `TESTING.md` — extend it when a feature ships.
 - Logs: `/usr/bin/log stream --predicate 'subsystem == "com.warhead88.glassine"'` (plain `log` is a zsh builtin).
 - Debug builds: `open /Applications/Glassine.app --args --debug-preview` (sample previews) or `--debug-pins` (sample pins) or `--debug-editor` (editor with every annotation) or `--debug-welcome` (permission steps even when granted) or `--debug-record-panel [full] [audio]` (recording
-  controls for the middle of the screen or all of it, optionally with the audio editor open) or `--debug-record <seconds> [pause]` (records with the
-  saved options, stops by itself) — checks without the hotkey or synthetic input.
+  controls for the middle of the screen or all of it, optionally with the audio editor open) or `--debug-record <seconds> [pause|move]` (records with
+  the saved options, stops by itself) — checks without the hotkey or synthetic input.

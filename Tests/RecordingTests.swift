@@ -140,3 +140,51 @@ struct AudioTrackTests {
         #expect(options.fileExtension == "gif")
     }
 }
+
+@Suite("Moving and zooming the recorded area")
+struct RecordingAreaTests {
+    let screen = CGRect(x: 0, y: 0, width: 1512, height: 982)
+    let area = CGRect(x: 400, y: 300, width: 400, height: 300) // 4:3
+
+    @Test func cornerResizeKeepsTheAspectAndTheOppositeCorner() {
+        let bigger = SelectionGeometry.resizedKeepingAspect(area, handle: .bottomRight, dx: 80, in: screen, minWidth: 64)
+        #expect(bigger == CGRect(x: 400, y: 300, width: 480, height: 360))
+        let smaller = SelectionGeometry.resizedKeepingAspect(area, handle: .topLeft, dx: 100, in: screen, minWidth: 64)
+        #expect(smaller == CGRect(x: 500, y: 375, width: 300, height: 225)) // bottom-right corner stayed at (800, 600)
+    }
+
+    @Test func zoomStopsAtTheScreenEdgeAndAtTheMinimum() {
+        // Growing up-left from (800, 600): 600 pt of height left → at most 800 wide at 4:3.
+        let huge = SelectionGeometry.resizedKeepingAspect(area, handle: .topLeft, dx: -2000, in: screen, minWidth: 64)
+        #expect(huge.width == 800 && huge.height == 600 && huge.minY == 0)
+        let tiny = SelectionGeometry.resizedKeepingAspect(area, handle: .bottomLeft, dx: 2000, in: screen, minWidth: 64)
+        #expect(tiny.width == 64 && tiny.height == 48 && tiny.maxX == 800 && tiny.minY == 300)
+    }
+
+    @Test func edgeHandlesDontZoom() {
+        #expect(SelectionGeometry.resizedKeepingAspect(area, handle: .right, dx: 50, in: screen, minWidth: 64) == area)
+    }
+
+    @Test func theBorderCanBeGrabbedOnEitherSide() {
+        #expect(SelectionGeometry.isOnBorder(CGPoint(x: 398, y: 450), of: area))
+        #expect(SelectionGeometry.isOnBorder(CGPoint(x: 600, y: 304), of: area))
+        #expect(!SelectionGeometry.isOnBorder(CGPoint(x: 600, y: 450), of: area)) // inside: the app's
+        #expect(!SelectionGeometry.isOnBorder(CGPoint(x: 380, y: 450), of: area))
+    }
+
+    @Test func freeResizeStaysOnScreenAndUsable() {
+        let shrunk = SelectionGeometry.limited(CGRect(x: 10, y: 10, width: 5, height: 5), in: screen,
+                                               minSize: CGSize(width: 64, height: 48))
+        #expect(shrunk.size == CGSize(width: 64, height: 48))
+        let past = SelectionGeometry.limited(CGRect(x: 1400, y: 900, width: 300, height: 200), in: screen,
+                                             minSize: CGSize(width: 64, height: 48))
+        #expect(screen.contains(past))
+    }
+
+    @Test func screenCoordinatesRoundTrip() {
+        let frame = CGRect(x: 1512, y: 0, width: 1920, height: 1080)
+        let local = CGRect(x: 100, y: 50, width: 640, height: 360)
+        let global = ScreenGeometry.globalCocoa(fromLocalFlipped: local, screenFrame: frame)
+        #expect(ScreenGeometry.localFlipped(fromGlobalCocoa: global, screenFrame: frame) == local)
+    }
+}

@@ -274,7 +274,11 @@ final class CaptureCoordinator {
         guard let seconds else { return }
         recording.record()
         Task {
-            if pause {
+            if CommandLine.arguments.contains("move") {
+                try? await Task.sleep(for: .seconds(3.5 + 1.5))
+                recording.debugMoveArea()
+                try? await Task.sleep(for: .seconds(seconds - 1.5))
+            } else if pause {
                 try? await Task.sleep(for: .seconds(3.5 + 1.5))
                 recording.debugTogglePause()
                 try? await Task.sleep(for: .seconds(2))

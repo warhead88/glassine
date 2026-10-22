@@ -31,6 +31,10 @@ final class ScreenRecorder: NSObject, SCStreamOutput, SCStreamDelegate, @uncheck
     // The writer and inputs are used only on `queue` once capture starts.
     private let queue = DispatchQueue(label: "com.warhead88.glassine.recorder", qos: .userInitiated)
     private var videoStream: SCStream!
+    private var videoConfig: SCStreamConfiguration!
+    /// A new area waiting for the stream to take the previous one.
+    private var pendingSourceRect: CGRect?
+    private var isUpdatingSourceRect = false
     private var audioStreams: [SCStream] = []
     /// Which writer input each audio stream feeds.
     private var audioInputs: [ObjectIdentifier: AVAssetWriterInput] = [:]
@@ -104,6 +108,7 @@ final class ScreenRecorder: NSObject, SCStreamOutput, SCStreamDelegate, @uncheck
         let stream = SCStream(filter: filter, configuration: config, delegate: recorder)
         try stream.addStreamOutput(recorder, type: .screen, sampleHandlerQueue: recorder.queue)
         recorder.videoStream = stream
+        recorder.videoConfig = config
 
         for (index, source) in sources.enumerated() {
             guard let display else { throw RecordingError.unavailable }
@@ -207,6 +212,27 @@ final class ScreenRecorder: NSObject, SCStreamOutput, SCStreamDelegate, @uncheck
         try await videoStream.startCapture()
         for stream in audioStreams {
             try await stream.startCapture()
+        }
+    }
+
+    /// Moves (or zooms) the recorded area while recording; the video keeps its size. Updates are
+    /// coalesced so a drag doesn't queue up dozens of them.
+    @MainActor
+    func setSourceRect(_ rect: CGRect) {
+        pendingSourceRect = rect
+        guard !isUpdatingSourceRect, let rect = pendingSourceRect else { return }
+        pendingSourceRect = nil
+        isUpdatingSourceRect = true
+        videoConfig.sourceRect = rect
+        Task { @MainActor in
+            do {
+                try await videoStream.updateConfiguration(videoConfig)
+                Log.capture.debug("Recording area: \(rect.debugDescription, privacy: .public)")
+            } catch {
+                Log.capture.error("Area change failed: \(error.localizedDescription, privacy: .public)")
+            }
+            isUpdatingSourceRect = false
+            if let next = pendingSourceRect { setSourceRect(next) }
         }
     }
 

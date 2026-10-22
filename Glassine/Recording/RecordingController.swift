@@ -15,10 +15,10 @@ final class RecordingController {
 
     /// Picked, not yet recording.
     private struct Setup {
-        let target: RecordingTarget
+        var target: RecordingTarget
         let panel: RecordingPanel
         let screen: NSScreen
-        let pointSize: CGSize
+        var pointSize: CGSize
     }
 
     private struct Session {
@@ -59,8 +59,24 @@ final class RecordingController {
         model.onCancel = { [weak self] in self?.cancel() }
         model.onStop = { [weak self] in self?.stop() }
         model.onDiscard = { [weak self] in self?.discard() }
+        panel.onAreaChange = { [weak self] rect in self?.areaChanged(to: rect) }
         state = .setup(Setup(target: target, panel: panel, screen: screen, pointSize: area.size))
         panel.show()
+    }
+
+    /// The frame was moved or resized: before recording, that's what will be recorded; while
+    /// recording, the stream follows it.
+    private func areaChanged(to rect: CGRect) {
+        switch state {
+        case .setup(var setup):
+            setup.target = .area(display: setup.screen, rect: rect)
+            setup.pointSize = rect.size
+            state = .setup(setup)
+        case .recording(let session):
+            session.recorder.setSourceRect(rect)
+        case .idle, .finishing:
+            break
+        }
     }
 
     /// Counts down in the record button, then records.
@@ -83,7 +99,8 @@ final class RecordingController {
                 if Task.isCancelled { return }
             }
             self?.countdownTask = nil
-            await self?.start(setup, options: options)
+            guard let self, case .setup(let current) = state else { return }
+            await start(current, options: options) // with the area as it is now
         }
     }
 
@@ -115,7 +132,7 @@ final class RecordingController {
             let model = setup.panel.model
             model.onPause = { recorder.setPaused($0) }
             model.startClock()
-            setup.panel.releaseKeyboard()
+            setup.panel.startRecording()
             state = .recording(Session(recorder: recorder, panel: setup.panel, options: options,
                                        screen: setup.screen, pointSize: setup.pointSize))
             Log.capture.notice("Recording \(recorder.pixelSize.width, privacy: .public)×\(recorder.pixelSize.height, privacy: .public) at \(options.framesPerSecond, privacy: .public) fps")
@@ -177,6 +194,10 @@ final class RecordingController {
     #if DEBUG
     func debugOpenAudioEditor() {
         if case .setup(let setup) = state { setup.panel.model.editingAudio = true }
+    }
+
+    func debugMoveArea() {
+        if case .recording(let session) = state { session.panel.debugMoveArea() }
     }
 
     func debugTogglePause() {
