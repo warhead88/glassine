@@ -11,7 +11,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         SettingsView(updater: updater)
     }
     private lazy var welcome: HostingWindowController<WelcomeView> = HostingWindowController(
-        title: "Welcome to Glassine"
+        title: "", paper: true
     ) { [unowned self] in
         WelcomeView(
             openSettings: { [unowned self] in welcome.close(); settings.show() },
@@ -51,8 +51,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             editor.openDebugSample()
         }
         if CommandLine.arguments.contains("--debug-welcome") {
-            WelcomeView.debugShowsSteps = true
+            WelcomeView.debugShowsSteps = !CommandLine.arguments.contains("granted")
             welcome.show()
+        }
+        if CommandLine.arguments.contains("--debug-hud") {
+            HUD.show("Text copied", detail: "3 lines", autoHide: false)
+            CountdownHUD(seconds: 9) { _ in }.start()
         }
         if let index = CommandLine.arguments.firstIndex(of: "--debug-record"), index + 1 < CommandLine.arguments.count {
             capture.debugRecord(seconds: Double(CommandLine.arguments[index + 1]) ?? 3, fullScreen: false,

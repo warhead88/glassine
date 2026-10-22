@@ -28,17 +28,12 @@ final class CountdownHUD {
         panel.hasShadow = true
         panel.isReleasedWhenClosed = false
 
-        let background = NSVisualEffectView(frame: NSRect(origin: .zero, size: size))
-        background.material = .hudWindow
-        background.state = .active
-        background.wantsLayer = true
-        background.layer?.cornerRadius = 24
-        background.layer?.cornerCurve = .continuous
-        background.layer?.masksToBounds = true
+        let background = PaperCardView(frame: NSRect(origin: .zero, size: size), cornerRadius: 28)
 
-        label.font = .monospacedDigitSystemFont(ofSize: 56, weight: .semibold)
+        // One digit at a time, so Fraunces' proportional figures can't make it jump.
+        label.font = Typography.fraunces(size: 64, weight: 460)
         label.alignment = .center
-        label.textColor = .labelColor
+        label.textColor = .ink
         label.translatesAutoresizingMaskIntoConstraints = false
         background.addSubview(label)
         NSLayoutConstraint.activate([

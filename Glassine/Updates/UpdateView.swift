@@ -21,6 +21,8 @@ final class UpdateWindowController: NSObject, NSWindowDelegate {
             let window = NSWindow(contentViewController: controller)
             window.title = "Software Update"
             window.styleMask = [.titled, .closable]
+            window.titlebarAppearsTransparent = true
+            window.backgroundColor = .paper
             window.isReleasedWhenClosed = false
             window.delegate = self
             window.center()
@@ -58,19 +60,19 @@ struct UpdateView: View {
                 StatusLayout(title: "Checking for updates…") {
                     ProgressView().controlSize(.small)
                 } buttons: {
-                    Button("Cancel") { model.send(.cancel) }.keyboardShortcut(.cancelAction)
+                    Button("Cancel") { model.send(.cancel) }.buttonStyle(.paperSecondary).keyboardShortcut(.cancelAction)
                 }
             case .upToDate:
                 StatusLayout(title: "You're up to date", detail: "Glassine \(Updater.currentVersion) is the latest version.") {
-                    Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+                    CheckBadge(size: 20)
                 } buttons: {
-                    Button("OK") { model.send(.done) }.prominent().keyboardShortcut(.defaultAction)
+                    Button("OK") { model.send(.done) }.buttonStyle(.paperPrimary).keyboardShortcut(.defaultAction)
                 }
             case .failed(let message):
                 StatusLayout(title: "Couldn't check for updates", detail: message) {
-                    Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+                    Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(Color.ochre)
                 } buttons: {
-                    Button("OK") { model.send(.done) }.prominent().keyboardShortcut(.defaultAction)
+                    Button("OK") { model.send(.done) }.buttonStyle(.paperPrimary).keyboardShortcut(.defaultAction)
                 }
             default:
                 if let release = model.release {
@@ -78,7 +80,8 @@ struct UpdateView: View {
                 }
             }
         }
-        .frame(width: 480)
+        .frame(width: 500)
+        .background(Color.paper)
     }
 }
 
@@ -91,24 +94,30 @@ private struct StatusLayout<Icon: View, Buttons: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             HStack(spacing: 14) {
-                AppIcon(size: 48)
-                VStack(alignment: .leading, spacing: 3) {
-                    HStack(spacing: 6) {
+                AppIcon(size: 52)
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 8) {
                         icon
-                        Text(title).font(.headline)
+                        Text(title)
+                            .font(Font(Typography.fraunces(size: 22, weight: 460)))
+                            .foregroundStyle(Color.ink)
                     }
                     if let detail {
-                        Text(detail).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                        Text(detail)
+                            .font(.system(size: 13))
+                            .foregroundStyle(Color.ink2)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
             }
-            HStack {
+            HStack(spacing: 10) {
                 Spacer()
                 buttons
             }
-            .controlSize(.large)
         }
-        .padding(20)
+        .padding(.horizontal, 28)
+        .padding(.top, 8)
+        .padding(.bottom, 24)
     }
 }
 
@@ -120,31 +129,37 @@ private struct ReleaseLayout: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(spacing: 14) {
-                AppIcon(size: 56)
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("Glassine \(release.version) is available").font(.title3.weight(.semibold))
-                    Text(subtitle).foregroundStyle(.secondary)
+                AppIcon(size: 60)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Glassine \(release.version) is here")
+                        .textStyle(ThemeTokens.title)
+                        .foregroundStyle(Color.ink)
+                    Text(subtitle).font(.system(size: 13)).foregroundStyle(Color.ink2)
                 }
             }
 
             if !release.notes.isEmpty {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 14) {
+                    VStack(alignment: .leading, spacing: 18) {
                         ForEach(Array(release.notes.enumerated()), id: \.offset) { _, section in
                             NotesSection(section: section)
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(14)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 18)
                 }
-                .frame(maxHeight: 300)
+                .frame(maxHeight: 320)
                 .fixedSize(horizontal: false, vertical: true)
-                .background(.quaternary.opacity(0.5), in: .rect(cornerRadius: 10))
+                .background(Color.card, in: RoundedRectangle(cornerRadius: ThemeTokens.Radius.card, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: ThemeTokens.Radius.card, style: .continuous).strokeBorder(Color.border))
             }
 
-            footer.controlSize(.large)
+            footer
         }
-        .padding(20)
+        .padding(.horizontal, 28)
+        .padding(.top, 8)
+        .padding(.bottom, 24)
     }
 
     private var subtitle: String {
@@ -159,18 +174,18 @@ private struct ReleaseLayout: View {
     private var footer: some View {
         switch phase {
         case .available where release.infoURL != nil:
-            HStack {
-                Button("Skip This Version") { send(.skip) }
+            HStack(spacing: 10) {
+                Button("Skip This Version") { send(.skip) }.buttonStyle(.paperQuiet)
                 Spacer()
-                Button("Later") { send(.later) }.keyboardShortcut(.cancelAction)
-                Button("Learn More") { send(.learnMore) }.prominent().keyboardShortcut(.defaultAction)
+                Button("Later") { send(.later) }.buttonStyle(.paperSecondary).keyboardShortcut(.cancelAction)
+                Button("Learn More") { send(.learnMore) }.buttonStyle(.paperPrimary).keyboardShortcut(.defaultAction)
             }
         case .available:
-            HStack {
-                Button("Skip This Version") { send(.skip) }
+            HStack(spacing: 10) {
+                Button("Skip This Version") { send(.skip) }.buttonStyle(.paperQuiet)
                 Spacer()
-                Button("Later") { send(.later) }.keyboardShortcut(.cancelAction)
-                Button("Update") { send(.install) }.prominent().keyboardShortcut(.defaultAction)
+                Button("Later") { send(.later) }.buttonStyle(.paperSecondary).keyboardShortcut(.cancelAction)
+                Button("Update") { send(.install) }.buttonStyle(.paperPrimary).keyboardShortcut(.defaultAction)
             }
         case .downloading(let received, let expected):
             HStack(spacing: 12) {
@@ -181,23 +196,23 @@ private struct ReleaseLayout: View {
                         ProgressView().progressViewStyle(.linear)
                     }
                     Text(downloadText(received: received, expected: expected))
-                        .font(.caption).foregroundStyle(.secondary).monospacedDigit()
+                        .font(.system(size: 12)).foregroundStyle(Color.ink2).monospacedDigit()
                 }
-                Button("Cancel") { send(.cancel) }.keyboardShortcut(.cancelAction)
+                Button("Cancel") { send(.cancel) }.buttonStyle(.paperSecondary).keyboardShortcut(.cancelAction)
             }
         case .preparing, .installing:
             HStack(spacing: 8) {
                 ProgressView().controlSize(.small)
-                Text(phaseIsInstalling ? "Installing…" : "Preparing…").foregroundStyle(.secondary)
+                Text(phaseIsInstalling ? "Installing…" : "Preparing…").font(.system(size: 13)).foregroundStyle(Color.ink2)
                 Spacer()
             }
             .frame(minHeight: 28)
         default: // .ready
-            HStack {
-                Text("Later installs it when you quit Glassine.").font(.caption).foregroundStyle(.secondary)
+            HStack(spacing: 10) {
+                Text("Later installs it when you quit Glassine.").font(.system(size: 12)).foregroundStyle(Color.ink2)
                 Spacer()
-                Button("Later") { send(.later) }.keyboardShortcut(.cancelAction)
-                Button("Install and Relaunch") { send(.install) }.prominent().keyboardShortcut(.defaultAction)
+                Button("Later") { send(.later) }.buttonStyle(.paperSecondary).keyboardShortcut(.cancelAction)
+                Button("Install and Relaunch") { send(.install) }.buttonStyle(.paperPrimary).keyboardShortcut(.defaultAction)
             }
         }
     }
@@ -217,29 +232,35 @@ private struct NotesSection: View {
     let section: ReleaseNotes.Section
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
             if !section.title.isEmpty {
-                Label(section.title, systemImage: style.symbol)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(style.color)
+                // A tag like a rubber stamp: small caps in a ruled box.
+                Text(section.title)
+                    .textStyle(ThemeTokens.label)
+                    .foregroundStyle(color)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 3)
+                    .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(color, lineWidth: 1.2))
             }
             ForEach(Array(section.items.enumerated()), id: \.offset) { _, item in
-                HStack(alignment: .firstTextBaseline, spacing: 7) {
-                    Text("•").foregroundStyle(.tertiary)
-                    Text(Self.inlineMarkdown(item)).fixedSize(horizontal: false, vertical: true)
+                HStack(alignment: .firstTextBaseline, spacing: 9) {
+                    Text("–").foregroundStyle(Color.ink3)
+                    Text(Self.inlineMarkdown(item))
+                        .font(.system(size: 14))
+                        .foregroundStyle(Color.ink)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
         }
     }
 
-    private var style: (symbol: String, color: Color) {
+    /// Added is sage (done), Changed is the stamp blue, Fixed ochre; red stays for recording.
+    private var color: Color {
         switch section.title.lowercased() {
-        case "added", "new": ("plus.circle.fill", .green)
-        case "fixed": ("wrench.and.screwdriver.fill", .orange)
-        case "changed", "improved": ("arrow.triangle.2.circlepath.circle.fill", .blue)
-        case "removed": ("minus.circle.fill", .red)
-        case "security": ("lock.fill", .purple)
-        default: ("circle.fill", .secondary)
+        case "added", "new": .sageDeep
+        case "changed", "improved": .stamp
+        case "fixed": .ochre
+        default: .ink2
         }
     }
 
@@ -257,18 +278,5 @@ private struct AppIcon: View {
         Image(nsImage: NSApp.applicationIconImage)
             .resizable()
             .frame(width: size, height: size)
-    }
-}
-
-@MainActor
-private extension Button {
-    /// The window's main button: Liquid Glass on macOS 26+.
-    @ViewBuilder
-    func prominent() -> some View {
-        if #available(macOS 26.0, *) {
-            buttonStyle(.glassProminent)
-        } else {
-            buttonStyle(.borderedProminent)
-        }
     }
 }

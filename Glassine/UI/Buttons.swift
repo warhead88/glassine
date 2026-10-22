@@ -101,3 +101,29 @@ final class CircleIconButton: FirstMouseButton {
         applyColors()
     }
 }
+
+/// A card of the theme's paper for AppKit panels (countdown, controls): its color and hairline
+/// follow light and dark.
+final class PaperCardView: NSView {
+    private let cornerRadius: CGFloat
+
+    init(frame: NSRect, cornerRadius: CGFloat) {
+        self.cornerRadius = cornerRadius
+        super.init(frame: frame)
+        wantsLayer = true
+        layer?.cornerRadius = cornerRadius
+        layer?.cornerCurve = .continuous
+        layer?.borderWidth = 1
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError() }
+
+    override var wantsUpdateLayer: Bool { true }
+
+    override func updateLayer() {
+        layer?.backgroundColor = NSColor.card.cgColor
+        layer?.borderColor = NSColor.border.cgColor
+    }
+}
+

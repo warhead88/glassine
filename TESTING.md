@@ -20,16 +20,19 @@ scripts/install.sh                                                     # соб�
 
 ## 1. Запуск и разрешения
 
-- [ ] Первый запуск (`defaults delete com.warhead88.glassine`, перезапуск) — окно приветствия с хоткеями
+- [ ] Первый запуск (`defaults delete com.warhead88.glassine`, перезапуск) — окно приветствия на бумаге:
+      заголовок Fraunces в одну строку, марка в конверте в углу (с номером версии), хоткеи — отдельными клавишами
+      в две колонки; без рук: `--debug-welcome` (шаги) или `--debug-welcome granted` (всё готово)
 - [ ] Повторный запуск из Spotlight открывает настройки
 - [ ] Без разрешения: окно приветствия с тремя шагами; «Allow Screen Recording…» показывает только системный
       запрос (никаких других окон); его «Open System Settings» → включить Glassine → «Quit & Reopen»
-- [ ] После перезапуска с разрешением — окно «Screen Recording is on — you're all set» (один раз)
+- [ ] После перезапуска с разрешением — приветствие с шалфейными галочками «Screen Recording is on» и
+      «macOS screenshot shortcuts are off», кнопки Open Settings / Start Capturing (один раз)
 - [ ] Если системный запрос уже был, кнопка называется «Open System Settings…» и открывает раздел сразу
 - [ ] После пересборки (`scripts/install.sh`) разрешение сохраняется
 - [ ] Glassine не появляется в Dock; иконка в меню-баре — только если включена
 - [ ] Если системные снимки macOS (⇧⌘3/4/5) включены — в окне приветствия и на вкладке Shortcuts
-      оранжевая подсказка с кнопкой «Open Keyboard Settings…»; после выключения подсказка исчезает
+      карточка с охристым значком и кнопкой «Open Keyboard Settings…»; после выключения подсказка исчезает
 
 ## 2. Область (⌘⇧4) и окно (⌘⇧5)
 
@@ -219,8 +222,11 @@ leaks $PID | grep "leaks for"                     # утечки
 
 ## 11. Обновления
 
-- [ ] `open /Applications/Glassine.app --args --debug-update` — окно с примером: разделы цветные,
-      Skip This Version / Later / Update; крестик закрывает
+- [ ] `open /Applications/Glassine.app --args --debug-update` — окно на бумаге с примером: заголовок Fraunces
+      «… is here», разделы — штампы ADDED (шалфей) / CHANGED (синий) / FIXED (охра); Skip This Version / Later /
+      Update; крестик закрывает
+- [ ] Уведомления («Text copied», «Color copied») — бумажная таблетка с галочкой и заголовком Fraunces; отсчёт
+      таймера — бумажная карточка с цифрой Fraunces; без рук: `--debug-hud`
 - [ ] Settings → General → Updates: версия видна, переключатель автопроверки сохраняется,
       «Check for Updates…» — «Checking…», затем «You're up to date» (или найденное обновление)
 - [ ] Полный цикл на локальном фиде: собрать копию с большей версией, подписать `sign_update`, отдать

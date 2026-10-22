@@ -17,6 +17,8 @@
 - [x] Превью снимка и записи — марки (`QuickAccess/PreviewStampView.swift`), кнопки `PillButton` paper / stamp.
 - [x] Настройки (`Settings/SettingsKit.swift`): бумага, вкладки-таблетка, разделы с Fraunces, карточки строк
       с нативными контролами, карточки-превью с кольцом акцента и нейтральными мини-сценами.
+- [x] Всплывающие: приветствие (марка в конверте, клавиши-капы, галочки), обновление (теги-штампы),
+      уведомления-таблетки, отсчёт таймера; общие кнопки `PaperButtonStyle` и `KeyCaps` в `UI/Paper.swift`.
 - [ ] Экраны: перевести окна на `Color.paper`/`.card`/`.ink`, заголовки на `.textStyle(ThemeTokens.title)`;
       `OptionCard` и прочие места с `Color.accentColor` — на `theme.accent`.
 - [ ] Таймер записи: у Fraunces нет `tnum` — каждая цифра в `frame` фиксированной ширины (≈ 0,64 em, двоеточие 0,3 em).

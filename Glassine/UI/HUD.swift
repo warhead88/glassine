@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-/// A short glass notice at the bottom of the screen ("Text copied", "Color copied"),
+/// A short paper notice at the bottom of the screen ("Text copied", "Color copied"),
 /// optionally with one button. Never takes focus from the app the user works in.
 @MainActor
 enum HUD {
@@ -77,36 +77,44 @@ private struct HUDView: View {
     var body: some View {
         HStack(spacing: 12) {
             if let swatch {
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
                     .fill(swatch)
                     .frame(width: 28, height: 28)
-                    .overlay(RoundedRectangle(cornerRadius: 6, style: .continuous).strokeBorder(.white.opacity(0.3), lineWidth: 0.5))
+                    .overlay(RoundedRectangle(cornerRadius: 7, style: .continuous).strokeBorder(Color.border))
+            } else if symbol == "checkmark.circle.fill" {
+                CheckBadge(size: 26)
             } else {
                 Image(systemName: symbol)
-                    .font(.system(size: 18, weight: .medium))
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(Color.ink2)
+                    .frame(width: 26, height: 26)
+                    .background(Circle().fill(Color.key))
             }
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(.callout.weight(.semibold))
+            VStack(alignment: .leading, spacing: 1) {
+                Text(title)
+                    .font(Font(Typography.fraunces(size: 17, weight: 480)))
+                    .foregroundStyle(Color.ink)
                 if let detail, !detail.isEmpty {
                     Text(detail)
-                        .font(.caption.monospaced())
-                        .foregroundStyle(.secondary)
+                        .font(.system(size: 12))
+                        .foregroundStyle(Color.ink2)
                         .lineLimit(2)
                         .truncationMode(.tail)
                 }
             }
             .frame(maxWidth: 320, alignment: .leading)
             if let actionTitle {
-                Button(actionTitle, action: onAction)
-                    .controlSize(.regular)
-                    .buttonBorderShape(.capsule)
+                Button(actionTitle, action: onAction).buttonStyle(.paperSecondary)
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .glassPanel(in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .padding(20) // room for the fallback shadow
+        .padding(.leading, 12)
+        .padding(.trailing, actionTitle == nil ? 22 : 8)
+        .padding(.vertical, 10)
+        .background(Capsule().fill(Color.card))
+        .overlay(Capsule().strokeBorder(Color.border))
+        .shadow(color: Color.shadow.opacity(0.14), radius: 12, y: 8)
+        .shadow(color: Color.shadow.opacity(0.08), radius: 1, y: 1)
+        .padding(24) // room for the shadow
         .fixedSize()
     }
 }

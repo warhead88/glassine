@@ -103,3 +103,18 @@ struct TypographyTests {
         #expect(Typography.systemWeight(nil) == .regular)
     }
 }
+
+@Suite("Key caps")
+struct KeyCapTests {
+    @Test func modifiersEachGetACap() {
+        #expect(KeyCapParts.split("⌥⇧⌘R") == ["⌥", "⇧", "⌘", "R"])
+        #expect(KeyCapParts.split("⇧⌘4") == ["⇧", "⌘", "4"])
+        #expect(KeyCapParts.split("⌥⇧⌘,") == ["⌥", "⇧", "⌘", ","])
+    }
+
+    @Test func namedKeysStayWhole() {
+        #expect(KeyCapParts.split("⌃F12") == ["⌃", "F12"])
+        #expect(KeyCapParts.split("Space") == ["Space"])
+        #expect(KeyCapParts.split("") == [])
+    }
+}
