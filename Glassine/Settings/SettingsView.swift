@@ -10,8 +10,7 @@ struct SettingsView: View {
             OutputSettings().tabItem { Label("Output", systemImage: "square.and.arrow.down") }
             ShortcutSettings().tabItem { Label("Shortcuts", systemImage: "command") }
         }
-        .frame(width: 480)
-        .fixedSize()
+        .frame(width: 600, height: 700)
     }
 }
 
@@ -23,7 +22,10 @@ private struct GeneralSettings: View {
     var body: some View {
         Form {
             Section {
-                Toggle("Show icon in menu bar", isOn: $showMenuBarIcon)
+                OptionCards(title: "Menu bar icon", note: "Without the icon, use shortcuts — or open Glassine again from Spotlight to get here.",
+                            options: [(false, "Hidden"), (true, "Shown")], selection: $showMenuBarIcon) { on in
+                    MenuBarIconPreview(on: on)
+                }
                 Toggle("Launch at login", isOn: $launchAtLogin)
                     .onChange(of: launchAtLogin) { _, enabled in setLaunchAtLogin(enabled) }
             }
@@ -80,24 +82,40 @@ private struct CaptureSettings: View {
 
     var body: some View {
         Form {
+            Section("Area Capture") {
+                OptionCards(title: "Screen frame", note: "Displays without a notch always get the straight frame.",
+                            options: AreaFrameStyle.allCases.map { ($0.rawValue, $0.title) }, selection: $frameStyle) { style in
+                    FrameStylePreview(style: AreaFrameStyle(rawValue: style) ?? .notch)
+                }
+                OptionCards(title: "After selecting an area",
+                            options: [(false, "Capture at once"), (true, "Adjust, then ↩")], selection: $adjustBeforeCapture) { adjust in
+                    SelectionModePreview(adjust: adjust)
+                }
+                OptionCards(title: "Magnifier", note: "Press M while capturing to switch on the fly.",
+                            options: [(true, "Magnifier"), (false, "Crosshair only")], selection: $showMagnifier) { on in
+                    MagnifierPreview(on: on)
+                }
+            }
+
+            Section("Window Capture") {
+                OptionCards(title: "Window shadow",
+                            options: [(true, "With shadow"), (false, "No shadow")], selection: $windowShadow) { shadow in
+                    WindowShadowPreview(shadow: shadow)
+                }
+            }
+
+            Section("Color Picker") {
+                OptionCards(title: "Copied format",
+                            options: ColorFormat.allCases.map { ($0.rawValue, $0.rawValue.uppercased()) }, selection: $colorFormat) { format in
+                    ColorFormatPreview(format: ColorFormat(rawValue: format) ?? .hex)
+                }
+            }
+
             Section {
-                Toggle("Show magnifier (press M while capturing)", isOn: $showMagnifier)
-                Picker("After selecting an area:", selection: $adjustBeforeCapture) {
-                    Text("Capture immediately").tag(false)
-                    Text("Adjust, then press Return").tag(true)
-                }
-                Toggle("Include window shadow", isOn: $windowShadow)
-                Picker("Area frame:", selection: $frameStyle) {
-                    ForEach(AreaFrameStyle.allCases) { Text($0.title).tag($0.rawValue) }
-                }
-                .help("Around the notch applies on displays with a camera notch; others always get a straight frame.")
                 Picker("Timer:", selection: $timerDelay) {
                     Text("3 seconds").tag(3)
                     Text("5 seconds").tag(5)
                     Text("10 seconds").tag(10)
-                }
-                Picker("Copied color format:", selection: $colorFormat) {
-                    ForEach(ColorFormat.allCases) { Text($0.title).tag($0.rawValue) }
                 }
             }
 
@@ -156,7 +174,13 @@ private struct OutputSettings: View {
                     }
                 }
                 .disabled(!saveToFile)
-                Toggle("Show preview", isOn: $showQuickAccess)
+            }
+
+            Section("Preview") {
+                OptionCards(title: "After a capture", note: "Drag the preview into any app, or click it to edit.",
+                            options: [(true, "Show preview"), (false, "No preview")], selection: $showQuickAccess) { on in
+                    QuickAccessPreview(on: on)
+                }
                 Picker("Close preview:", selection: $quickAccessAutoClose) {
                     Text("After 5 seconds").tag(5)
                     Text("After 10 seconds").tag(10)
