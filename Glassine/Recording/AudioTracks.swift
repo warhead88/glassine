@@ -60,6 +60,13 @@ enum AudioTrackPlan {
         return candidates.filter { !used.contains($0) }
     }
 
+    /// App sources whose app isn't among `running` (bundle IDs): those can't be recorded now.
+    static func missingApps(in tracks: [AudioTrack], running: Set<String>) -> [AudioSource] {
+        sources(of: tracks).filter { source in
+            if case .app(let id, _) = source { !running.contains(id) } else { false }
+        }
+    }
+
     /// The tracks without the given sources (a microphone that isn't allowed, an app that quit).
     static func removing(_ unavailable: (AudioSource) -> Bool, from tracks: [AudioTrack]) -> [AudioTrack] {
         tracks.map { track in

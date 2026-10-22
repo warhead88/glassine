@@ -112,6 +112,14 @@ struct AudioTrackTests {
         #expect(AudioTrackPlan.mix(without) == [[0]])
     }
 
+    @Test func onlyAppsThatArentRunningAreMissing() {
+        // Music runs with its window on another Space: it is running, so it stays.
+        let tracks = [AudioTrack(sources: [music, mic]), AudioTrack(sources: [.system, safari])]
+        let missing = AudioTrackPlan.missingApps(in: tracks, running: ["com.apple.Music", "com.apple.finder"])
+        #expect(missing == [safari])
+        #expect(AudioTrackPlan.removing(missing.contains, from: tracks).map(\.sources) == [[music, mic], [.system]])
+    }
+
     @Test func trackNamesSaySourcesWhenFew() {
         #expect(AudioTrackPlan.name(of: AudioTrack(sources: [.system, mic]), number: 1) == "System audio + MacBook Pro Microphone")
         #expect(AudioTrackPlan.name(of: AudioTrack(sources: [.system, mic, safari]), number: 2) == "Track 2")

@@ -129,6 +129,10 @@ final class RecordingController {
                 self?.stop()
             }
             try await recorder.start()
+            if !recorder.missingSources.isEmpty {
+                HUD.show("Recording without \(recorder.missingSources.map(\.title).formatted(.list(type: .and)))",
+                         detail: "Not running — open it to record its sound.", symbol: "speaker.slash")
+            }
 
             let model = setup.panel.model
             model.onPause = { recorder.setPaused($0) }

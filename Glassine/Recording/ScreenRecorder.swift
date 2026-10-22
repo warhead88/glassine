@@ -56,6 +56,8 @@ final class ScreenRecorder: NSObject, SCStreamOutput, SCStreamDelegate, @uncheck
     private let trackNames: [String]
     private let codec: VideoCodec
     let pixelSize: (width: Int, height: Int)
+    /// Sources left out because their app isn't running.
+    private(set) var missingSources: [AudioSource] = []
     /// The stream stopped by itself (display gone, sharing stopped from the menu bar).
     var onInterrupted: (@MainActor (Error) -> Void)?
 
@@ -94,10 +96,12 @@ final class ScreenRecorder: NSObject, SCStreamOutput, SCStreamDelegate, @uncheck
         config.colorSpaceName = CGColorSpace.sRGB
         config.queueDepth = 6
 
-        // Sources whose app has quit are left out.
-        let tracks = AudioTrackPlan.removing({ source in
-            if case .app(let id, _) = source { !content.applications.contains { $0.bundleIdentifier == id } } else { false }
-        }, from: options.recordedTracks).filter { !$0.sources.isEmpty }
+        // Sound comes from every running app, not only those with a window on screen: a minimized
+        // or hidden player (Music on another Space) still plays. Apps that quit are left out.
+        let runningApps = options.recordedTracks.isEmpty ? []
+            : try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false).applications
+        let missing = AudioTrackPlan.missingApps(in: options.recordedTracks, running: Set(runningApps.map(\.bundleIdentifier)))
+        let tracks = AudioTrackPlan.removing(missing.contains, from: options.recordedTracks).filter { !$0.sources.isEmpty }
         let sources = AudioTrackPlan.sources(of: tracks)
 
         let recorder = try ScreenRecorder(
@@ -109,11 +113,12 @@ final class ScreenRecorder: NSObject, SCStreamOutput, SCStreamDelegate, @uncheck
         try stream.addStreamOutput(recorder, type: .screen, sampleHandlerQueue: recorder.queue)
         recorder.videoStream = stream
         recorder.videoConfig = config
+        recorder.missingSources = missing
 
         for (index, source) in sources.enumerated() {
             guard let display else { throw RecordingError.unavailable }
             let audio = try Self.audioStream(for: source, display: display, ownApps: ownApps,
-                                             apps: content.applications, recorder: recorder)
+                                             apps: runningApps, recorder: recorder)
             recorder.audioStreams.append(audio)
             recorder.audioInputs[ObjectIdentifier(audio)] = recorder.sourceInputs[index]
         }
