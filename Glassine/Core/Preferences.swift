@@ -39,6 +39,8 @@ enum PrefKey {
     static let adjustBeforeCapture = "adjustBeforeCapture"
     static let windowShadow = "windowShadow"
     static let timerDelay = "timerDelay"
+    /// Seconds counted down in the record button before recording starts; 0 starts at once.
+    static let recordingCountdown = "recordingCountdown"
     static let playSound = "playSound"
     static let captureStartSound = "captureStartSound"
     static let colorFormat = "colorFormat"
@@ -102,6 +104,7 @@ enum Preferences {
             PrefKey.adjustBeforeCapture: false,
             PrefKey.windowShadow: true,
             PrefKey.timerDelay: 5,
+            PrefKey.recordingCountdown: 3,
             PrefKey.playSound: true,
             PrefKey.captureStartSound: true,
             PrefKey.colorFormat: ColorFormat.hex.rawValue,

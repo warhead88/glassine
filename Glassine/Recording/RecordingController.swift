@@ -93,7 +93,8 @@ final class RecordingController {
                          detail: "Allow Glassine in System Settings → Privacy & Security → Microphone.",
                          symbol: "mic.slash")
             }
-            for second in stride(from: 3, through: 1, by: -1) {
+            let countdown = UserDefaults.standard.integer(forKey: PrefKey.recordingCountdown)
+            for second in stride(from: countdown, through: 1, by: -1) {
                 model.phase = .countdown(second)
                 try? await Task.sleep(for: .seconds(1))
                 if Task.isCancelled { return }

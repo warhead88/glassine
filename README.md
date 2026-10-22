@@ -42,7 +42,7 @@ Press <kbd>⌥⇧⌘R</kbd>, then drag an area, click a window (it's followed ev
 covered), or press <kbd>↩</kbd> for the whole screen. The controls appear beside it — or, when there's no
 room, docked to the screen edge: format (MP4 or GIF), codec, frame rate, bitrate, scale, pointer,
 audio tracks, and which side the controls go. Press the red button or <kbd>↩</kbd>;
-after a 3-second countdown they turn into a small player with the time, pause, stop and discard.
+after a countdown (3 seconds, or none — see Settings) they turn into a small player with the time, pause, stop and discard.
 Until then the area can be moved and resized; while recording, drag its border to pan and a corner
 to zoom.
 

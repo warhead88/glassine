@@ -273,19 +273,20 @@ final class CaptureCoordinator {
         }
         guard let seconds else { return }
         recording.record()
+        let lead = Double(UserDefaults.standard.integer(forKey: PrefKey.recordingCountdown)) + 0.5 // the countdown
         Task {
             if CommandLine.arguments.contains("move") {
-                try? await Task.sleep(for: .seconds(3.5 + 1.5))
+                try? await Task.sleep(for: .seconds(lead + 1.5))
                 recording.debugMoveArea()
                 try? await Task.sleep(for: .seconds(seconds - 1.5))
             } else if pause {
-                try? await Task.sleep(for: .seconds(3.5 + 1.5))
+                try? await Task.sleep(for: .seconds(lead + 1.5))
                 recording.debugTogglePause()
                 try? await Task.sleep(for: .seconds(2))
                 recording.debugTogglePause()
                 try? await Task.sleep(for: .seconds(seconds - 1.5))
             } else {
-                try? await Task.sleep(for: .seconds(3.5 + seconds)) // after the countdown
+                try? await Task.sleep(for: .seconds(lead + seconds))
             }
             recording.stop()
         }

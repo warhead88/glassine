@@ -100,6 +100,7 @@ private struct CaptureSettings: View {
     @AppStorage(PrefKey.adjustBeforeCapture) private var adjustBeforeCapture = false
     @AppStorage(PrefKey.windowShadow) private var windowShadow = true
     @AppStorage(PrefKey.timerDelay) private var timerDelay = 5
+    @AppStorage(PrefKey.recordingCountdown) private var recordingCountdown = 3
     @AppStorage(PrefKey.colorFormat) private var colorFormat = ColorFormat.hex.rawValue
     @AppStorage(PrefKey.captureStartSound) private var startSound = true
     @AppStorage(PrefKey.areaFrameStyle) private var frameStyle = AreaFrameStyle.notch.rawValue
@@ -152,6 +153,20 @@ private struct CaptureSettings: View {
                     Text("5 seconds").tag(5)
                     Text("10 seconds").tag(10)
                 }
+            }
+
+            Section {
+                Picker("Countdown before recording:", selection: $recordingCountdown) {
+                    Text("Off").tag(0)
+                    Text("3 seconds").tag(3)
+                    Text("5 seconds").tag(5)
+                    Text("10 seconds").tag(10)
+                }
+            } header: {
+                Text("Screen Recording")
+            } footer: {
+                Text("Counted down in the record button; Off starts recording as soon as you press it.")
+                    .font(.caption).foregroundStyle(.secondary)
             }
 
             Section("Sounds") {
