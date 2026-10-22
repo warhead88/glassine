@@ -8,6 +8,7 @@ section is what the update window shows, so write it for users. Versions follow
 ## [Unreleased]
 
 ### Added
+- Screen recording: ⌥⇧⌘R for video, ⌥⇧⌘G for a GIF — an area, a window or the whole screen, with system audio and the microphone. H.264 or HEVC, 30 or 60 fps, bitrate and GIF size in Settings → Recording
 - Updates: Check for Updates… in Settings, a daily check in the background, and a window that shows what's new
 - QR codes are found in every capture: the preview offers Copy QR Link, or a list when there are several
 - Area capture can go without the frame, and the frame's bottom corners can be square like the screen's

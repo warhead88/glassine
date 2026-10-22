@@ -8,6 +8,8 @@ final class CaptureCoordinator {
     private var isCapturing = false
     private var overlayMode = OverlayMode.capture
     private let quickAccess = QuickAccessController()
+    private let recording = RecordingController()
+    private var recordingFormat = RecordingFormat.video
 
     /// Called when capture is attempted without Screen Recording access.
     var onMissingPermission: () -> Void = {}
@@ -16,6 +18,10 @@ final class CaptureCoordinator {
     private var lastArea: (displayID: CGDirectDisplayID, rect: NSRect)?
 
     var canRepeatLastArea: Bool { lastArea != nil }
+
+    init() {
+        recording.onFinished = { [quickAccess] recording, screen in quickAccess.show(recording, on: screen) }
+    }
 
     /// Called when the user pins a capture from its preview.
     var onPin: (CapturedImage) -> Void {
@@ -37,6 +43,16 @@ final class CaptureCoordinator {
 
     /// Select an area or click a window; its text goes to the clipboard.
     func captureText() { startOverlay(.text) }
+
+    /// Pick an area, a window or the whole screen and record it; pressed again, stops.
+    func record(_ format: RecordingFormat) {
+        guard recording.isIdle else {
+            recording.stopOrCancel()
+            return
+        }
+        recordingFormat = format
+        startOverlay(.record)
+    }
 
     /// Click anywhere to copy the color under the pointer.
     func pickColor() { startOverlay(.color) }
@@ -184,6 +200,12 @@ final class CaptureCoordinator {
             SmartActions.copyMeasurement(text)
         case .area(let image, _) where overlayMode == .text:
             SmartActions.copyText(from: image)
+        case .area(_, let rect) where overlayMode == .record:
+            recording.begin(.area(display: snapshot.screen, rect: rect), format: recordingFormat,
+                            area: snapshot.screen.globalRect(fromLocalFlipped: rect), on: snapshot.screen)
+        case .window(let id) where overlayMode == .record:
+            let frame = WindowList.frame(of: id) ?? snapshot.screen.frame
+            recording.begin(.window(id), format: recordingFormat, area: frame, on: snapshot.screen)
         case .area(let image, let rect):
             if let displayID = snapshot.screen.displayID {
                 lastArea = (displayID, rect)
@@ -236,6 +258,20 @@ final class CaptureCoordinator {
     }
 
     #if DEBUG
+    /// Debug hook (`--debug-record <seconds> [gif]`): records the middle of the main screen
+    /// without the overlay, then stops by itself.
+    func debugRecord(seconds: Double, format: RecordingFormat) {
+        guard let screen = NSScreen.main else { return }
+        let size = screen.frame.size
+        let rect = CGRect(x: size.width / 4, y: size.height / 4, width: size.width / 2, height: size.height / 2)
+        recording.begin(.area(display: screen, rect: rect), format: format,
+                        area: screen.globalRect(fromLocalFlipped: rect), on: screen)
+        Task {
+            try? await Task.sleep(for: .seconds(3.5 + seconds)) // after the countdown
+            recording.stop()
+        }
+    }
+
     /// Debug hook (`--debug-preview`): shows previews of a few crops of the main screen
     /// without the hotkey or touching the clipboard and save folder.
     func showDebugPreviews() {

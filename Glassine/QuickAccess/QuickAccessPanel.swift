@@ -1,36 +1,24 @@
 import AppKit
 import UniformTypeIdentifiers
 
-/// Floating thumbnail of a fresh capture: drag it into any app, copy, save or close it.
-/// Never activates Glassine, so the app the user is working in keeps focus.
+/// A floating preview in the bottom-right stack: closes itself after a while (paused on hover)
+/// and never activates Glassine, so the app the user is working in keeps focus.
 @MainActor
-final class QuickAccessPanel: NSPanel {
-    let capture: CapturedImage
+class PreviewPanel: NSPanel {
     private let autoClose: Duration?
-    private let onClose: (QuickAccessPanel) -> Void
-    private let onPin: (CapturedImage) -> Void
-    private let onEdit: (CapturedImage) -> Void
-    private let onResize: (QuickAccessPanel) -> Void
+    private let onClose: (PreviewPanel) -> Void
     private var closeTask: Task<Void, Never>?
-    private var isDismissing = false
+    private(set) var isDismissing = false
 
-    init(
-        capture: CapturedImage,
-        autoClose: Duration?,
-        onPin: @escaping (CapturedImage) -> Void,
-        onEdit: @escaping (CapturedImage) -> Void,
-        onResize: @escaping (QuickAccessPanel) -> Void,
-        onClose: @escaping (QuickAccessPanel) -> Void
-    ) {
-        self.capture = capture
+    /// The size the stack lays this preview out at.
+    var preferredSize: NSSize
+
+    init(size: NSSize, autoClose: Duration?, onClose: @escaping (PreviewPanel) -> Void) {
         self.autoClose = autoClose
-        self.onPin = onPin
-        self.onEdit = onEdit
-        self.onResize = onResize
         self.onClose = onClose
-        self.preferredSize = QuickAccessLayout.thumbnailSize(for: capture.pointSize)
+        self.preferredSize = size
         super.init(
-            contentRect: NSRect(origin: .zero, size: QuickAccessLayout.thumbnailSize(for: capture.pointSize)),
+            contentRect: NSRect(origin: .zero, size: size),
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
@@ -43,23 +31,8 @@ final class QuickAccessPanel: NSPanel {
         hidesOnDeactivate = false
         isReleasedWhenClosed = false
         becomesKeyOnlyIfNeeded = true
-
-        let thumbnail = ThumbnailView(capture: capture, panel: self)
-        contentView = thumbnail
         scheduleAutoClose()
-
-        // QR codes are found in the background (~10 ms); the preview grows a button if there are any.
-        Task { [weak self, image = capture.image] in
-            let codes = await BarcodeDetector.detect(image)
-            guard let self, !codes.isEmpty, !isDismissing else { return }
-            thumbnail.showCodes(codes)
-            preferredSize = QuickAccessLayout.thumbnailSize(for: capture.pointSize, hasQR: true)
-            onResize(self)
-        }
     }
-
-    /// The size the stack lays this preview out at; grows when QR codes are found.
-    private(set) var preferredSize: NSSize
 
     override var canBecomeKey: Bool { true }
 
@@ -70,18 +43,6 @@ final class QuickAccessPanel: NSPanel {
         } else {
             scheduleAutoClose()
         }
-    }
-
-    /// Turns the preview into a pin that stays on screen.
-    func pin() {
-        onPin(capture)
-        dismiss()
-    }
-
-    /// Opens the capture in the editor; the preview's job is done.
-    func edit() {
-        onEdit(capture)
-        dismiss()
     }
 
     func dismiss() {
@@ -107,6 +68,54 @@ final class QuickAccessPanel: NSPanel {
             guard !Task.isCancelled else { return }
             self?.dismiss()
         }
+    }
+}
+
+/// Floating thumbnail of a fresh capture: drag it into any app, copy, save or close it.
+@MainActor
+final class QuickAccessPanel: PreviewPanel {
+    let capture: CapturedImage
+    private let onPin: (CapturedImage) -> Void
+    private let onEdit: (CapturedImage) -> Void
+    private let onResize: (PreviewPanel) -> Void
+
+    init(
+        capture: CapturedImage,
+        autoClose: Duration?,
+        onPin: @escaping (CapturedImage) -> Void,
+        onEdit: @escaping (CapturedImage) -> Void,
+        onResize: @escaping (PreviewPanel) -> Void,
+        onClose: @escaping (PreviewPanel) -> Void
+    ) {
+        self.capture = capture
+        self.onPin = onPin
+        self.onEdit = onEdit
+        self.onResize = onResize
+        super.init(size: QuickAccessLayout.thumbnailSize(for: capture.pointSize), autoClose: autoClose, onClose: onClose)
+
+        let thumbnail = ThumbnailView(capture: capture, panel: self)
+        contentView = thumbnail
+
+        // QR codes are found in the background (~10 ms); the preview grows a button if there are any.
+        Task { [weak self, image = capture.image] in
+            let codes = await BarcodeDetector.detect(image)
+            guard let self, !codes.isEmpty, !isDismissing else { return }
+            thumbnail.showCodes(codes)
+            preferredSize = QuickAccessLayout.thumbnailSize(for: capture.pointSize, hasQR: true)
+            onResize(self)
+        }
+    }
+
+    /// Turns the preview into a pin that stays on screen.
+    func pin() {
+        onPin(capture)
+        dismiss()
+    }
+
+    /// Opens the capture in the editor; the preview's job is done.
+    func edit() {
+        onEdit(capture)
+        dismiss()
     }
 }
 

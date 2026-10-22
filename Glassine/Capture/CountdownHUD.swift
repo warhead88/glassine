@@ -72,7 +72,7 @@ final class CountdownHUD {
         }
     }
 
-    @objc private func cancel() {
+    @objc func cancel() {
         task?.cancel()
         panel.orderOut(nil)
         onFinish(false)

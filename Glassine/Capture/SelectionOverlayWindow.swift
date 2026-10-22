@@ -13,8 +13,9 @@ enum OverlayResult {
 
 /// What the overlay is for. All modes share the frozen screen and the magnifier.
 enum OverlayMode {
-    /// `capture` selects an area; `window` captures the window under the pointer.
-    case capture, window, text, color, measure
+    /// `capture` selects an area; `window` captures the window under the pointer;
+    /// `record` picks an area, a window or the whole screen to record.
+    case capture, window, text, color, measure, record
 
     /// One line shown at the top of the screen.
     var hint: String? {
@@ -24,14 +25,15 @@ enum OverlayMode {
         case .text: "Select text or click a window to copy its text  ·  Esc to cancel"
         case .color: "Click to copy the color  ·  Esc to cancel"
         case .measure: "Drag to measure, Shift for straight lines  ·  C to copy  ·  Esc to close"
+        case .record: "Drag an area or click a window to record  ·  ↩ whole screen  ·  Esc to cancel"
         }
     }
 
     /// Modes where dragging selects an area.
-    var dragsAreas: Bool { self == .capture || self == .text }
+    var dragsAreas: Bool { self == .capture || self == .text || self == .record }
 
     /// Modes where the window under the pointer is highlighted (area mode keeps the screen plain).
-    var highlightsWindows: Bool { self == .window || self == .text }
+    var highlightsWindows: Bool { self == .window || self == .text || self == .record }
 
     /// Capture modes dim the screen; color and measure keep it close to real.
     var dimsScreen: Bool { self != .color && self != .measure }
@@ -411,7 +413,7 @@ private final class SelectionView: NSView {
             return
         case .window:
             return // captured on mouse up
-        case .capture, .text:
+        case .capture, .text, .record:
             break
         }
 
@@ -469,6 +471,15 @@ private final class SelectionView: NSView {
         guard didDrag else {
             if isAdjusting {
                 if case .create = dragMode { selection = nil; isAdjusting = false }
+                return
+            }
+            if mode == .record {
+                // The clicked window (recorded by itself, wherever it moves), or the whole screen.
+                if let hoveredWindow {
+                    onFinish(.window(hoveredWindow.id))
+                } else {
+                    onFinish(.area(snapshot.image, rect: bounds))
+                }
                 return
             }
             // A plain click in area mode does nothing: no accidental captures.
@@ -531,7 +542,11 @@ private final class SelectionView: NSView {
         case 53: // Escape
             onFinish(.cancelled)
         case 36, 76: // Return, Enter
-            if isAdjusting { captureSelection() }
+            if isAdjusting {
+                captureSelection()
+            } else if mode == .record, selection == nil {
+                onFinish(.area(snapshot.image, rect: bounds))
+            }
         case 49: // Space: move the selection while dragging, otherwise switch area / window
             if case .create = dragMode, selection != nil {
                 isSpaceMoving = true

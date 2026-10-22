@@ -5,7 +5,7 @@
 <h1 align="center">Glassine</h1>
 
 <p align="center">
-  A quiet, native screenshot tool for macOS — capture, annotate, pin, and copy text from your screen.<br>
+  A quiet, native screenshot tool for macOS — capture, record, annotate, pin, and copy text from your screen.<br>
   No Dock icon, no network, no clutter. Just shortcuts.
 </p>
 
@@ -35,6 +35,17 @@ floating preview — drag it straight into any app, or click it to annotate.
 | <kbd>⌥⇧⌘,</kbd> | Settings |
 
 All shortcuts can be changed in Settings. Repeat-last-area and timed capture are there too.
+
+## Record
+
+<kbd>⌥⇧⌘R</kbd> records video, <kbd>⌥⇧⌘G</kbd> a GIF: drag an area, click a window (it's followed even
+when it moves or is covered), or press <kbd>↩</kbd> for the whole screen. Recording starts after a
+3-second countdown; a small pill shows the time — stop there or press the shortcut again.
+
+Video is MP4, hardware-encoded as H.264 (plays everywhere) or HEVC (half the size), at 30 or 60 fps with
+automatic or fixed bitrate, at Retina or standard resolution, with system audio and the microphone.
+GIFs are made from the recording at 10–24 fps, scaled to the width you choose. The result lands in the
+same floating preview as screenshots.
 
 ## Annotate
 

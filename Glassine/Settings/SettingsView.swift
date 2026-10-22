@@ -9,6 +9,7 @@ struct SettingsView: View {
         TabView {
             GeneralSettings().tabItem { Label("General", systemImage: "gearshape") }
             CaptureSettings().tabItem { Label("Capture", systemImage: "viewfinder") }
+            RecordingSettings().tabItem { Label("Recording", systemImage: "record.circle") }
             OutputSettings().tabItem { Label("Output", systemImage: "square.and.arrow.down") }
             ShortcutSettings().tabItem { Label("Shortcuts", systemImage: "command") }
         }
@@ -92,6 +93,98 @@ private struct GeneralSettings: View {
         } catch {
             launchAtLogin = SMAppService.mainApp.status == .enabled
         }
+    }
+}
+
+private struct RecordingSettings: View {
+    @AppStorage(PrefKey.recordingCodec) private var codec = VideoCodec.h264.rawValue
+    @AppStorage(PrefKey.recordingFPS) private var fps = 60
+    @AppStorage(PrefKey.recordingBitrate) private var bitrate = 0
+    @AppStorage(PrefKey.recordingRetina) private var retina = true
+    @AppStorage(PrefKey.recordingCursor) private var cursor = true
+    @AppStorage(PrefKey.recordingSystemAudio) private var systemAudio = false
+    @AppStorage(PrefKey.recordingMicrophone) private var microphone = false
+    @AppStorage(PrefKey.gifFPS) private var gifFPS = 15
+    @AppStorage(PrefKey.gifMaxWidth) private var gifMaxWidth = 800
+
+    private var microphoneAvailable: Bool {
+        if #available(macOS 15.0, *) { true } else { false }
+    }
+
+    var body: some View {
+        Form {
+            Section {
+                VStack(alignment: .leading, spacing: 4) {
+                    Picker("Codec:", selection: $codec) {
+                        ForEach(VideoCodec.allCases) { Text($0.title).tag($0.rawValue) }
+                    }
+                    .pickerStyle(.segmented)
+                    Text(codec == VideoCodec.hevc.rawValue
+                         ? "About half the size of H.264. Plays on Apple devices and most modern browsers."
+                         : "Plays everywhere: browsers, messengers, older devices.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                Picker("Frame rate:", selection: $fps) {
+                    Text("30 fps").tag(30)
+                    Text("60 fps").tag(60)
+                }
+                .pickerStyle(.segmented)
+                VStack(alignment: .leading, spacing: 4) {
+                    Picker("Bitrate:", selection: $bitrate) {
+                        Text("Automatic").tag(0)
+                        ForEach([4, 8, 16, 32, 50], id: \.self) { Text("\($0) Mbit/s").tag($0) }
+                    }
+                    Text("Automatic suits the size and frame rate — about 12 Mbit/s for 1080p at 60 fps.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    Toggle("Record at Retina resolution", isOn: $retina)
+                    Text("Off records one pixel per point: sharp enough for most demos, files about four times smaller.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                Toggle("Show the pointer", isOn: $cursor)
+            } header: {
+                Text("Video")
+            }
+
+            Section("Sound") {
+                Toggle("System audio (what apps play)", isOn: $systemAudio)
+                VStack(alignment: .leading, spacing: 4) {
+                    Toggle("Microphone", isOn: $microphone).disabled(!microphoneAvailable)
+                    if !microphoneAvailable {
+                        Text("Needs macOS 15 or later.").font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+            }
+
+            Section {
+                Picker("Frame rate:", selection: $gifFPS) {
+                    Text("10 fps").tag(10)
+                    Text("15 fps").tag(15)
+                    Text("24 fps").tag(24)
+                }
+                .pickerStyle(.segmented)
+                Picker("Width:", selection: $gifMaxWidth) {
+                    ForEach([480, 640, 800, 1000], id: \.self) { Text("Up to \($0) px").tag($0) }
+                    Text("As recorded").tag(0)
+                }
+            } header: {
+                Text("GIF")
+            } footer: {
+                Text("A GIF is made from the recording when you stop. GIFs grow fast — keep them short and narrow.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+
+            Section("Tips") {
+                Text("""
+                Press the record shortcut, then drag an area, click a window, or press ↩ for the whole screen. \
+                Recording starts after 3 seconds; press the shortcut again or click ■ to stop.
+                """)
+                .font(.callout)
+                .foregroundStyle(.secondary)
+            }
+        }
+        .formStyle(.grouped)
     }
 }
 
@@ -273,6 +366,8 @@ private struct ShortcutSettings: View {
                 KeyboardShortcuts.Recorder("Copy text from screen:", name: .captureText)
                 KeyboardShortcuts.Recorder("Pick color:", name: .pickColor)
                 KeyboardShortcuts.Recorder("Measure:", name: .measure)
+                KeyboardShortcuts.Recorder("Record video (again to stop):", name: .recordVideo)
+                KeyboardShortcuts.Recorder("Record GIF (again to stop):", name: .recordGIF)
                 KeyboardShortcuts.Recorder("Pin from clipboard:", name: .pinFromClipboard)
                 KeyboardShortcuts.Recorder("Show/hide pins:", name: .togglePins)
                 KeyboardShortcuts.Recorder("Open settings:", name: .openSettings)

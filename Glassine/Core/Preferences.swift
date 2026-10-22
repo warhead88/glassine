@@ -15,6 +15,9 @@ extension KeyboardShortcuts.Name {
     static let pickColor = Self("pickColor", default: .init(.c, modifiers: [.command, .option, .shift]))
     static let measure = Self("measure", default: .init(.m, modifiers: [.command, .option, .shift]))
     static let openSettings = Self("openSettings", default: .init(.comma, modifiers: [.command, .option, .shift]))
+    /// Press again to stop.
+    static let recordVideo = Self("recordVideo", default: .init(.r, modifiers: [.command, .option, .shift]))
+    static let recordGIF = Self("recordGIF", default: .init(.g, modifiers: [.command, .option, .shift]))
 }
 
 /// Keys for `UserDefaults.standard`, shared by `@AppStorage` in the UI and plain reads elsewhere.
@@ -42,6 +45,18 @@ enum PrefKey {
     static let colorFormat = "colorFormat"
     static let areaFrameStyle = "areaFrameStyle"
     static let frameBottomCorners = "frameBottomCorners"
+
+    static let recordingCodec = "recordingCodec"
+    static let recordingFPS = "recordingFPS"
+    /// Mbit/s; 0 = automatic.
+    static let recordingBitrate = "recordingBitrate"
+    static let recordingRetina = "recordingRetina"
+    static let recordingCursor = "recordingCursor"
+    static let recordingSystemAudio = "recordingSystemAudio"
+    static let recordingMicrophone = "recordingMicrophone"
+    static let gifFPS = "gifFPS"
+    /// Pixels; 0 = the recording's width.
+    static let gifMaxWidth = "gifMaxWidth"
 
     static let imageFormat = "imageFormat"
     static let fileNamePrefix = "fileNamePrefix"
@@ -88,6 +103,15 @@ enum Preferences {
             PrefKey.colorFormat: ColorFormat.hex.rawValue,
             PrefKey.areaFrameStyle: AreaFrameStyle.notch.rawValue,
             PrefKey.frameBottomCorners: FrameBottomCorners.rounded.rawValue,
+            PrefKey.recordingCodec: VideoCodec.h264.rawValue,
+            PrefKey.recordingFPS: 60,
+            PrefKey.recordingBitrate: 0,
+            PrefKey.recordingRetina: true,
+            PrefKey.recordingCursor: true,
+            PrefKey.recordingSystemAudio: false,
+            PrefKey.recordingMicrophone: false,
+            PrefKey.gifFPS: 15,
+            PrefKey.gifMaxWidth: 800,
             PrefKey.imageFormat: ImageFormat.png.rawValue,
             PrefKey.fileNamePrefix: "Glassine",
             PrefKey.saveAtStandardResolution: false,

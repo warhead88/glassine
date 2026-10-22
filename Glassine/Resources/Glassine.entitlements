@@ -5,5 +5,8 @@
 	<!-- Distributed via Developer ID, not the App Store: no sandbox. -->
 	<key>com.apple.security.app-sandbox</key>
 	<false/>
+	<!-- Hardened runtime: the microphone for screen recordings with voice. -->
+	<key>com.apple.security.device.audio-input</key>
+	<true/>
 </dict>
 </plist>

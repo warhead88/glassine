@@ -1,9 +1,9 @@
 import AppKit
 
-/// Stacks capture previews in the bottom-right corner of the screen, newest at the bottom.
+/// Stacks capture and recording previews in the bottom-right corner of the screen, newest at the bottom.
 @MainActor
 final class QuickAccessController {
-    private var panels: [QuickAccessPanel] = [] // oldest first
+    private var panels: [PreviewPanel] = [] // oldest first
     private var screen: NSScreen?
 
     private let margin: CGFloat = 16
@@ -14,22 +14,28 @@ final class QuickAccessController {
     var onEdit: (CapturedImage) -> Void = { _ in }
 
     func show(_ capture: CapturedImage, on screen: NSScreen) {
-        let seconds = UserDefaults.standard.integer(forKey: PrefKey.quickAccessAutoClose)
-        let panel = QuickAccessPanel(
+        present(QuickAccessPanel(
             capture: capture,
-            autoClose: seconds > 0 ? .seconds(seconds) : nil,
+            autoClose: autoClose,
             onPin: { [weak self] in self?.onPin($0) },
             onEdit: { [weak self] in self?.onEdit($0) },
-            onResize: { [weak self] _ in
-                NSAnimationContext.runAnimationGroup { context in
-                    context.duration = 0.2
-                    self?.layout()
-                }
-            }
-        ) { [weak self] closed in
-            self?.remove(closed)
-        }
+            onResize: { [weak self] _ in self?.relayout() },
+            onClose: { [weak self] in self?.remove($0) }
+        ), on: screen)
+    }
 
+    func show(_ recording: CapturedRecording, on screen: NSScreen) {
+        present(RecordingPreviewPanel(recording: recording, autoClose: autoClose) { [weak self] in
+            self?.remove($0)
+        }, on: screen)
+    }
+
+    private var autoClose: Duration? {
+        let seconds = UserDefaults.standard.integer(forKey: PrefKey.quickAccessAutoClose)
+        return seconds > 0 ? .seconds(seconds) : nil
+    }
+
+    private func present(_ panel: PreviewPanel, on screen: NSScreen) {
         self.screen = screen
         panels.append(panel)
         if panels.count > maxVisible {
@@ -51,12 +57,16 @@ final class QuickAccessController {
         }
     }
 
-    private func remove(_ panel: QuickAccessPanel) {
-        panels.removeAll { $0 === panel }
+    private func relayout() {
         NSAnimationContext.runAnimationGroup { context in
             context.duration = 0.2
             layout()
         }
+    }
+
+    private func remove(_ panel: PreviewPanel) {
+        panels.removeAll { $0 === panel }
+        relayout()
     }
 
     /// Animates every panel to its slot; call inside an animation group.

@@ -48,6 +48,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             WelcomeView.debugShowsSteps = true
             welcome.show()
         }
+        if let index = CommandLine.arguments.firstIndex(of: "--debug-record"), index + 1 < CommandLine.arguments.count {
+            capture.debugRecord(seconds: Double(CommandLine.arguments[index + 1]) ?? 3,
+                                format: CommandLine.arguments.contains("gif") ? .gif : .video)
+        }
         if CommandLine.arguments.contains("--debug-update") {
             updater.showDebugUpdate()
         }
@@ -72,6 +76,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         KeyboardShortcuts.onKeyUp(for: .captureText) { [weak self] in self?.capture.captureText() }
         KeyboardShortcuts.onKeyUp(for: .pickColor) { [weak self] in self?.capture.pickColor() }
         KeyboardShortcuts.onKeyUp(for: .measure) { [weak self] in self?.capture.measure() }
+        KeyboardShortcuts.onKeyUp(for: .recordVideo) { [weak self] in self?.capture.record(.video) }
+        KeyboardShortcuts.onKeyUp(for: .recordGIF) { [weak self] in self?.capture.record(.gif) }
         KeyboardShortcuts.onKeyUp(for: .pinFromClipboard) { [weak self] in self?.pins.pinFromClipboard() }
         KeyboardShortcuts.onKeyUp(for: .togglePins) { [weak self] in self?.pins.toggleVisibility() }
         KeyboardShortcuts.onKeyUp(for: .openSettings) { [weak self] in self?.settings.show() }
@@ -122,6 +128,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func captureText() { capture.captureText() }
     @objc private func pickColor() { capture.pickColor() }
     @objc private func measure() { capture.measure() }
+    @objc private func recordVideo() { capture.record(.video) }
+    @objc private func recordGIF() { capture.record(.gif) }
     @objc private func pinFromClipboard() { pins.pinFromClipboard() }
     @objc private func togglePins() { pins.toggleVisibility() }
     @objc private func closeAllPins() { pins.closeAll() }
@@ -137,6 +145,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             ("Copy Text from Screen", #selector(captureText), .captureText),
             ("Pick Color", #selector(pickColor), .pickColor),
             ("Measure", #selector(measure), .measure),
+            ("Record Video", #selector(recordVideo), .recordVideo),
+            ("Record GIF", #selector(recordGIF), .recordGIF),
             ("Pin from Clipboard", #selector(pinFromClipboard), .pinFromClipboard),
             ("Show/Hide Pins", #selector(togglePins), .togglePins),
             ("Close All Pins", #selector(closeAllPins), nil),
