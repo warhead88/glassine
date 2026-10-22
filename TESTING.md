@@ -168,7 +168,19 @@ leaks $PID | grep "leaks for"                     # утечки
 - [ ] «Overlay ready» < 150 мс (кроме первого захвата после запуска)
 - [ ] После 10 снимков с превью память перестаёт расти, `leaks` — 0
 
-## 11. Удаление и установка
+## 11. Обновления
+
+- [ ] `open /Applications/Glassine.app --args --debug-update` — окно с примером: разделы цветные,
+      Skip This Version / Later / Update; крестик закрывает
+- [ ] Settings → General → Updates: версия видна, переключатель автопроверки сохраняется,
+      «Check for Updates…» — «Checking…», затем «You're up to date» (или найденное обновление)
+- [ ] Полный цикл на локальном фиде: собрать копию с большей версией, подписать `sign_update`, отдать
+      `python3 -m http.server` и запустить с `--debug-feed http://127.0.0.1:<port>/appcast.xml --debug-check-updates`
+      → Update → прогресс → Install and Relaunch → приложение перезапускается новой версией. Вернуть: `scripts/install.sh`
+- [ ] Фоновая проверка нашла обновление — окно появляется, но фокус остаётся в текущем приложении;
+      без сети фоновая проверка молчит, ручная показывает ошибку
+
+## 12. Удаление и установка
 
 - [ ] Пробный прогон: `open /Applications/Glassine.app --args --debug-uninstall-plan`, в логе «Uninstall plan: …»
       — только пути с `com.warhead88.glassine`, `~/Pictures/Glassine` и `/Applications/Glassine.app`

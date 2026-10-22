@@ -8,6 +8,8 @@ enum MainMenu {
         let appMenu = NSMenu()
         appMenu.addItem(withTitle: "Settings…", action: #selector(AppDelegate.showSettings(_:)), keyEquivalent: ",")
             .target = target
+        appMenu.addItem(withTitle: "Check for Updates…", action: #selector(AppDelegate.checkForUpdates(_:)), keyEquivalent: "")
+            .target = target
         appMenu.addItem(.separator())
         appMenu.addItem(withTitle: "Quit Glassine", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
 

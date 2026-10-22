@@ -201,11 +201,15 @@
   без панелей — Glassine, стрелка, Applications и подпись «перетащите для установки»;
   Release без отладочных флагов, 10 МБ в простое. Подпись Developer ID и нотаризация включаются переменными
 - ⬜ Developer ID + нотаризация (нужен платный Apple Developer Program) — тогда DMG открывается на любом Mac
-- 💭 Sparkle для обновлений
+- ✅ **Обновления:** Sparkle со своим окном — что нового (Added / Changed / Fixed / Removed из CHANGELOG.md),
+  Update / Later / Skip This Version, загрузка с прогрессом, Install and Relaunch. Проверка раз в сутки в фоне
+  (окно не забирает фокус) и кнопкой в Settings → General и в меню. Обновления подписаны ключом EdDSA;
+  `release.sh` пишет appcast, `publish.sh` выкладывает GitHub-релиз. Нужен публичный репозиторий
+- ⬜ Версия для App Store: песочница, без Sparkle и деинсталлятора — обновляет сам App Store
 - ⬜ Локализация: русский + английский (String Catalog)
 - ⬜ Иконка приложения
 - ⬜ Модули как локальные Swift Packages, когда фич станет 3+
-- 💭 GitHub-репозиторий + CI-сборка
+- ✅ GitHub-репозиторий; 💭 CI-сборка
 
 ## Известные ограничения
 

@@ -20,6 +20,17 @@ scripts/release.sh            # DEVELOPER_ID=… NOTARY_PROFILE=… to sign for 
 ```
 
 Without a Developer ID (paid program) the DMG runs on this Mac; elsewhere Gatekeeper asks first.
+
+Versions follow SemVer (`MARKETING_VERSION` in `project.yml`; 0.x until the finished 1.0: minor = features,
+patch = fixes); the build number is the commit count, set by `release.sh`. A release:
+1. move the `[Unreleased]` notes in `CHANGELOG.md` to `## [x.y.z] - date` (users read them in the update window),
+2. bump `MARKETING_VERSION`, run `scripts/release.sh` — DMG plus `dist/appcast.xml`, signed with the update key
+   (Sparkle EdDSA, login keychain account `com.warhead88.glassine`; the public half is `SUPublicEDKey`),
+3. `scripts/publish.sh` — tag and GitHub release with both files. Installed copies read
+   `releases/latest/download/appcast.xml`, so the repo must be public for updates to reach anyone.
+
+Updates (`Glassine/Updates/`) use Sparkle with Glassine's own window. Debug: `--debug-update` (sample window),
+`--debug-feed <url> --debug-check-updates` (check a local appcast). A future App Store build leaves this folder out.
 The DMG window (arrow, caption) is laid out by `scripts/dmg-settings.py` (dmgbuild, private venv in
 `build.noindex`) over `Design/dmg/background.tiff`, rendered by `Design/tools/dmg-background.swift`.
 

@@ -6,7 +6,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let capture = CaptureCoordinator()
     private let pins = PinController()
     private let editor = EditorController()
-    private let settings = HostingWindowController(title: "Glassine Settings") { SettingsView() }
+    private let updater = Updater()
+    private lazy var settings = HostingWindowController(title: "Glassine Settings") { [unowned self] in
+        SettingsView(updater: updater)
+    }
     private lazy var welcome: HostingWindowController<WelcomeView> = HostingWindowController(
         title: "Welcome to Glassine"
     ) { [unowned self] in
@@ -29,6 +32,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         capture.onEdit = { [weak self] in self?.editor.open($0) }
         pins.onEdit = { [weak self] in self?.editor.open($0) }
         editor.onPin = { [weak self] in self?.pins.pin($0) }
+        updater.start()
 
         #if DEBUG
         if CommandLine.arguments.contains("--debug-preview") {
@@ -43,6 +47,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if CommandLine.arguments.contains("--debug-welcome") {
             WelcomeView.debugShowsSteps = true
             welcome.show()
+        }
+        if CommandLine.arguments.contains("--debug-update") {
+            updater.showDebugUpdate()
+        }
+        if CommandLine.arguments.contains("--debug-check-updates") {
+            updater.checkForUpdates()
         }
         if CommandLine.arguments.contains("--debug-uninstall-plan") {
             // Dry run: lists what Uninstall would move to the Trash, changes nothing.
@@ -100,6 +110,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         settings.show()
     }
 
+    @objc func checkForUpdates(_ sender: Any?) {
+        updater.checkForUpdates()
+    }
+
     @objc private func captureArea() { capture.captureArea() }
     @objc private func captureWindow() { capture.captureWindow() }
     @objc private func captureScreen() { capture.captureScreen() }
@@ -134,6 +148,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         menu.addItem(.separator())
         menu.addItem(withTitle: "Settings…", action: #selector(showSettings(_:)), keyEquivalent: ",").target = self
+        menu.addItem(withTitle: "Check for Updates…", action: #selector(checkForUpdates(_:)), keyEquivalent: "").target = self
         menu.addItem(withTitle: "Quit Glassine", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         return menu
     }

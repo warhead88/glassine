@@ -63,6 +63,9 @@ preview offers **Copy QR Link** — or a list to copy or open each one when ther
    shortcuts (System Settings → Keyboard → Keyboard Shortcuts… → Screenshots) so Glassine gets
    <kbd>⇧⌘3</kbd>, <kbd>⇧⌘4</kbd> and <kbd>⇧⌘5</kbd>.
 
+Glassine checks for updates once a day (Settings → General → Updates, or **Check for Updates…**)
+and shows what's new before installing.
+
 Current builds aren't notarized yet: on a Mac other than the developer's, macOS asks once before the
 first launch — right-click Glassine → **Open**.
 
@@ -71,8 +74,9 @@ Trash; your screenshots stay.
 
 ## Privacy
 
-Everything stays on your Mac. Glassine never connects to the network, has no analytics, and writes only
-to its own folders (named `com.warhead88.glassine`) and the screenshot folder you choose.
+Everything stays on your Mac. The only network request is the update check — it fetches the release feed
+from GitHub and sends nothing about you (turn it off in Settings). No analytics. Glassine writes only to
+its own folders (named `com.warhead88.glassine`) and the screenshot folder you choose.
 
 ## Build from source
 
@@ -81,7 +85,8 @@ Requires Xcode 26 or later and [XcodeGen](https://github.com/yonaskolb/XcodeGen)
 ```bash
 scripts/install.sh     # build and install to /Applications (pass Release for a release build)
 scripts/test.sh        # unit tests (Swift Testing)
-scripts/release.sh     # Release build packed as dist/Glassine-<version>.dmg
+scripts/release.sh     # Release build packed as dist/Glassine-<version>.dmg, plus the update feed
+scripts/publish.sh     # GitHub release with both (notes from CHANGELOG.md)
 ```
 
 The Xcode project is generated from `project.yml`. Code lives in `Glassine/` by feature —

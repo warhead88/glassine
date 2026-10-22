@@ -3,6 +3,8 @@ import ServiceManagement
 import SwiftUI
 
 struct SettingsView: View {
+    let updater: Updater
+
     var body: some View {
         TabView {
             GeneralSettings().tabItem { Label("General", systemImage: "gearshape") }
@@ -11,6 +13,7 @@ struct SettingsView: View {
             ShortcutSettings().tabItem { Label("Shortcuts", systemImage: "command") }
         }
         .frame(width: 600, height: 700)
+        .environment(updater)
     }
 }
 
@@ -18,6 +21,7 @@ private struct GeneralSettings: View {
     @AppStorage(PrefKey.showMenuBarIcon) private var showMenuBarIcon = false
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @State private var hasScreenAccess = ScreenAccess.isGranted
+    @Environment(Updater.self) private var updater
 
     var body: some View {
         Form {
@@ -37,6 +41,14 @@ private struct GeneralSettings: View {
                     } else {
                         Button(ScreenAccess.requestTitle, action: ScreenAccess.request)
                     }
+                }
+            }
+
+            Section("Updates") {
+                @Bindable var updater = updater
+                Toggle("Check for updates automatically", isOn: $updater.automaticallyChecks)
+                LabeledContent("Version \(Updater.currentVersion)") {
+                    Button("Check for Updates…") { updater.checkForUpdates() }
                 }
             }
 

@@ -26,6 +26,14 @@
 	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
 	<key>LSUIElement</key>
 	<true/>
+	<key>SUFeedURL</key>
+	<string>https://github.com/warhead88/glassine/releases/latest/download/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>IEl0u1zUTbjfen8B5fEIiKJb7xbKkIEVzzf84Kz1tb0=</string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUScheduledCheckInterval</key>
+	<integer>86400</integer>
 	<key>NSHumanReadableCopyright</key>
 	<string>© 2026 warhead88</string>
 </dict>
