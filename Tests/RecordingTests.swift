@@ -43,13 +43,45 @@ struct RecordingTests {
         #expect(RecordingMath.clock(3909) == "1:05:09")
     }
 
-    @Test func pillSitsBelowTheAreaWhenThereIsRoom() {
-        let visible = CGRect(x: 0, y: 0, width: 1512, height: 950)
-        let size = CGSize(width: 200, height: 58)
-        let below = RecordingHUD.pillOrigin(for: size, area: CGRect(x: 400, y: 300, width: 400, height: 300), visible: visible)
-        #expect(below == CGPoint(x: 500, y: 230))
-        // A full-screen area: inside, near the bottom.
-        let inside = RecordingHUD.pillOrigin(for: size, area: visible, visible: visible)
-        #expect(inside.y == 24)
+    let visible = CGRect(x: 0, y: 0, width: 1512, height: 950)
+    let column = CGSize(width: 90, height: 420)
+    let row = CGSize(width: 560, height: 70)
+
+    @Test func controlsGoBesideTheAreaWhenTheyFit() {
+        let area = CGRect(x: 400, y: 300, width: 400, height: 300)
+        #expect(RecordingPanelLayout.besideArea(size: column, area: area, visible: visible, side: .right)
+            == CGPoint(x: 812, y: 240))
+        #expect(RecordingPanelLayout.besideArea(size: column, area: area, visible: visible, side: .left)
+            == CGPoint(x: 298, y: 240))
+        #expect(RecordingPanelLayout.besideArea(size: row, area: area, visible: visible, side: .below)
+            == CGPoint(x: 320, y: 218))
+        #expect(RecordingPanelLayout.besideArea(size: row, area: area, visible: visible, side: .above)
+            == CGPoint(x: 320, y: 612))
+    }
+
+    @Test func controlsDockWhenTheAreaLeavesNoRoom() {
+        // The whole screen: no side has room.
+        for side in PanelSide.allCases {
+            let size = side.isVertical ? column : row
+            #expect(RecordingPanelLayout.besideArea(size: size, area: visible, visible: visible, side: side) == nil)
+        }
+        #expect(RecordingPanelLayout.docked(size: column, visible: visible, side: .right) == CGPoint(x: 1422, y: 265))
+        #expect(RecordingPanelLayout.docked(size: row, visible: visible, side: .below) == CGPoint(x: 476, y: 0))
+    }
+
+    @Test func besideAWindowNearTheEdgeTheColumnStaysOnScreen() {
+        let window = CGRect(x: 1000, y: 0, width: 300, height: 200)
+        let origin = RecordingPanelLayout.besideArea(size: column, area: window, visible: visible, side: .right)
+        #expect(origin?.y == 8) // pushed up from the bottom edge, not cut off
+    }
+
+    @Test func dockedShapeFlaresIntoTheEdge() {
+        let path = PanelShape.rightEdgePath(thickness: 80, length: 400, radius: 20, shoulder: 16)
+        #expect(path.contains(CGPoint(x: 79, y: 8)))     // the shoulder reaches into the edge
+        #expect(!path.contains(CGPoint(x: 70, y: 2)))    // and curves away from it
+        #expect(path.contains(CGPoint(x: 2, y: 200)))    // the body spans the full thickness
+        #expect(!path.contains(CGPoint(x: 2, y: 18)))    // with a rounded outer corner
+        let box = path.boundingBoxOfPath
+        #expect(abs(box.minX) < 0.01 && abs(box.minY) < 0.01 && abs(box.width - 80) < 0.01 && abs(box.height - 400) < 0.01)
     }
 }

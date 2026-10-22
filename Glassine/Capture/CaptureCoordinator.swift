@@ -9,7 +9,6 @@ final class CaptureCoordinator {
     private var overlayMode = OverlayMode.capture
     private let quickAccess = QuickAccessController()
     private let recording = RecordingController()
-    private var recordingFormat = RecordingFormat.video
 
     /// Called when capture is attempted without Screen Recording access.
     var onMissingPermission: () -> Void = {}
@@ -44,13 +43,13 @@ final class CaptureCoordinator {
     /// Select an area or click a window; its text goes to the clipboard.
     func captureText() { startOverlay(.text) }
 
-    /// Pick an area, a window or the whole screen and record it; pressed again, stops.
-    func record(_ format: RecordingFormat) {
+    /// Pick an area, a window or the whole screen to record. Pressed again: records what's
+    /// picked, or stops the recording.
+    func record() {
         guard recording.isIdle else {
-            recording.stopOrCancel()
+            recording.shortcutPressed()
             return
         }
-        recordingFormat = format
         startOverlay(.record)
     }
 
@@ -201,11 +200,10 @@ final class CaptureCoordinator {
         case .area(let image, _) where overlayMode == .text:
             SmartActions.copyText(from: image)
         case .area(_, let rect) where overlayMode == .record:
-            recording.begin(.area(display: snapshot.screen, rect: rect), format: recordingFormat,
-                            area: snapshot.screen.globalRect(fromLocalFlipped: rect), on: snapshot.screen)
+            recording.prepare(.area(display: snapshot.screen, rect: rect),
+                              area: snapshot.screen.globalRect(fromLocalFlipped: rect), on: snapshot.screen)
         case .window(let id) where overlayMode == .record:
-            let frame = WindowList.frame(of: id) ?? snapshot.screen.frame
-            recording.begin(.window(id), format: recordingFormat, area: frame, on: snapshot.screen)
+            recording.prepare(.window(id), area: WindowList.frame(of: id) ?? snapshot.screen.frame, on: snapshot.screen)
         case .area(let image, let rect):
             if let displayID = snapshot.screen.displayID {
                 lastArea = (displayID, rect)
@@ -258,16 +256,27 @@ final class CaptureCoordinator {
     }
 
     #if DEBUG
-    /// Debug hook (`--debug-record <seconds> [gif]`): records the middle of the main screen
-    /// without the overlay, then stops by itself.
-    func debugRecord(seconds: Double, format: RecordingFormat) {
+    /// Debug hooks: `--debug-record-panel [full]` shows the recording controls for the middle of
+    /// the main screen (or all of it); `--debug-record <seconds>` also records with the saved
+    /// options and stops by itself (`pause`: pauses 1.5 s in, for 2 s). No overlay, no input needed.
+    func debugRecord(seconds: Double?, fullScreen: Bool, pause: Bool = false) {
         guard let screen = NSScreen.main else { return }
         let size = screen.frame.size
-        let rect = CGRect(x: size.width / 4, y: size.height / 4, width: size.width / 2, height: size.height / 2)
-        recording.begin(.area(display: screen, rect: rect), format: format,
-                        area: screen.globalRect(fromLocalFlipped: rect), on: screen)
+        let rect = fullScreen ? CGRect(origin: .zero, size: size)
+            : CGRect(x: size.width / 4, y: size.height / 4, width: size.width / 2, height: size.height / 2)
+        recording.prepare(.area(display: screen, rect: rect), area: screen.globalRect(fromLocalFlipped: rect), on: screen)
+        guard let seconds else { return }
+        recording.record()
         Task {
-            try? await Task.sleep(for: .seconds(3.5 + seconds)) // after the countdown
+            if pause {
+                try? await Task.sleep(for: .seconds(3.5 + 1.5))
+                recording.debugTogglePause()
+                try? await Task.sleep(for: .seconds(2))
+                recording.debugTogglePause()
+                try? await Task.sleep(for: .seconds(seconds - 1.5))
+            } else {
+                try? await Task.sleep(for: .seconds(3.5 + seconds)) // after the countdown
+            }
             recording.stop()
         }
     }

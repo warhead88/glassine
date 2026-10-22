@@ -1,0 +1,510 @@
+import SwiftUI
+
+/// State of the recording controls: the options before recording, then the live recording.
+@MainActor
+@Observable
+final class RecordingPanelModel {
+    enum Phase: Equatable {
+        case setup
+        case countdown(Int)
+        case recording
+        case paused
+        case saving
+        case makingGIF(progress: Double)
+    }
+
+    var phase = Phase.setup {
+        didSet { if phase.group != oldValue.group { onLayoutChange?() } }
+    }
+    var options: RecordingOptions {
+        didSet {
+            options.save()
+            if options.format != oldValue.format { onLayoutChange?() }
+        }
+    }
+    var side: PanelSide {
+        didSet {
+            UserDefaults.standard.set(side.rawValue, forKey: PrefKey.recordingPanelSide)
+            onLayoutChange?()
+        }
+    }
+    /// Recorded time before the last pause, and when recording last (re)started.
+    private(set) var elapsedBeforePause: TimeInterval = 0
+    private(set) var runningSince: Date?
+
+    @ObservationIgnored var onLayoutChange: (() -> Void)?
+    @ObservationIgnored var onRecord: () -> Void = {}
+    @ObservationIgnored var onCancel: () -> Void = {}
+    @ObservationIgnored var onPause: (Bool) -> Void = { _ in }
+    @ObservationIgnored var onStop: () -> Void = {}
+    @ObservationIgnored var onDiscard: () -> Void = {}
+
+    init(options: RecordingOptions) {
+        self.options = options
+        side = PanelSide(rawValue: UserDefaults.standard.string(forKey: PrefKey.recordingPanelSide) ?? "") ?? .right
+    }
+
+    var microphoneAvailable: Bool {
+        if #available(macOS 15.0, *) { true } else { false }
+    }
+
+    func elapsed(at date: Date) -> TimeInterval {
+        elapsedBeforePause + (runningSince.map { date.timeIntervalSince($0) } ?? 0)
+    }
+
+    func startClock() {
+        runningSince = .now
+        phase = .recording
+    }
+
+    func togglePause() {
+        if phase == .recording {
+            elapsedBeforePause = elapsed(at: .now)
+            runningSince = nil
+            phase = .paused
+            onPause(true)
+        } else if phase == .paused {
+            runningSince = .now
+            phase = .recording
+            onPause(false)
+        }
+    }
+}
+
+private extension RecordingPanelModel.Phase {
+    /// Phases that look alike share a size.
+    var group: Int {
+        switch self {
+        case .setup, .countdown: 0
+        case .recording, .paused: 1
+        case .saving, .makingGIF: 2
+        }
+    }
+}
+
+struct RecordingPanelView: View {
+    let model: RecordingPanelModel
+    /// The screen edge the panel is docked to; nil when it sits beside the area.
+    var dockedEdge: PanelSide?
+
+    private static let shoulder: CGFloat = 16
+
+    private var vertical: Bool { model.side.isVertical }
+
+    var body: some View {
+        let shape = PanelShape(dockedEdge: dockedEdge, radius: 20, shoulder: Self.shoulder)
+        let layout = vertical ? AnyLayout(VStackLayout(spacing: 8)) : AnyLayout(HStackLayout(spacing: 8))
+        layout {
+            switch model.phase {
+            case .setup, .countdown: setupControls
+            case .recording, .paused: liveControls
+            case .saving, .makingGIF: finishing
+            }
+        }
+        .padding(contentInsets)
+        .background {
+            ZStack {
+                DotPattern()
+                // Dots along the outline, following the shoulders into the screen edge.
+                shape.inset(by: 5).stroke(Color.primary.opacity(0.22),
+                                          style: StrokeStyle(lineWidth: 1.6, lineCap: .round, dash: [0, 7]))
+            }
+            .clipShape(shape)
+        }
+        .glassPanel(in: shape)
+        .padding(shadowInsets)
+        .fixedSize()
+        .animation(.snappy(duration: 0.2), value: model.options.format)
+    }
+
+    // MARK: Phases
+
+    @ViewBuilder
+    private var setupControls: some View {
+        RecordButton(countdown: countdown) { model.onRecord() }
+            .disabled(countdown != nil)
+        Separator()
+
+        let options = model.options
+        OptionChip(caption: "FORMAT", value: options.format == .video ? "MP4" : "GIF",
+                   choices: [(RecordingFormat.video, "Video (MP4)"), (.gif, "GIF")], selection: options.format) {
+            model.options.format = $0
+        }
+        if options.format == .video {
+            OptionChip(caption: "CODEC", value: options.codec.title,
+                       choices: VideoCodec.allCases.map { ($0, $0.menuTitle) }, selection: options.codec) {
+                model.options.codec = $0
+            }
+            OptionChip(caption: "FPS", value: "\(options.framesPerSecond)",
+                       choices: [(30, "30 fps"), (60, "60 fps")], selection: options.framesPerSecond) {
+                model.options.framesPerSecond = $0
+            }
+            OptionChip(caption: "BITRATE", value: options.bitrateMbps == 0 ? "Auto" : "\(options.bitrateMbps)M",
+                       choices: [(0, "Automatic")] + [4, 8, 16, 32, 50].map { ($0, "\($0) Mbit/s") },
+                       selection: options.bitrateMbps) {
+                model.options.bitrateMbps = $0
+            }
+        } else {
+            OptionChip(caption: "FPS", value: "\(options.gifFramesPerSecond)",
+                       choices: [10, 15, 24].map { ($0, "\($0) fps") }, selection: options.gifFramesPerSecond) {
+                model.options.gifFramesPerSecond = $0
+            }
+            OptionChip(caption: "WIDTH", value: options.gifMaxWidth == 0 ? "Full" : "\(options.gifMaxWidth)",
+                       choices: [480, 640, 800, 1000].map { ($0, "Up to \($0) px") } + [(0, "As recorded")],
+                       selection: options.gifMaxWidth) {
+                model.options.gifMaxWidth = $0
+            }
+        }
+        OptionChip(caption: "SCALE", value: options.retina ? "Retina" : "1×",
+                   choices: [(true, "Retina (every pixel)"), (false, "1× (smaller files)")], selection: options.retina) {
+            model.options.retina = $0
+        }
+        Separator()
+
+        ToggleIcon(symbol: "cursorarrow", help: "Show the pointer", isOn: options.showsCursor) {
+            model.options.showsCursor.toggle()
+        }
+        if options.format == .video {
+            ToggleIcon(symbol: "speaker.wave.2.fill", help: "System audio — what apps play", isOn: options.systemAudio) {
+                model.options.systemAudio.toggle()
+            }
+            ToggleIcon(symbol: "mic.fill", help: model.microphoneAvailable ? "Microphone" : "Microphone needs macOS 15",
+                       isOn: options.microphone && model.microphoneAvailable) {
+                model.options.microphone.toggle()
+            }
+            .disabled(!model.microphoneAvailable)
+        }
+        Separator()
+
+        PositionMenu(side: model.side) { model.side = $0 }
+        PanelIconButton(symbol: "xmark", help: "Cancel (Esc)", tint: .secondary) { model.onCancel() }
+            .keyboardShortcut(.cancelAction)
+    }
+
+    @ViewBuilder
+    private var liveControls: some View {
+        LiveIndicator(model: model, vertical: vertical)
+        Separator()
+        PanelIconButton(symbol: model.phase == .paused ? "play.fill" : "pause.fill",
+                        help: model.phase == .paused ? "Resume" : "Pause", tint: .primary) {
+            model.togglePause()
+        }
+        PanelIconButton(symbol: "stop.fill", help: "Stop and save", tint: .red) { model.onStop() }
+        PanelIconButton(symbol: "trash", help: "Discard the recording", tint: .secondary) { model.onDiscard() }
+    }
+
+    @ViewBuilder
+    private var finishing: some View {
+        if case .makingGIF(let progress) = model.phase {
+            ProgressView(value: progress)
+                .progressViewStyle(.circular)
+                .controlSize(.small)
+            Text("Making GIF…").font(.system(size: 12, weight: .medium)).fixedSize()
+        } else {
+            ProgressView().controlSize(.small)
+            Text("Saving…").font(.system(size: 12, weight: .medium)).fixedSize()
+        }
+    }
+
+    private var countdown: Int? {
+        if case .countdown(let seconds) = model.phase { seconds } else { nil }
+    }
+
+    // MARK: Geometry
+
+    /// Content stays clear of the shoulders and the glass edge.
+    private var contentInsets: EdgeInsets {
+        var insets = EdgeInsets(top: 10, leading: 10, bottom: 10, trailing: 10)
+        switch dockedEdge {
+        case .right, .left:
+            insets.top += Self.shoulder
+            insets.bottom += Self.shoulder
+        case .below, .above:
+            insets.leading += Self.shoulder
+            insets.trailing += Self.shoulder
+        case nil:
+            break
+        }
+        return insets
+    }
+
+    /// Room for the shadow, except along a docked edge, where the panel meets the screen.
+    private var shadowInsets: EdgeInsets {
+        var insets = EdgeInsets(top: 14, leading: 14, bottom: 14, trailing: 14)
+        switch dockedEdge {
+        case .right: insets.trailing = 0
+        case .left: insets.leading = 0
+        case .below: insets.bottom = 0
+        case .above: insets.top = 0
+        case nil: break
+        }
+        return insets
+    }
+}
+
+private extension VideoCodec {
+    var menuTitle: String {
+        switch self {
+        case .h264: "H.264 — plays everywhere"
+        case .hevc: "HEVC (H.265) — half the size"
+        }
+    }
+}
+
+// MARK: - Shape and texture
+
+/// A rounded panel; docked, it flares into the screen edge with concave shoulders, like the area
+/// frame does around the notch.
+struct PanelShape: InsettableShape {
+    var dockedEdge: PanelSide?
+    var radius: CGFloat
+    var shoulder: CGFloat
+    var insetAmount: CGFloat = 0
+
+    func path(in rect: CGRect) -> Path {
+        let rect = rect.insetBy(dx: insetAmount, dy: insetAmount)
+        guard let edge = dockedEdge else {
+            return Path(roundedRect: rect, cornerRadius: max(radius - insetAmount, 0), style: .continuous)
+        }
+        // Drawn docked to the right edge (thickness × length), then turned to the real edge.
+        let vertical = edge.isVertical
+        let thickness = vertical ? rect.width : rect.height
+        let length = vertical ? rect.height : rect.width
+        let canonical = Self.rightEdgePath(thickness: thickness, length: length,
+                                           radius: max(radius - insetAmount, 0), shoulder: shoulder)
+        let turn: CGAffineTransform = switch edge {
+        case .right: .identity
+        case .left: CGAffineTransform(a: -1, b: 0, c: 0, d: 1, tx: thickness, ty: 0)
+        case .below: CGAffineTransform(a: 0, b: 1, c: 1, d: 0, tx: 0, ty: 0)
+        case .above: CGAffineTransform(a: 0, b: -1, c: 1, d: 0, tx: 0, ty: thickness)
+        }
+        return Path(canonical).applying(turn.concatenating(CGAffineTransform(translationX: rect.minX, y: rect.minY)))
+    }
+
+    /// The edge is the line x = thickness; shoulders at both ends curve into it.
+    static func rightEdgePath(thickness w: CGFloat, length h: CGFloat, radius r: CGFloat, shoulder s: CGFloat) -> CGPath {
+        let path = CGMutablePath()
+        path.move(to: CGPoint(x: w, y: 0))
+        path.addArc(tangent1End: CGPoint(x: w, y: s), tangent2End: CGPoint(x: 0, y: s), radius: s)
+        path.addArc(tangent1End: CGPoint(x: 0, y: s), tangent2End: CGPoint(x: 0, y: h - s), radius: r)
+        path.addArc(tangent1End: CGPoint(x: 0, y: h - s), tangent2End: CGPoint(x: w, y: h - s), radius: r)
+        path.addArc(tangent1End: CGPoint(x: w, y: h - s), tangent2End: CGPoint(x: w, y: h), radius: s)
+        path.addLine(to: CGPoint(x: w, y: h))
+        path.closeSubpath()
+        return path
+    }
+
+    func inset(by amount: CGFloat) -> PanelShape {
+        var shape = self
+        shape.insetAmount += amount
+        return shape
+    }
+}
+
+/// A faint dot grid, like the perforation of glassine paper.
+private struct DotPattern: View {
+    var body: some View {
+        Canvas { context, size in
+            let step: CGFloat = 7
+            var dots = Path()
+            var y = step / 2
+            while y < size.height {
+                var x = step / 2
+                while x < size.width {
+                    dots.addEllipse(in: CGRect(x: x - 0.7, y: y - 0.7, width: 1.4, height: 1.4))
+                    x += step
+                }
+                y += step
+            }
+            context.fill(dots, with: .color(.primary.opacity(0.09)))
+        }
+        .allowsHitTesting(false)
+    }
+}
+
+// MARK: - Controls
+
+private struct RecordButton: View {
+    let countdown: Int?
+    let action: () -> Void
+    @State private var hovered = false
+
+    var body: some View {
+        Button(action: action) {
+            ZStack {
+                Circle().fill(Color.red.gradient)
+                Circle().strokeBorder(.white.opacity(0.9), lineWidth: 2).padding(4)
+                if let countdown {
+                    Text("\(countdown)")
+                        .font(.system(size: 17, weight: .bold).monospacedDigit())
+                        .foregroundStyle(.white)
+                        .contentTransition(.numericText(countsDown: true))
+                } else {
+                    Circle().fill(.white).frame(width: 12, height: 12)
+                }
+            }
+            .frame(width: 44, height: 44)
+            .scaleEffect(hovered && countdown == nil ? 1.06 : 1)
+            .shadow(color: .red.opacity(0.4), radius: hovered ? 8 : 4)
+        }
+        .buttonStyle(.plain)
+        .keyboardShortcut(.defaultAction)
+        .help("Record (↩)")
+        .onHover { hovered = $0 }
+        .animation(.snappy(duration: 0.15), value: hovered)
+        .animation(.snappy, value: countdown)
+    }
+}
+
+private struct OptionChip<Value: Hashable>: View {
+    let caption: String
+    let value: String
+    let choices: [(Value, String)]
+    let selection: Value
+    let choose: (Value) -> Void
+    @State private var hovered = false
+
+    var body: some View {
+        Menu {
+            ForEach(choices, id: \.0) { choice, title in
+                Button {
+                    choose(choice)
+                } label: {
+                    if choice == selection { Label(title, systemImage: "checkmark") } else { Text(title) }
+                }
+            }
+        } label: {
+            VStack(spacing: 1) {
+                Text(caption)
+                    .font(.system(size: 8, weight: .semibold))
+                    .tracking(0.6)
+                    .foregroundStyle(.secondary)
+                Text(value)
+                    .font(.system(size: 12, weight: .semibold).monospacedDigit())
+                    .lineLimit(1)
+            }
+            .frame(width: 56, height: 36)
+            .background(RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Color.primary.opacity(hovered ? 0.14 : 0.07)))
+            .contentShape(Rectangle())
+        }
+        .menuStyle(.button)
+        .buttonStyle(.plain)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .onHover { hovered = $0 }
+    }
+}
+
+private struct ToggleIcon: View {
+    let symbol: String
+    let help: String
+    let isOn: Bool
+    let action: () -> Void
+    @State private var hovered = false
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(isOn ? Color.white : .secondary)
+                .frame(width: 32, height: 32)
+                .background(Circle().fill(isOn ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(Color.primary.opacity(hovered ? 0.14 : 0.07))))
+                .overlay {
+                    if !isOn {
+                        // A slash marks "off" without a second symbol.
+                        Capsule().fill(Color.secondary).frame(width: 1.5, height: 18).rotationEffect(.degrees(-45))
+                    }
+                }
+        }
+        .buttonStyle(.plain)
+        .help(help + (isOn ? ": on" : ": off"))
+        .onHover { hovered = $0 }
+    }
+}
+
+private struct PanelIconButton: View {
+    let symbol: String
+    let help: String
+    let tint: Color
+    let action: () -> Void
+    @State private var hovered = false
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(tint)
+                .frame(width: 32, height: 32)
+                .background(Circle().fill(Color.primary.opacity(hovered ? 0.15 : 0.07)))
+        }
+        .buttonStyle(.plain)
+        .help(help)
+        .onHover { hovered = $0 }
+    }
+}
+
+private struct PositionMenu: View {
+    let side: PanelSide
+    let choose: (PanelSide) -> Void
+
+    var body: some View {
+        Menu {
+            Section("Controls go") {
+                ForEach(PanelSide.allCases) { option in
+                    Button {
+                        choose(option)
+                    } label: {
+                        Label(option.title, systemImage: option == side ? "checkmark" : option.symbol)
+                    }
+                }
+            }
+        } label: {
+            Image(systemName: side.symbol)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(.secondary)
+                .frame(width: 32, height: 32)
+                .background(Circle().fill(Color.primary.opacity(0.07)))
+        }
+        .menuStyle(.button)
+        .buttonStyle(.plain)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .help("Where the controls go: beside the area, or on that screen edge when there's no room")
+    }
+}
+
+private struct Separator: View {
+    var body: some View {
+        Circle().fill(Color.primary.opacity(0.25)).frame(width: 3, height: 3)
+    }
+}
+
+/// Red dots running like a level meter, and the time; still and grey while paused.
+private struct LiveIndicator: View {
+    let model: RecordingPanelModel
+    let vertical: Bool
+
+    var body: some View {
+        let paused = model.phase == .paused
+        TimelineView(.animation(minimumInterval: 1 / 20, paused: paused)) { context in
+            let t = context.date.timeIntervalSinceReferenceDate
+            let layout = vertical ? AnyLayout(VStackLayout(spacing: 6)) : AnyLayout(HStackLayout(spacing: 8))
+            layout {
+                let dots = vertical ? AnyLayout(HStackLayout(spacing: 3)) : AnyLayout(VStackLayout(spacing: 3))
+                dots {
+                    ForEach(0..<4, id: \.self) { index in
+                        Circle()
+                            .fill(paused ? Color.secondary : Color.red)
+                            .frame(width: 5, height: 5)
+                            .opacity(paused ? 0.5 : 0.3 + 0.7 * max(0, sin(t * 5 - Double(index) * 0.8)))
+                    }
+                }
+                Text(RecordingMath.clock(model.elapsed(at: context.date)))
+                    .font(.system(size: 13, weight: .semibold).monospacedDigit())
+                    .foregroundStyle(paused ? .secondary : .primary)
+                    .frame(minWidth: 40)
+            }
+        }
+    }
+}

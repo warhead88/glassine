@@ -38,12 +38,13 @@ All shortcuts can be changed in Settings. Repeat-last-area and timed capture are
 
 ## Record
 
-<kbd>⌥⇧⌘R</kbd> records video, <kbd>⌥⇧⌘G</kbd> a GIF: drag an area, click a window (it's followed even
-when it moves or is covered), or press <kbd>↩</kbd> for the whole screen. Recording starts after a
-3-second countdown; a small pill shows the time — stop there or press the shortcut again.
+Press <kbd>⌥⇧⌘R</kbd>, then drag an area, click a window (it's followed even when it moves or is
+covered), or press <kbd>↩</kbd> for the whole screen. The controls appear beside it — or, when there's no
+room, docked to the screen edge: format (MP4 or GIF), codec, frame rate, bitrate, scale, pointer,
+system audio and microphone, and which side the controls go. Press the red button or <kbd>↩</kbd>;
+after a 3-second countdown they turn into a small player with the time, pause, stop and discard.
 
-Video is MP4, hardware-encoded as H.264 (plays everywhere) or HEVC (half the size), at 30 or 60 fps with
-automatic or fixed bitrate, at Retina or standard resolution, with system audio and the microphone.
+Video is hardware-encoded as H.264 (plays everywhere) or HEVC/H.265 (half the size), at 30 or 60 fps.
 GIFs are made from the recording at 10–24 fps, scaled to the width you choose. The result lands in the
 same floating preview as screenshots.
 

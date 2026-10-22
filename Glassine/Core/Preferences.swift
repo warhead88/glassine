@@ -15,9 +15,8 @@ extension KeyboardShortcuts.Name {
     static let pickColor = Self("pickColor", default: .init(.c, modifiers: [.command, .option, .shift]))
     static let measure = Self("measure", default: .init(.m, modifiers: [.command, .option, .shift]))
     static let openSettings = Self("openSettings", default: .init(.comma, modifiers: [.command, .option, .shift]))
-    /// Press again to stop.
-    static let recordVideo = Self("recordVideo", default: .init(.r, modifiers: [.command, .option, .shift]))
-    static let recordGIF = Self("recordGIF", default: .init(.g, modifiers: [.command, .option, .shift]))
+    /// Pressed again: records what's picked, then stops.
+    static let recordScreen = Self("recordScreen", default: .init(.r, modifiers: [.command, .option, .shift]))
 }
 
 /// Keys for `UserDefaults.standard`, shared by `@AppStorage` in the UI and plain reads elsewhere.
@@ -46,6 +45,9 @@ enum PrefKey {
     static let areaFrameStyle = "areaFrameStyle"
     static let frameBottomCorners = "frameBottomCorners"
 
+    static let recordingFormat = "recordingFormat"
+    /// Where the recording controls go (`PanelSide`).
+    static let recordingPanelSide = "recordingPanelSide"
     static let recordingCodec = "recordingCodec"
     static let recordingFPS = "recordingFPS"
     /// Mbit/s; 0 = automatic.
@@ -103,6 +105,8 @@ enum Preferences {
             PrefKey.colorFormat: ColorFormat.hex.rawValue,
             PrefKey.areaFrameStyle: AreaFrameStyle.notch.rawValue,
             PrefKey.frameBottomCorners: FrameBottomCorners.rounded.rawValue,
+            PrefKey.recordingFormat: RecordingFormat.video.rawValue,
+            PrefKey.recordingPanelSide: PanelSide.right.rawValue,
             PrefKey.recordingCodec: VideoCodec.h264.rawValue,
             PrefKey.recordingFPS: 60,
             PrefKey.recordingBitrate: 0,

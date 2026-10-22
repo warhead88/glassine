@@ -3,7 +3,7 @@ import CoreGraphics
 
 /// What a recording is saved as. Both are recorded the same way (hardware-encoded video);
 /// a GIF is made from the video when recording stops.
-enum RecordingFormat: String {
+enum RecordingFormat: String, Hashable {
     case video, gif
 
     var fileExtension: String { self == .video ? "mp4" : "gif" }
@@ -43,9 +43,11 @@ struct RecordingOptions {
     /// Widest GIF in pixels; 0 keeps the recording's width.
     var gifMaxWidth = 800
 
+    /// The options last used; the recording controls change and save them.
     static var current: RecordingOptions {
         let defaults = UserDefaults.standard
         var options = RecordingOptions()
+        options.format = RecordingFormat(rawValue: defaults.string(forKey: PrefKey.recordingFormat) ?? "") ?? .video
         options.codec = VideoCodec(rawValue: defaults.string(forKey: PrefKey.recordingCodec) ?? "") ?? .h264
         options.framesPerSecond = defaults.integer(forKey: PrefKey.recordingFPS)
         options.bitrateMbps = defaults.integer(forKey: PrefKey.recordingBitrate)
@@ -56,6 +58,20 @@ struct RecordingOptions {
         options.gifFramesPerSecond = defaults.integer(forKey: PrefKey.gifFPS)
         options.gifMaxWidth = defaults.integer(forKey: PrefKey.gifMaxWidth)
         return options
+    }
+
+    func save() {
+        let defaults = UserDefaults.standard
+        defaults.set(format.rawValue, forKey: PrefKey.recordingFormat)
+        defaults.set(codec.rawValue, forKey: PrefKey.recordingCodec)
+        defaults.set(framesPerSecond, forKey: PrefKey.recordingFPS)
+        defaults.set(bitrateMbps, forKey: PrefKey.recordingBitrate)
+        defaults.set(retina, forKey: PrefKey.recordingRetina)
+        defaults.set(showsCursor, forKey: PrefKey.recordingCursor)
+        defaults.set(systemAudio, forKey: PrefKey.recordingSystemAudio)
+        defaults.set(microphone, forKey: PrefKey.recordingMicrophone)
+        defaults.set(gifFramesPerSecond, forKey: PrefKey.gifFPS)
+        defaults.set(gifMaxWidth, forKey: PrefKey.gifMaxWidth)
     }
 }
 

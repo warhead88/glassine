@@ -33,6 +33,10 @@ final class ScreenRecorder: NSObject, SCStreamOutput, SCStreamDelegate, @uncheck
     private var sessionStarted = false
     private var firstVideoTime = CMTime.invalid
     private var lastVideoTime = CMTime.invalid
+    /// While paused, samples are dropped; afterwards they're moved back by the time spent paused,
+    /// so the file plays straight through.
+    private var pausedSince: CMTime?
+    private var pausedTotal = CMTime.zero
 
     let url: URL
     let pixelSize: (width: Int, height: Int)
@@ -152,9 +156,23 @@ final class ScreenRecorder: NSObject, SCStreamOutput, SCStreamDelegate, @uncheck
         try await stream.startCapture()
     }
 
+    func setPaused(_ paused: Bool) {
+        let now = Self.now
+        queue.async { [self] in
+            if paused, pausedSince == nil {
+                pausedSince = now
+            } else if !paused, let since = pausedSince {
+                pausedTotal = CMTimeAdd(pausedTotal, CMTimeSubtract(now, since))
+                pausedSince = nil
+            }
+        }
+    }
+
+    private static var now: CMTime { CMClockGetTime(CMClockGetHostTimeClock()) }
+
     /// Stops and finishes the file; returns the recording's length in seconds.
     func stop() async throws -> Double {
-        let stopTime = CMClockGetTime(CMClockGetHostTimeClock())
+        let stopTime = Self.now
         try? await stream.stopCapture()
         return try await withCheckedThrowingContinuation { continuation in
             // On the sample queue: every frame delivered before the stop is already appended.
@@ -167,7 +185,8 @@ final class ScreenRecorder: NSObject, SCStreamOutput, SCStreamDelegate, @uncheck
                 }
                 // A still screen sends no new frames, so the video ends when Stop was pressed,
                 // not at the last change on screen.
-                let end = CMTimeMaximum(stopTime, lastVideoTime)
+                let pausedAtStop = pausedSince.map { CMTimeSubtract(stopTime, $0) } ?? .zero
+                let end = CMTimeMaximum(CMTimeSubtract(CMTimeSubtract(stopTime, pausedTotal), pausedAtStop), lastVideoTime)
                 writer.endSession(atSourceTime: end)
                 video.markAsFinished()
                 systemAudio?.markAsFinished()
@@ -187,7 +206,8 @@ final class ScreenRecorder: NSObject, SCStreamOutput, SCStreamDelegate, @uncheck
     // MARK: SCStreamOutput
 
     func stream(_ stream: SCStream, didOutputSampleBuffer buffer: CMSampleBuffer, of type: SCStreamOutputType) {
-        guard buffer.isValid, writer.status == .writing else { return }
+        guard buffer.isValid, writer.status == .writing, pausedSince == nil,
+              let buffer = Self.shifted(buffer, back: pausedTotal) else { return }
         switch type {
         case .screen:
             guard Self.isCompleteFrame(buffer) else { return }
@@ -212,6 +232,19 @@ final class ScreenRecorder: NSObject, SCStreamOutput, SCStreamDelegate, @uncheck
     private func append(_ buffer: CMSampleBuffer, to input: AVAssetWriterInput?) {
         guard sessionStarted, let input, input.isReadyForMoreMediaData else { return }
         input.append(buffer)
+    }
+
+    /// The buffer with its timestamps moved `back` (itself when there is nothing to move).
+    private static func shifted(_ buffer: CMSampleBuffer, back offset: CMTime) -> CMSampleBuffer? {
+        guard offset > .zero else { return buffer }
+        guard var timing = try? buffer.sampleTimingInfos() else { return nil }
+        for index in timing.indices {
+            timing[index].presentationTimeStamp = CMTimeSubtract(timing[index].presentationTimeStamp, offset)
+            if timing[index].decodeTimeStamp.isValid {
+                timing[index].decodeTimeStamp = CMTimeSubtract(timing[index].decodeTimeStamp, offset)
+            }
+        }
+        return try? CMSampleBuffer(copying: buffer, withNewTiming: timing)
     }
 
     /// ScreenCaptureKit also sends "idle" buffers when nothing changed; only complete ones carry a frame.
