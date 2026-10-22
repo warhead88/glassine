@@ -5,7 +5,9 @@ Bundle ID `com.warhead88.glassine` — never change it. Minimum macOS 14. Swift 
 
 ## Build
 
-The Xcode project is generated from `project.yml` (not committed). Build and install to /Applications:
+The Xcode project is generated from `project.yml` (not committed). Signing comes from
+`Config/Signing.xcconfig`: ad hoc, unless the uncommitted `Config/Signing.local.xcconfig` sets a team
+(this Mac: the Personal Team, so the Screen Recording permission survives rebuilds). Build and install to /Applications:
 
 ```bash
 scripts/install.sh            # Debug; pass Release for a release build
@@ -57,7 +59,9 @@ the test host starts the app bare (no delegate), so tests never touch hotkeys, w
   Saved screenshots are user content and are never deleted by the app.
 - Not sandboxed (Developer ID distribution).
 - License GPLv3 (`LICENSE`); the name Glassine and the icon are not covered (README → License).
-  Third-party code must be GPLv3-compatible.
+  Third-party code must be GPLv3-compatible; after adding or updating a package run
+  `scripts/acknowledgements.sh` (its notice ships in the app). Contributions: `CONTRIBUTING.md`
+  (includes the grant that keeps an App Store build possible).
 - Features go in their own folder under `Glassine/` (`Capture/`, `Settings/`, …).
 - Plan and priorities live in `ROADMAP.md`; tick items off there when they ship.
 - Manual QA checklist: `TESTING.md` — extend it when a feature ships.

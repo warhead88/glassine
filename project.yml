@@ -6,6 +6,11 @@ options:
     macOS: "14.0"
   createIntermediateGroups: true
 
+# Signing lives in an xcconfig: ad hoc unless Config/Signing.local.xcconfig sets a team or certificate.
+configFiles:
+  Debug: Config/Signing.xcconfig
+  Release: Config/Signing.xcconfig
+
 packages:
   KeyboardShortcuts:
     url: https://github.com/sindresorhus/KeyboardShortcuts
@@ -39,8 +44,6 @@ targets:
         PRODUCT_NAME: Glassine
         INFOPLIST_FILE: Glassine/Resources/Info.plist
         CODE_SIGN_ENTITLEMENTS: Glassine/Resources/Glassine.entitlements
-        CODE_SIGN_STYLE: Automatic
-        DEVELOPMENT_TEAM: 7MJWXG9L6K
         ENABLE_HARDENED_RUNTIME: YES
         ASSETCATALOG_COMPILER_APPICON_NAME: glassine
         COMBINE_HIDPI_IMAGES: YES
@@ -59,7 +62,5 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.warhead88.glassine.tests
         GENERATE_INFOPLIST_FILE: YES
-        CODE_SIGN_STYLE: Automatic
-        DEVELOPMENT_TEAM: 7MJWXG9L6K
         TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Glassine.app/Contents/MacOS/Glassine"
         BUNDLE_LOADER: "$(TEST_HOST)"

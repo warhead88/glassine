@@ -1,0 +1,14 @@
+// Copy to Signing.local.xcconfig and keep one option.
+
+// Option 1: your Apple ID team (Xcode → Settings → Accounts; a free Personal Team works).
+// The ID is in Xcode → target → Signing & Capabilities, or in Keychain Access as the
+// Organizational Unit of your "Apple Development: …" certificate.
+CODE_SIGN_STYLE = Automatic
+CODE_SIGN_IDENTITY = Apple Development
+DEVELOPMENT_TEAM = ABCDE12345
+
+// Option 2: a self-signed certificate, no Apple ID needed (Keychain Access → Certificate
+// Assistant → Create a Certificate…, Certificate Type: Code Signing). Use its name:
+// CODE_SIGN_STYLE = Manual
+// CODE_SIGN_IDENTITY = Glassine Development
+// DEVELOPMENT_TEAM =

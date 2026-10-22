@@ -97,7 +97,10 @@ its own folders (named `com.warhead88.glassine`) and the screenshot folder you c
 
 ## Build from source
 
-Requires Xcode 26 or later and [XcodeGen](https://github.com/yonaskolb/XcodeGen).
+Requires Xcode 26 or later and [XcodeGen](https://github.com/yonaskolb/XcodeGen). Builds are signed ad hoc
+unless `Config/Signing.local.xcconfig` names your team (a free Personal Team works) or a self-signed
+certificate — with a stable signature macOS keeps the Screen Recording permission across rebuilds.
+See [CONTRIBUTING.md](CONTRIBUTING.md) to send changes.
 
 ```bash
 scripts/install.sh     # build and install to /Applications (pass Release for a release build)
@@ -118,5 +121,7 @@ change it and share your changes under the same license. Copyright © 2026 warhe
 The name **Glassine** and the Glassine icon are not covered by the license. Forks are welcome under
 their own name and icon, so nobody mistakes them for the original.
 
-Third-party: [KeyboardShortcuts](https://github.com/sindresorhus/KeyboardShortcuts) (MIT); the Fraunces font
-in `Design/fonts`, used to draw the icon (SIL Open Font License).
+Third-party: [Sparkle](https://sparkle-project.org) (MIT, with BSD and zlib parts) for updates;
+[KeyboardShortcuts](https://github.com/sindresorhus/KeyboardShortcuts) (MIT); the Fraunces font in `Design/fonts`,
+used to draw the icon (SIL Open Font License). The app carries their notices (Settings → General →
+Acknowledgements; regenerate with `scripts/acknowledgements.sh` after updating packages).

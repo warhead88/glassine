@@ -52,6 +52,16 @@ private struct GeneralSettings: View {
                 }
             }
 
+            Section("About") {
+                LabeledContent("Free software under the GNU GPL v3") {
+                    Button("Acknowledgements…") {
+                        if let url = Bundle.main.url(forResource: "Acknowledgements", withExtension: "txt") {
+                            NSWorkspace.shared.open(url)
+                        }
+                    }
+                }
+            }
+
             Section {
                 HStack {
                     Text("Return here with the settings shortcut, or by opening Glassine again from Spotlight.")

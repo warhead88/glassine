@@ -7,3 +7,4 @@ xcuserdata/
 .swiftpm/
 Design/Icon Exports/
 dist/
+Config/Signing.local.xcconfig
