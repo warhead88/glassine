@@ -144,21 +144,8 @@ private final class SelectionView: NSView {
     override var acceptsFirstResponder: Bool { true }
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 
-    /// Rounded rect with larger top corners (y grows downward in this flipped view).
-    private static func framePath(in rect: CGRect, top: CGFloat = 24, bottom: CGFloat = 14) -> CGPath {
-        let path = CGMutablePath()
-        path.move(to: CGPoint(x: rect.minX + top, y: rect.minY))
-        path.addLine(to: CGPoint(x: rect.maxX - top, y: rect.minY))
-        path.addArc(tangent1End: CGPoint(x: rect.maxX, y: rect.minY), tangent2End: CGPoint(x: rect.maxX, y: rect.minY + top), radius: top)
-        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY - bottom))
-        path.addArc(tangent1End: CGPoint(x: rect.maxX, y: rect.maxY), tangent2End: CGPoint(x: rect.maxX - bottom, y: rect.maxY), radius: bottom)
-        path.addLine(to: CGPoint(x: rect.minX + bottom, y: rect.maxY))
-        path.addArc(tangent1End: CGPoint(x: rect.minX, y: rect.maxY), tangent2End: CGPoint(x: rect.minX, y: rect.maxY - bottom), radius: bottom)
-        path.addLine(to: CGPoint(x: rect.minX, y: rect.minY + top))
-        path.addArc(tangent1End: CGPoint(x: rect.minX, y: rect.minY), tangent2End: CGPoint(x: rect.minX + top, y: rect.minY), radius: top)
-        path.closeSubpath()
-        return path
-    }
+    /// The notch to trace around, when the user chose that frame style and the screen has one.
+    private lazy var frameNotch: CGRect? = Preferences.areaFrameStyle == .notch ? snapshot.screen.notchRect : nil
 
     /// 0…1 while the area frame animates in; 1 when shown without animation.
     private var frameProgress: CGFloat = 1
@@ -233,12 +220,13 @@ private final class SelectionView: NSView {
 
         if mode == .capture {
             // Marks the whole screen as "in area capture" without singling out any window.
-            // Rounded more than MacBook display corners (most at the top) so no corner is cut off.
+            // Rounded more than MacBook display corners (most at the top) so no corner is cut off;
+            // optionally it dips under the camera notch.
             // It eases in from slightly inside the edge.
             let inset = 1.5 + (1 - frameProgress) * 14
             ctx.setStrokeColor(NSColor.white.withAlphaComponent(0.9 * frameProgress).cgColor)
             ctx.setLineWidth(3)
-            ctx.addPath(Self.framePath(in: bounds.insetBy(dx: inset, dy: inset)))
+            ctx.addPath(ScreenFrame.path(in: bounds, inset: inset, notch: frameNotch))
             ctx.strokePath()
         }
 

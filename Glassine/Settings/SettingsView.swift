@@ -75,6 +75,7 @@ private struct CaptureSettings: View {
     @AppStorage(PrefKey.timerDelay) private var timerDelay = 5
     @AppStorage(PrefKey.colorFormat) private var colorFormat = ColorFormat.hex.rawValue
     @AppStorage(PrefKey.captureStartSound) private var startSound = true
+    @AppStorage(PrefKey.areaFrameStyle) private var frameStyle = AreaFrameStyle.notch.rawValue
     @AppStorage(PrefKey.playSound) private var afterCaptureSound = true
 
     var body: some View {
@@ -86,6 +87,10 @@ private struct CaptureSettings: View {
                     Text("Adjust, then press Return").tag(true)
                 }
                 Toggle("Include window shadow", isOn: $windowShadow)
+                Picker("Area frame:", selection: $frameStyle) {
+                    ForEach(AreaFrameStyle.allCases) { Text($0.title).tag($0.rawValue) }
+                }
+                .help("Around the notch applies on displays with a camera notch; others always get a straight frame.")
                 Picker("Timer:", selection: $timerDelay) {
                     Text("3 seconds").tag(3)
                     Text("5 seconds").tag(5)
