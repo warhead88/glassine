@@ -62,6 +62,12 @@ the test host starts the app bare (no delegate), so tests never touch hotkeys, w
   Third-party code must be GPLv3-compatible; after adding or updating a package run
   `scripts/acknowledgements.sh` (its notice ships in the app). Contributions: `CONTRIBUTING.md`
   (includes the grant that keeps an App Store build possible).
+- Look (0.4 redesign, `Design/0.4/`): colors and type come from `Design/0.4/tokens.json` — run
+  `scripts/theme-tokens.py` after editing it (writes `Glassine/Resources/Theme.xcassets` and
+  `Glassine/UI/ThemeTokens.swift`; never hand-edit those). In code: `Color.ink`, `NSColor.paper`, …;
+  `.textStyle(ThemeTokens.title)` for Fraunces; accent from `Theme` (`.themed()` at each SwiftUI window root,
+  `Theme.shared` in AppKit). Red (`rec`) means recording only, never an accent. Fraunces (roman + italic,
+  variable) ships from `Design/fonts`; the editor canvas and captures stay neutral, no paper.
 - Features go in their own folder under `Glassine/` (`Capture/`, `Settings/`, …).
 - Plan and priorities live in `ROADMAP.md`; tick items off there when they ship.
 - Manual QA checklist: `TESTING.md` — extend it when a feature ships.

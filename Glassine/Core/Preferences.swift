@@ -47,6 +47,8 @@ enum PrefKey {
     static let areaFrameStyle = "areaFrameStyle"
     static let frameBottomCorners = "frameBottomCorners"
 
+    /// `AccentChoice`; unset follows macOS (Ink with Multicolor, System with a chosen color).
+    static let accent = "accent"
     static let recordingFormat = "recordingFormat"
     /// Where the recording controls go (`PanelSide`).
     static let recordingPanelSide = "recordingPanelSide"

@@ -183,6 +183,14 @@ scripts/install.sh                                                     # соб�
 - [ ] «Launch at login» — Glassine появляется в System Settings → General → Login Items
 - [ ] ⌘W закрывает окно, ⌘Q завершает приложение, когда окно в фокусе
 
+## 9.1 Оформление (0.4)
+
+- [ ] Settings → General → Appearance: кружки System / Ink / Sage / Stamp / Ochre; выбор сразу перекрашивает
+      переключатели и кнопки во всех окнах Glassine; System повторяет акцент macOS и меняется вместе с ним
+- [ ] Первый запуск без настройки: Multicolor в macOS → Ink, конкретный цвет → System
+- [ ] Тёмная тема: Ink — светлый кружок, текст на акцентах читается
+- [ ] Settings → General → Acknowledgements: есть Sparkle, KeyboardShortcuts и Fraunces
+
 ## 10. Производительность
 
 Цели — в «Принципах» ROADMAP.md. Последние замеры — там же, в этапе 1.1.

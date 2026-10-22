@@ -80,7 +80,7 @@ private final class EditorWindowController: NSObject, NSWindowDelegate {
         canvas.onCopy = actions.copy
         canvas.onSave = actions.save
 
-        window.contentViewController = NSHostingController(rootView: EditorView(model: model, canvas: canvas, actions: actions))
+        window.contentViewController = NSHostingController(rootView: EditorView(model: model, canvas: canvas, actions: actions).themed())
         window.setFrame(Self.initialFrame(for: capture.pointSize), display: false)
         window.title = capture.baseName
         window.titleVisibility = .hidden

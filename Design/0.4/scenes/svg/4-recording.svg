@@ -1,0 +1,134 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="582" viewBox="0 0 1000 582">
+<style><![CDATA[
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT,WONK@0,9..144,100..900,0..100,0..1;1,9..144,100..900,0..100,0..1&display=swap');
+.s{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Helvetica Neue',sans-serif}
+.f{font-family:'Fraunces',Georgia,serif;font-variation-settings:'SOFT' 100,'WONK' 0;font-feature-settings:'lnum' 1,'tnum' 1}
+.m{font-family:'SF Mono',ui-monospace,Menlo,monospace}
+]]></style>
+<defs>
+<filter id="recording-sh-s" x="-20%" y="-20%" width="140%" height="160%">
+  <feDropShadow dx="0" dy="1" stdDeviation="1.2" flood-color="#1C2230" flood-opacity=".10"/></filter>
+<filter id="recording-sh-m" x="-30%" y="-30%" width="160%" height="170%">
+  <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#1C2230" flood-opacity=".10"/>
+  <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#1C2230" flood-opacity=".14"/></filter>
+<filter id="recording-grain" x="0" y="0" width="100%" height="100%">
+  <feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" seed="4" stitchTiles="stitch"/>
+  <feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  1 0 0 0 -.15"/></filter>
+<filter id="recording-cloud" x="0" y="0" width="100%" height="100%">
+  <feTurbulence type="fractalNoise" baseFrequency=".011" numOctaves="3" seed="9"/>
+  <feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  2.4 0 0 0 -1.1"/></filter>
+<pattern id="recording-dots" width="6" height="6" patternUnits="userSpaceOnUse">
+  <circle cx="3" cy="3" r=".7" fill="#1C2230" fill-opacity=".13"/></pattern><clipPath id="recording-clip1"><rect width="1000" height="582" rx="14"/></clipPath><clipPath id="recording-clip2"><rect x="475" y="48" width="76" height="452" rx="22"/></clipPath><clipPath id="recording-clip3"><rect x="718" y="62" width="214" height="46" rx="23"/></clipPath><clipPath id="recording-clip4"><path d="M966 210 Q966 222 954 222 H918 Q902 222 902 238 V396 Q902 412 918 412 H954 Q966 412 966 424 Z"/></clipPath></defs>
+<rect x="0" y="0" width="1000" height="582" rx="14" fill="#D4D7CE" />
+<g clip-path="url(#recording-clip1)"><rect width="100%" height="100%" filter="url(#recording-cloud)" opacity=".12"/><rect width="100%" height="100%" filter="url(#recording-grain)" opacity=".035"/></g>
+<path d="M690 0 H986 a14 14 0 0 1 14 14 V568 a14 14 0 0 1 -14 14 H690 Z" fill="#EFEFEA"/>
+<g filter="url(#recording-sh-m)">
+<rect x="37" y="55" width="452" height="345" rx="10" fill="#F9F9F6" stroke="#D5D6CE" stroke-width="1" />
+</g>
+<line x1="37" y1="83" x2="489" y2="83" stroke="#E3E3DC" stroke-width="1" />
+<circle cx="52" cy="69" r="4.5" fill="#DADAD2" />
+<circle cx="67" cy="69" r="4.5" fill="#DADAD2" />
+<circle cx="82" cy="69" r="4.5" fill="#DADAD2" />
+<rect x="61" y="104" width="256" height="13" rx="6.5" fill="#E3E3DC" />
+<rect x="61" y="126" width="362" height="8" rx="4" fill="#E3E3DC" />
+<rect x="61" y="144" width="330" height="8" rx="4" fill="#E3E3DC" />
+<rect x="61" y="171" width="428" height="155" rx="6" fill="#869B80" />
+<circle cx="433" cy="222" r="26" fill="#EAC9A6" />
+<rect x="80" y="135" width="382" height="248" rx="0" fill="none" stroke="#1C2230" stroke-width="1" stroke-dasharray="4 3" stroke-opacity=".7"/>
+<circle cx="80" cy="135" r="4" fill="#FFFFFF" stroke="#1C2230" stroke-width="1.1" />
+<circle cx="80" cy="259.0" r="4" fill="#FFFFFF" stroke="#1C2230" stroke-width="1.1" />
+<circle cx="80" cy="383" r="4" fill="#FFFFFF" stroke="#1C2230" stroke-width="1.1" />
+<circle cx="271.0" cy="135" r="4" fill="#FFFFFF" stroke="#1C2230" stroke-width="1.1" />
+<circle cx="271.0" cy="383" r="4" fill="#FFFFFF" stroke="#1C2230" stroke-width="1.1" />
+<circle cx="462" cy="135" r="4" fill="#FFFFFF" stroke="#1C2230" stroke-width="1.1" />
+<circle cx="462" cy="259.0" r="4" fill="#FFFFFF" stroke="#1C2230" stroke-width="1.1" />
+<circle cx="462" cy="383" r="4" fill="#FFFFFF" stroke="#1C2230" stroke-width="1.1" />
+<rect x="225" y="391" width="92" height="21" rx="6" fill="#1C2230" />
+<text x="271" y="405.5" class="m" fill="#F7F6F1" text-anchor="middle" style="font-size:11px;font-weight:500">840 × 540</text>
+<g filter="url(#recording-sh-m)">
+<rect x="475" y="48" width="76" height="452" rx="22" fill="#F9F9F6" stroke="#D5D6CE" stroke-width="1" />
+</g>
+<g clip-path="url(#recording-clip2)"><rect width="100%" height="100%" fill="url(#recording-dots)"/></g>
+<circle cx="513.0" cy="85" r="23" fill="#D43D2A" />
+<circle cx="513.0" cy="85" r="16.5" fill="none" stroke="#FFFFFF" stroke-width="2" />
+<circle cx="513.0" cy="85" r="7" fill="#FFFFFF" />
+<circle cx="489.0" cy="122" r="1.5" fill="#D5D6CE" />
+<circle cx="495.0" cy="122" r="1.5" fill="#D5D6CE" />
+<circle cx="501.0" cy="122" r="1.5" fill="#D5D6CE" />
+<circle cx="507.0" cy="122" r="1.5" fill="#D5D6CE" />
+<circle cx="513.0" cy="122" r="1.5" fill="#D5D6CE" />
+<circle cx="519.0" cy="122" r="1.5" fill="#D5D6CE" />
+<circle cx="525.0" cy="122" r="1.5" fill="#D5D6CE" />
+<circle cx="531.0" cy="122" r="1.5" fill="#D5D6CE" />
+<circle cx="537.0" cy="122" r="1.5" fill="#D5D6CE" />
+<rect x="483" y="132" width="60" height="35" rx="9" fill="#F2F2EC" />
+<text x="513.0" y="145" class="m" fill="#666C77" text-anchor="middle" style="font-size:8px;font-weight:500;letter-spacing:1.1px">FORMAT</text>
+<text x="513.0" y="161" class="f" fill="#1C2230" text-anchor="middle" style="font-size:14.5px;font-weight:500">MP4</text>
+<rect x="483" y="172" width="60" height="35" rx="9" fill="#F2F2EC" />
+<text x="513.0" y="185" class="m" fill="#666C77" text-anchor="middle" style="font-size:8px;font-weight:500;letter-spacing:1.1px">CODEC</text>
+<text x="513.0" y="201" class="f" fill="#1C2230" text-anchor="middle" style="font-size:14.5px;font-weight:500">H.264</text>
+<rect x="483" y="212" width="60" height="35" rx="9" fill="#F2F2EC" />
+<text x="513.0" y="225" class="m" fill="#666C77" text-anchor="middle" style="font-size:8px;font-weight:500;letter-spacing:1.1px">FPS</text>
+<text x="513.0" y="241" class="f" fill="#1C2230" text-anchor="middle" style="font-size:14.5px;font-weight:500">60</text>
+<rect x="483" y="252" width="60" height="35" rx="9" fill="#F2F2EC" />
+<text x="513.0" y="265" class="m" fill="#666C77" text-anchor="middle" style="font-size:8px;font-weight:500;letter-spacing:1.1px">BITRATE</text>
+<text x="513.0" y="281" class="f" fill="#1C2230" text-anchor="middle" style="font-size:14.5px;font-weight:500">Auto</text>
+<rect x="483" y="292" width="60" height="35" rx="9" fill="#F2F2EC" />
+<text x="513.0" y="305" class="m" fill="#666C77" text-anchor="middle" style="font-size:8px;font-weight:500;letter-spacing:1.1px">SCALE</text>
+<text x="513.0" y="321" class="f" fill="#1C2230" text-anchor="middle" style="font-size:14.5px;font-weight:500">Retina</text>
+<rect x="483" y="332" width="60" height="35" rx="9" fill="#F2F2EC" />
+<text x="513.0" y="345" class="m" fill="#666C77" text-anchor="middle" style="font-size:8px;font-weight:500;letter-spacing:1.1px">AUDIO</text>
+<text x="513.0" y="361" class="f" fill="#1C2230" text-anchor="middle" style="font-size:14.5px;font-weight:500">2 tracks</text>
+<circle cx="489.0" cy="382" r="1.5" fill="#D5D6CE" />
+<circle cx="495.0" cy="382" r="1.5" fill="#D5D6CE" />
+<circle cx="501.0" cy="382" r="1.5" fill="#D5D6CE" />
+<circle cx="507.0" cy="382" r="1.5" fill="#D5D6CE" />
+<circle cx="513.0" cy="382" r="1.5" fill="#D5D6CE" />
+<circle cx="519.0" cy="382" r="1.5" fill="#D5D6CE" />
+<circle cx="525.0" cy="382" r="1.5" fill="#D5D6CE" />
+<circle cx="531.0" cy="382" r="1.5" fill="#D5D6CE" />
+<circle cx="537.0" cy="382" r="1.5" fill="#D5D6CE" />
+<circle cx="513.0" cy="410" r="16" fill="#1C2230" />
+<path d="M510.5 403 v13 l3.2 -3 l2.3 5 l2 -.9 l-2.2 -4.8 h4.4 z" fill="#F7F6F1" stroke-linejoin="round"/>
+<circle cx="513.0" cy="447" r="16" fill="#F2F2EC" stroke="#D5D6CE" stroke-width="0.8" />
+<rect x="506.0" y="441.5" width="14" height="11" rx="2.5" fill="none" stroke="#585F6C" stroke-width="1.4" />
+<rect x="514.0" y="443.5" width="4" height="7" rx="1" fill="#585F6C" />
+<circle cx="513.0" cy="484" r="16" fill="#F2F2EC" stroke="#D5D6CE" stroke-width="0.8" />
+<path d="M508.8 479.8 L517.2 488.2 M517.2 479.8 L508.8 488.2" fill="none" stroke="#585F6C" stroke-width="1.5" stroke-linecap="round"/>
+<text x="37" y="555" class="f" fill="#585F6C" text-anchor="start" style="font-size:15px;font-weight:400;font-style:italic">Before recording — drag inside or by the edge, eight handles</text>
+<text x="718" y="46" class="f" fill="#585F6C" text-anchor="start" style="font-size:15px;font-weight:400;font-style:italic">Recording, beside the area</text>
+<g filter="url(#recording-sh-m)">
+<rect x="718" y="62" width="214" height="46" rx="23" fill="#F9F9F6" stroke="#D5D6CE" stroke-width="1" />
+</g>
+<g clip-path="url(#recording-clip3)"><rect width="100%" height="100%" fill="url(#recording-dots)"/></g>
+<circle cx="736" cy="75" r="2.4" fill="#D43D2A" fill-opacity="1"/>
+<circle cx="736" cy="85" r="2.4" fill="#D43D2A" fill-opacity="0.55"/>
+<circle cx="736" cy="95" r="2.4" fill="#D43D2A" fill-opacity="0.25"/>
+<text x="748" y="93" class="f" fill="#1C2230" text-anchor="start" style="font-size:23px;font-weight:460">0:42</text>
+<circle cx="826" cy="85" r="15" fill="#F2F2EC" />
+<rect x="821.5" y="79" width="3" height="12" rx="1" fill="#1C2230" />
+<rect x="827.5" y="79" width="3" height="12" rx="1" fill="#1C2230" />
+<circle cx="864" cy="85" r="15" fill="#F2F2EC" />
+<rect x="858.5" y="79.5" width="11" height="11" rx="2.5" fill="#D43D2A" />
+<circle cx="902" cy="85" r="15" fill="#F2F2EC" />
+<g stroke="#585F6C" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M896 80.5 h12"/><path d="M900 80.5 v-1.8 h4 v1.8"/><path d="M897.4 80.5 l.8 10.5 h7.6 l.8 -10.5"/></g>
+<text x="718" y="146" class="f" fill="#585F6C" text-anchor="start" style="font-size:15px;font-weight:400;font-style:italic">No room — docked to the screen edge</text>
+<rect x="718" y="162" width="252" height="308" rx="10" fill="#D4D7CE" />
+<rect x="736" y="186" width="138" height="102" rx="6" fill="#F9F9F6" stroke="#D5D6CE" stroke-width="1" />
+<rect x="966" y="162" width="4" height="308" rx="0" fill="#16181D" />
+<g filter="url(#recording-sh-s)">
+<path d="M966 210 Q966 222 954 222 H918 Q902 222 902 238 V396 Q902 412 918 412 H954 Q966 412 966 424 Z" fill="#F9F9F6" stroke="#D5D6CE" stroke-width="1" />
+</g>
+<g clip-path="url(#recording-clip4)"><rect width="100%" height="100%" fill="url(#recording-dots)"/></g>
+<circle cx="925" cy="240" r="2.3" fill="#D43D2A" fill-opacity="1"/>
+<circle cx="934" cy="240" r="2.3" fill="#D43D2A" fill-opacity="0.55"/>
+<circle cx="943" cy="240" r="2.3" fill="#D43D2A" fill-opacity="0.25"/>
+<text x="934" y="271" class="f" fill="#1C2230" text-anchor="middle" style="font-size:19px;font-weight:460">0:42</text>
+<circle cx="934" cy="300" r="14" fill="#F2F2EC" />
+<rect x="929.5" y="294" width="3" height="12" rx="1" fill="#1C2230" />
+<rect x="935.5" y="294" width="3" height="12" rx="1" fill="#1C2230" />
+<circle cx="934" cy="336" r="14" fill="#F2F2EC" />
+<rect x="929.0" y="331.0" width="10" height="10" rx="2.5" fill="#D43D2A" />
+<circle cx="934" cy="372" r="14" fill="#F2F2EC" />
+<g stroke="#585F6C" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M928 367.5 h12"/><path d="M932 367.5 v-1.8 h4 v1.8"/><path d="M929.4 367.5 l.8 10.5 h7.6 l.8 -10.5"/></g>
+</svg>

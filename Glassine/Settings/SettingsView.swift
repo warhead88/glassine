@@ -44,6 +44,10 @@ private struct GeneralSettings: View {
                 }
             }
 
+            Section("Appearance") {
+                LabeledContent("Accent color") { AccentPicker() }
+            }
+
             Section("Updates") {
                 @Bindable var updater = updater
                 Toggle("Check for updates automatically", isOn: $updater.automaticallyChecks)
@@ -315,3 +319,45 @@ private struct ShortcutSettings: View {
         }
     }
 }
+
+/// A row of accent swatches; System (the color picked in System Settings) comes first.
+private struct AccentPicker: View {
+    @Environment(Theme.self) private var theme
+
+    var body: some View {
+        HStack(spacing: 10) {
+            ForEach(AccentChoice.allCases) { choice in
+                let selected = theme.accentChoice == choice
+                Button {
+                    theme.accentChoice = choice
+                } label: {
+                    Circle()
+                        .fill(swatch(choice))
+                        .frame(width: 18, height: 18)
+                        .overlay(Circle().strokeBorder(Color.primary.opacity(0.15), lineWidth: 0.5))
+                        .padding(3)
+                        .overlay(Circle().strokeBorder(selected ? swatch(choice) : .clear, lineWidth: 2))
+                        .contentShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .help(choice.title)
+                .accessibilityLabel(choice.title)
+                .accessibilityAddTraits(selected ? .isSelected : [])
+            }
+            Text(theme.accentChoice.title)
+                .foregroundStyle(.secondary)
+                .frame(width: 48, alignment: .leading)
+        }
+    }
+
+    private func swatch(_ choice: AccentChoice) -> Color {
+        switch choice {
+        case .system: Color(nsColor: .controlAccentColor)
+        case .ink: Color(.accentInk)
+        case .sage: Color(.accentSage)
+        case .stamp: Color(.accentStamp)
+        case .ochre: Color(.accentOchre)
+        }
+    }
+}
+

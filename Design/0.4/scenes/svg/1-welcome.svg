@@ -1,0 +1,160 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="620" viewBox="0 0 640 620">
+<style><![CDATA[
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT,WONK@0,9..144,100..900,0..100,0..1;1,9..144,100..900,0..100,0..1&display=swap');
+.s{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Helvetica Neue',sans-serif}
+.f{font-family:'Fraunces',Georgia,serif;font-variation-settings:'SOFT' 100,'WONK' 0;font-feature-settings:'lnum' 1,'tnum' 1}
+.m{font-family:'SF Mono',ui-monospace,Menlo,monospace}
+]]></style>
+<defs>
+<filter id="welcome-sh-s" x="-20%" y="-20%" width="140%" height="160%">
+  <feDropShadow dx="0" dy="1" stdDeviation="1.2" flood-color="#1C2230" flood-opacity=".10"/></filter>
+<filter id="welcome-sh-m" x="-30%" y="-30%" width="160%" height="170%">
+  <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#1C2230" flood-opacity=".10"/>
+  <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#1C2230" flood-opacity=".14"/></filter>
+<filter id="welcome-grain" x="0" y="0" width="100%" height="100%">
+  <feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" seed="4" stitchTiles="stitch"/>
+  <feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  1 0 0 0 -.15"/></filter>
+<filter id="welcome-cloud" x="0" y="0" width="100%" height="100%">
+  <feTurbulence type="fractalNoise" baseFrequency=".011" numOctaves="3" seed="9"/>
+  <feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  2.4 0 0 0 -1.1"/></filter>
+<pattern id="welcome-dots" width="6" height="6" patternUnits="userSpaceOnUse">
+  <circle cx="3" cy="3" r=".7" fill="#1C2230" fill-opacity=".13"/></pattern><clipPath id="welcome-clip1"><rect x="0" y="0" width="640" height="620" rx="14"/></clipPath><mask id="welcome-perf2"><rect x="493" y="45" width="94" height="114" fill="#fff"/><g fill="#000"><circle cx="501.67" cy="46.00" r="2.3"/><circle cx="509.33" cy="46.00" r="2.3"/><circle cx="517.00" cy="46.00" r="2.3"/><circle cx="524.67" cy="46.00" r="2.3"/><circle cx="532.33" cy="46.00" r="2.3"/><circle cx="540.00" cy="46.00" r="2.3"/><circle cx="547.67" cy="46.00" r="2.3"/><circle cx="555.33" cy="46.00" r="2.3"/><circle cx="563.00" cy="46.00" r="2.3"/><circle cx="570.67" cy="46.00" r="2.3"/><circle cx="578.33" cy="46.00" r="2.3"/><circle cx="501.67" cy="158.00" r="2.3"/><circle cx="509.33" cy="158.00" r="2.3"/><circle cx="517.00" cy="158.00" r="2.3"/><circle cx="524.67" cy="158.00" r="2.3"/><circle cx="532.33" cy="158.00" r="2.3"/><circle cx="540.00" cy="158.00" r="2.3"/><circle cx="547.67" cy="158.00" r="2.3"/><circle cx="555.33" cy="158.00" r="2.3"/><circle cx="563.00" cy="158.00" r="2.3"/><circle cx="570.67" cy="158.00" r="2.3"/><circle cx="578.33" cy="158.00" r="2.3"/><circle cx="494.00" cy="53.47" r="2.3"/><circle cx="494.00" cy="60.93" r="2.3"/><circle cx="494.00" cy="68.40" r="2.3"/><circle cx="494.00" cy="75.87" r="2.3"/><circle cx="494.00" cy="83.33" r="2.3"/><circle cx="494.00" cy="90.80" r="2.3"/><circle cx="494.00" cy="98.27" r="2.3"/><circle cx="494.00" cy="105.73" r="2.3"/><circle cx="494.00" cy="113.20" r="2.3"/><circle cx="494.00" cy="120.67" r="2.3"/><circle cx="494.00" cy="128.13" r="2.3"/><circle cx="494.00" cy="135.60" r="2.3"/><circle cx="494.00" cy="143.07" r="2.3"/><circle cx="494.00" cy="150.53" r="2.3"/><circle cx="586.00" cy="53.47" r="2.3"/><circle cx="586.00" cy="60.93" r="2.3"/><circle cx="586.00" cy="68.40" r="2.3"/><circle cx="586.00" cy="75.87" r="2.3"/><circle cx="586.00" cy="83.33" r="2.3"/><circle cx="586.00" cy="90.80" r="2.3"/><circle cx="586.00" cy="98.27" r="2.3"/><circle cx="586.00" cy="105.73" r="2.3"/><circle cx="586.00" cy="113.20" r="2.3"/><circle cx="586.00" cy="120.67" r="2.3"/><circle cx="586.00" cy="128.13" r="2.3"/><circle cx="586.00" cy="135.60" r="2.3"/><circle cx="586.00" cy="143.07" r="2.3"/><circle cx="586.00" cy="150.53" r="2.3"/></g></mask></defs>
+<g filter="url(#welcome-sh-m)">
+<rect x="0" y="0" width="640" height="620" rx="14" fill="#EFEFEA" stroke="#D5D6CE" stroke-width="1" />
+</g>
+<g clip-path="url(#welcome-clip1)"><rect width="100%" height="100%" filter="url(#welcome-cloud)" opacity=".12"/><rect width="100%" height="100%" filter="url(#welcome-grain)" opacity=".035"/></g>
+<circle cx="20" cy="20" r="6" fill="#FF5F57" />
+<circle cx="40" cy="20" r="6" fill="#FEBC2E" />
+<circle cx="60" cy="20" r="6" fill="#28C840" />
+<text x="40" y="112" class="f" fill="#1C2230" text-anchor="start" style="font-size:46px;font-weight:440;letter-spacing:-0.6px">Welcome to Glassine</text>
+<text x="42" y="146" class="s" fill="#585F6C" text-anchor="start" style="font-size:15px;font-weight:400">A quiet screenshot tool. It runs in the background</text>
+<text x="42" y="168" class="s" fill="#585F6C" text-anchor="start" style="font-size:15px;font-weight:400">and wakes up on a few shortcuts.</text>
+<g transform="rotate(-5 540 110)">
+<g filter="url(#welcome-sh-m)" ><rect x="494" y="46" width="92" height="112" fill="#F9F9F6" mask="url(#welcome-perf2)"/></g>
+<rect x="503" y="55" width="74" height="72" rx="2" fill="#869B80" />
+<circle cx="560" cy="108" r="13" fill="#EAC9A6" />
+<text x="508" y="72" class="f" fill="#F7F6F1" text-anchor="start" style="font-size:13px;font-weight:500">0.4</text>
+<text x="540" y="148" class="f" fill="#585F6C" text-anchor="middle" style="font-size:11px;font-weight:400;font-style:italic">Glassine</text>
+</g>
+<g filter="url(#welcome-sh-s)">
+<path d="M482 104 H522 a18 11 0 0 0 36 0 H598 V170 a5 5 0 0 1 -5 5 H487 a5 5 0 0 1 -5 -5 Z" fill="#FBFBF8" fill-opacity=".68" stroke="#1C2230" stroke-opacity=".14"/>
+</g>
+<text x="42" y="236" class="m" fill="#666C77" text-anchor="start" style="font-size:9.5px;font-weight:500;letter-spacing:1.1px">SHORTCUTS</text>
+<rect x="40" y="248" width="560" height="164" rx="12" fill="#F9F9F6" stroke="#D5D6CE" stroke-width="1" />
+<line x1="320" y1="260" x2="320" y2="400" stroke="#E3E3DC" stroke-width="1" />
+<text x="60" y="273.5" class="s" fill="#1C2230" text-anchor="start" style="font-size:14px;font-weight:400">Capture area</text>
+<rect x="233" y="260.0" width="21" height="20" rx="5" fill="#D5D6CE" />
+<rect x="233" y="258.5" width="21" height="20" rx="5" fill="#F2F2EC" stroke="#D5D6CE" stroke-width="0.8" />
+<text x="243.5" y="272.8" class="s" fill="#585F6C" text-anchor="middle" style="font-size:12px;font-weight:500">⇧</text>
+<rect x="257" y="260.0" width="21" height="20" rx="5" fill="#D5D6CE" />
+<rect x="257" y="258.5" width="21" height="20" rx="5" fill="#F2F2EC" stroke="#D5D6CE" stroke-width="0.8" />
+<text x="267.5" y="272.8" class="s" fill="#585F6C" text-anchor="middle" style="font-size:12px;font-weight:500">⌘</text>
+<rect x="281" y="260.0" width="21" height="20" rx="5" fill="#D5D6CE" />
+<rect x="281" y="258.5" width="21" height="20" rx="5" fill="#F2F2EC" stroke="#D5D6CE" stroke-width="0.8" />
+<text x="291.5" y="272.8" class="s" fill="#585F6C" text-anchor="middle" style="font-size:12px;font-weight:500">4</text>
+<line x1="60" y1="289.0" x2="302" y2="289.0" stroke="#E3E3DC" stroke-width="1" />
+<text x="60" y="314.5" class="s" fill="#1C2230" text-anchor="start" style="font-size:14px;font-weight:400">Capture window</text>
+<rect x="233" y="301.0" width="21" height="20" rx="5" fill="#D5D6CE" />
+<rect x="233" y="299.5" width="21" height="20" rx="5" fill="#F2F2EC" stroke="#D5D6CE" stroke-width="0.8" />
+<text x="243.5" y="313.8" class="s" fill="#585F6C" text-anchor="middle" style="font-size:12px;font-weight:500">⇧</text>
+<rect x="257" y="301.0" width="21" height="20" rx="5" fill="#D5D6CE" />
+<rect x="257" y="299.5" width="21" height="20" rx="5" fill="#F2F2EC" stroke="#D5D6CE" stroke-width="0.8" />
+<text x="267.5" y="313.8" class="s" fill="#585F6C" text-anchor="middle" style="font-size:12px;font-weight:500">⌘</text>
+<rect x="281" y="301.0" width="21" height="20" rx="5" fill="#D5D6CE" />
+<rect x="281" y="299.5" width="21" height="20" rx="5" fill="#F2F2EC" stroke="#D5D6CE" stroke-width="0.8" />
+<text x="291.5" y="313.8" class="s" fill="#585F6C" text-anchor="middle" style="font-size:12px;font-weight:500">5</text>
+<line x1="60" y1="330.0" x2="302" y2="330.0" stroke="#E3E3DC" stroke-width="1" />
+<text x="60" y="355.5" class="s" fill="#1C2230" text-anchor="start" style="font-size:14px;font-weight:400">Capture screen</text>
+<rect x="233" y="342.0" width="21" height="20" rx="5" fill="#D5D6CE" />
+<rect x="233" y="340.5" width="21" height="20" rx="5" fill="#F2F2EC" stroke="#D5D6CE" stroke-width="0.8" />
+<text x="243.5" y="354.8" class="s" fill="#585F6C" text-anchor="middle" style="font-size:12px;font-weight:500">⇧</text>
+<rect x="257" y="342.0" width="21" height="20" rx="5" fill="#D5D6CE" />
+<rect x="257" y="340.5" width="21" height="20" rx="5" fill="#F2F2EC" stroke="#D5D6CE" stroke-width="0.8" />
+<text x="267.5" y="354.8" class="s" fill="#585F6C" text-anchor="middle" style="font-size:12px;font-weight:500">⌘</text>
+<rect x="281" y="342.0" width="21" height="20" rx="5" fill="#D5D6CE" />
+<rect x="281" y="340.5" width="21" height="20" rx="5" fill="#F2F2EC" stroke="#D5D6CE" stroke-width="0.8" />
+<text x="291.5" y="354.8" class="s" fill="#585F6C" text-anchor="middle" style="font-size:12px;font-weight:500">3</text>
+<line x1="60" y1="371.0" x2="302" y2="371.0" stroke="#E3E3DC" stroke-width="1" />
+<text x="60" y="396.5" class="s" fill="#1C2230" text-anchor="start" style="font-size:14px;font-weight:400">Record screen</text>
+<rect x="209" y="383.0" width="21" height="20" rx="5" fill="#D5D6CE" />
+<rect x="209" y="381.5" width="21" height="20" rx="5" fill="#F2F2EC" stroke="#D5D6CE" stroke-width="0.8" />
+<text x="219.5" y="395.8" class="s" fill="#585F6C" text-anchor="middle" style="font-size:12px;font-weight:500">⌥</text>
+<rect x="233" y="383.0" width="21" height="20" rx="5" fill="#D5D6CE" />
+<rect x="233" y="381.5" width="21" height="20" rx="5" fill="#F2F2EC" stroke="#D5D6CE" stroke-width="0.8" />
+<text x="243.5" y="395.8" class="s" fill="#585F6C" text-anchor="middle" style="font-size:12px;font-weight:500">⇧</text>
+<rect x="257" y="383.0" width="21" height="20" rx="5" fill="#D5D6CE" />
+<rect x="257" y="381.5" width="21" height="20" rx="5" fill="#F2F2EC" stroke="#D5D6CE" stroke-width="0.8" />
+<text x="267.5" y="395.8" class="s" fill="#585F6C" text-anchor="middle" style="font-size:12px;font-weight:500">⌘</text>
+<rect x="281" y="383.0" width="21" height="20" rx="5" fill="#D5D6CE" />
+<rect x="281" y="381.5" width="21" height="20" rx="5" fill="#F2F2EC" stroke="#D5D6CE" stroke-width="0.8" />
+<text x="291.5" y="395.8" class="s" fill="#585F6C" text-anchor="middle" style="font-size:12px;font-weight:500">R</text>
+<text x="340" y="273.5" class="s" fill="#1C2230" text-anchor="start" style="font-size:14px;font-weight:400">Copy text</text>
+<rect x="489" y="260.0" width="21" height="20" rx="5" fill="#D5D6CE" />
+<rect x="489" y="258.5" width="21" height="20" rx="5" fill="#F2F2EC" stroke="#D5D6CE" stroke-width="0.8" />
+<text x="499.5" y="272.8" class="s" fill="#585F6C" text-anchor="middle" style="font-size:12px;font-weight:500">⌥</text>
+<rect x="513" y="260.0" width="21" height="20" rx="5" fill="#D5D6CE" />
+<rect x="513" y="258.5" width="21" height="20" rx="5" fill="#F2F2EC" stroke="#D5D6CE" stroke-width="0.8" />
+<text x="523.5" y="272.8" class="s" fill="#585F6C" text-anchor="middle" style="font-size:12px;font-weight:500">⇧</text>
+<rect x="537" y="260.0" width="21" height="20" rx="5" fill="#D5D6CE" />
+<rect x="537" y="258.5" width="21" height="20" rx="5" fill="#F2F2EC" stroke="#D5D6CE" stroke-width="0.8" />
+<text x="547.5" y="272.8" class="s" fill="#585F6C" text-anchor="middle" style="font-size:12px;font-weight:500">⌘</text>
+<rect x="561" y="260.0" width="21" height="20" rx="5" fill="#D5D6CE" />
+<rect x="561" y="258.5" width="21" height="20" rx="5" fill="#F2F2EC" stroke="#D5D6CE" stroke-width="0.8" />
+<text x="571.5" y="272.8" class="s" fill="#585F6C" text-anchor="middle" style="font-size:12px;font-weight:500">T</text>
+<line x1="340" y1="289.0" x2="582" y2="289.0" stroke="#E3E3DC" stroke-width="1" />
+<text x="340" y="314.5" class="s" fill="#1C2230" text-anchor="start" style="font-size:14px;font-weight:400">Pick a color</text>
+<rect x="489" y="301.0" width="21" height="20" rx="5" fill="#D5D6CE" />
+<rect x="489" y="299.5" width="21" height="20" rx="5" fill="#F2F2EC" stroke="#D5D6CE" stroke-width="0.8" />
+<text x="499.5" y="313.8" class="s" fill="#585F6C" text-anchor="middle" style="font-size:12px;font-weight:500">⌥</text>
+<rect x="513" y="301.0" width="21" height="20" rx="5" fill="#D5D6CE" />
+<rect x="513" y="299.5" width="21" height="20" rx="5" fill="#F2F2EC" stroke="#D5D6CE" stroke-width="0.8" />
+<text x="523.5" y="313.8" class="s" fill="#585F6C" text-anchor="middle" style="font-size:12px;font-weight:500">⇧</text>
+<rect x="537" y="301.0" width="21" height="20" rx="5" fill="#D5D6CE" />
+<rect x="537" y="299.5" width="21" height="20" rx="5" fill="#F2F2EC" stroke="#D5D6CE" stroke-width="0.8" />
+<text x="547.5" y="313.8" class="s" fill="#585F6C" text-anchor="middle" style="font-size:12px;font-weight:500">⌘</text>
+<rect x="561" y="301.0" width="21" height="20" rx="5" fill="#D5D6CE" />
+<rect x="561" y="299.5" width="21" height="20" rx="5" fill="#F2F2EC" stroke="#D5D6CE" stroke-width="0.8" />
+<text x="571.5" y="313.8" class="s" fill="#585F6C" text-anchor="middle" style="font-size:12px;font-weight:500">C</text>
+<line x1="340" y1="330.0" x2="582" y2="330.0" stroke="#E3E3DC" stroke-width="1" />
+<text x="340" y="355.5" class="s" fill="#1C2230" text-anchor="start" style="font-size:14px;font-weight:400">Measure</text>
+<rect x="489" y="342.0" width="21" height="20" rx="5" fill="#D5D6CE" />
+<rect x="489" y="340.5" width="21" height="20" rx="5" fill="#F2F2EC" stroke="#D5D6CE" stroke-width="0.8" />
+<text x="499.5" y="354.8" class="s" fill="#585F6C" text-anchor="middle" style="font-size:12px;font-weight:500">⌥</text>
+<rect x="513" y="342.0" width="21" height="20" rx="5" fill="#D5D6CE" />
+<rect x="513" y="340.5" width="21" height="20" rx="5" fill="#F2F2EC" stroke="#D5D6CE" stroke-width="0.8" />
+<text x="523.5" y="354.8" class="s" fill="#585F6C" text-anchor="middle" style="font-size:12px;font-weight:500">⇧</text>
+<rect x="537" y="342.0" width="21" height="20" rx="5" fill="#D5D6CE" />
+<rect x="537" y="340.5" width="21" height="20" rx="5" fill="#F2F2EC" stroke="#D5D6CE" stroke-width="0.8" />
+<text x="547.5" y="354.8" class="s" fill="#585F6C" text-anchor="middle" style="font-size:12px;font-weight:500">⌘</text>
+<rect x="561" y="342.0" width="21" height="20" rx="5" fill="#D5D6CE" />
+<rect x="561" y="340.5" width="21" height="20" rx="5" fill="#F2F2EC" stroke="#D5D6CE" stroke-width="0.8" />
+<text x="571.5" y="354.8" class="s" fill="#585F6C" text-anchor="middle" style="font-size:12px;font-weight:500">M</text>
+<line x1="340" y1="371.0" x2="582" y2="371.0" stroke="#E3E3DC" stroke-width="1" />
+<text x="340" y="396.5" class="s" fill="#1C2230" text-anchor="start" style="font-size:14px;font-weight:400">Settings</text>
+<rect x="489" y="383.0" width="21" height="20" rx="5" fill="#D5D6CE" />
+<rect x="489" y="381.5" width="21" height="20" rx="5" fill="#F2F2EC" stroke="#D5D6CE" stroke-width="0.8" />
+<text x="499.5" y="395.8" class="s" fill="#585F6C" text-anchor="middle" style="font-size:12px;font-weight:500">⌥</text>
+<rect x="513" y="383.0" width="21" height="20" rx="5" fill="#D5D6CE" />
+<rect x="513" y="381.5" width="21" height="20" rx="5" fill="#F2F2EC" stroke="#D5D6CE" stroke-width="0.8" />
+<text x="523.5" y="395.8" class="s" fill="#585F6C" text-anchor="middle" style="font-size:12px;font-weight:500">⇧</text>
+<rect x="537" y="383.0" width="21" height="20" rx="5" fill="#D5D6CE" />
+<rect x="537" y="381.5" width="21" height="20" rx="5" fill="#F2F2EC" stroke="#D5D6CE" stroke-width="0.8" />
+<text x="547.5" y="395.8" class="s" fill="#585F6C" text-anchor="middle" style="font-size:12px;font-weight:500">⌘</text>
+<rect x="561" y="383.0" width="21" height="20" rx="5" fill="#D5D6CE" />
+<rect x="561" y="381.5" width="21" height="20" rx="5" fill="#F2F2EC" stroke="#D5D6CE" stroke-width="0.8" />
+<text x="571.5" y="395.8" class="s" fill="#585F6C" text-anchor="middle" style="font-size:14px;font-weight:500">,</text>
+<circle cx="54" cy="452" r="12" fill="#DDE5D8" />
+<path d="M49.5 452.2 l3 3 l6 -6.5" fill="none" stroke="#4E6849" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="78" y="457" class="s" fill="#1C2230" text-anchor="start" style="font-size:14px;font-weight:600">Screen Recording is on</text>
+<text x="78" y="477" class="s" fill="#585F6C" text-anchor="start" style="font-size:13px;font-weight:400">macOS asks about once a month whether Glassine can still see your</text>
+<text x="78" y="495" class="s" fill="#585F6C" text-anchor="start" style="font-size:13px;font-weight:400">screen. Choose Allow.</text>
+<circle cx="54" cy="524" r="12" fill="#DDE5D8" />
+<path d="M49.5 524.2 l3 3 l6 -6.5" fill="none" stroke="#4E6849" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="78" y="529" class="s" fill="#1C2230" text-anchor="start" style="font-size:14px;font-weight:600">macOS screenshot shortcuts are off</text>
+<text x="78" y="549" class="s" fill="#585F6C" text-anchor="start" style="font-size:13px;font-weight:400">⇧⌘3, ⇧⌘4 and ⇧⌘5 now open Glassine.</text>
+<text x="42" y="597" class="s" fill="#666C77" text-anchor="start" style="font-size:12px;font-weight:400">Everything stays on your Mac.</text>
+<rect x="318" y="574" width="124" height="34" rx="17.0" fill="#F9F9F6" stroke="#D5D6CE" stroke-width="1" />
+<text x="380.0" y="596.04" class="s" fill="#1C2230" text-anchor="middle" style="font-size:14px;font-weight:500">Open Settings</text>
+<rect x="452" y="574" width="148" height="34" rx="17.0" fill="#1C2230" />
+<text x="526.0" y="596.04" class="s" fill="#F7F6F1" text-anchor="middle" style="font-size:14px;font-weight:600">Start capturing</text>
+</svg>

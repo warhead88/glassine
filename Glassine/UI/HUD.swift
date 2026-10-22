@@ -24,7 +24,7 @@ enum HUD {
                                action?.run()
                                hide()
                            })
-        let hosting = FirstMouseHostingView(rootView: view)
+        let hosting = FirstMouseHostingView(rootView: view.themed())
         let size = hosting.fittingSize
 
         let screen = NSScreen.screens.first { $0.frame.contains(NSEvent.mouseLocation) } ?? NSScreen.main

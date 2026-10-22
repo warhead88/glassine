@@ -16,7 +16,7 @@ final class UpdateWindowController: NSObject, NSWindowDelegate {
 
     func show(activate: Bool) {
         if window == nil {
-            let controller = NSHostingController(rootView: UpdateView(model: model))
+            let controller = NSHostingController(rootView: UpdateView(model: model).themed())
             controller.sizingOptions = [.preferredContentSize]
             let window = NSWindow(contentViewController: controller)
             window.title = "Software Update"

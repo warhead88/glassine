@@ -16,7 +16,7 @@ final class HostingWindowController<Content: View> {
 
     func show() {
         if window == nil {
-            let window = NSWindow(contentViewController: NSHostingController(rootView: makeContent()))
+            let window = NSWindow(contentViewController: NSHostingController(rootView: makeContent().themed()))
             window.title = title
             window.styleMask = [.titled, .closable]
             window.isReleasedWhenClosed = false

@@ -117,6 +117,7 @@ struct RecordingPanelView: View {
         .padding(shadowInsets)
         .fixedSize()
         .animation(.snappy(duration: 0.2), value: model.options.format)
+        .themed() // its own root: the panel's hosting view is typed by this view
     }
 
     // MARK: Phases

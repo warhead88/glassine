@@ -122,6 +122,6 @@ The name **Glassine** and the Glassine icon are not covered by the license. Fork
 their own name and icon, so nobody mistakes them for the original.
 
 Third-party: [Sparkle](https://sparkle-project.org) (MIT, with BSD and zlib parts) for updates;
-[KeyboardShortcuts](https://github.com/sindresorhus/KeyboardShortcuts) (MIT); the Fraunces font in `Design/fonts`,
-used to draw the icon (SIL Open Font License). The app carries their notices (Settings → General →
+[KeyboardShortcuts](https://github.com/sindresorhus/KeyboardShortcuts) (MIT); the [Fraunces](https://github.com/undercasetype/Fraunces)
+font, used in the interface and the icon (SIL Open Font License, `Design/fonts`). The app carries their notices (Settings → General →
 Acknowledgements; regenerate with `scripts/acknowledgements.sh` after updating packages).

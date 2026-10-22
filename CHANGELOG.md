@@ -5,6 +5,11 @@ sections **Added**, **Changed**, **Fixed**, **Removed** (and **Security** when n
 section is what the update window shows, so write it for users. Versions follow
 [Semantic Versioning](https://semver.org).
 
+## [Unreleased]
+
+### Added
+- Accent color in Settings → General → Appearance: Ink, Sage, Stamp, Ochre or your macOS accent
+
 ## [0.3.1] - 2026-10-22
 
 ### Fixed

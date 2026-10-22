@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="680" viewBox="0 0 640 680">
+<style><![CDATA[
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT,WONK@0,9..144,100..900,0..100,0..1;1,9..144,100..900,0..100,0..1&display=swap');
+.s{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Helvetica Neue',sans-serif}
+.f{font-family:'Fraunces',Georgia,serif;font-variation-settings:'SOFT' 100,'WONK' 0;font-feature-settings:'lnum' 1,'tnum' 1}
+.m{font-family:'SF Mono',ui-monospace,Menlo,monospace}
+]]></style>
+<defs>
+<filter id="settings-sh-s" x="-20%" y="-20%" width="140%" height="160%">
+  <feDropShadow dx="0" dy="1" stdDeviation="1.2" flood-color="#1C2230" flood-opacity=".10"/></filter>
+<filter id="settings-sh-m" x="-30%" y="-30%" width="160%" height="170%">
+  <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#1C2230" flood-opacity=".10"/>
+  <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#1C2230" flood-opacity=".14"/></filter>
+<filter id="settings-grain" x="0" y="0" width="100%" height="100%">
+  <feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" seed="4" stitchTiles="stitch"/>
+  <feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  1 0 0 0 -.15"/></filter>
+<filter id="settings-cloud" x="0" y="0" width="100%" height="100%">
+  <feTurbulence type="fractalNoise" baseFrequency=".011" numOctaves="3" seed="9"/>
+  <feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  2.4 0 0 0 -1.1"/></filter>
+<pattern id="settings-dots" width="6" height="6" patternUnits="userSpaceOnUse">
+  <circle cx="3" cy="3" r=".7" fill="#1C2230" fill-opacity=".13"/></pattern><clipPath id="settings-clip1"><rect x="0" y="0" width="640" height="680" rx="14"/></clipPath></defs>
+<g filter="url(#settings-sh-m)">
+<rect x="0" y="0" width="640" height="680" rx="14" fill="#EFEFEA" stroke="#D5D6CE" stroke-width="1" />
+</g>
+<g clip-path="url(#settings-clip1)"><rect width="100%" height="100%" filter="url(#settings-cloud)" opacity=".12"/><rect width="100%" height="100%" filter="url(#settings-grain)" opacity=".035"/></g>
+<circle cx="20" cy="20" r="6" fill="#FF5F57" />
+<circle cx="40" cy="20" r="6" fill="#FEBC2E" />
+<circle cx="60" cy="20" r="6" fill="#28C840" />
+<text x="320.0" y="25" class="s" fill="#585F6C" text-anchor="middle" style="font-size:13px;font-weight:600">Glassine Settings</text>
+<rect x="134.0" y="46" width="372" height="32" rx="10" fill="#DADAD2" />
+<text x="182.0" y="67" class="s" fill="#585F6C" text-anchor="middle" style="font-size:13.5px;font-weight:400">General</text>
+<g filter="url(#settings-sh-s)">
+<rect x="228.0" y="48" width="92" height="28" rx="8" fill="#F9F9F6" />
+</g>
+<text x="274.0" y="67" class="s" fill="#1C2230" text-anchor="middle" style="font-size:13.5px;font-weight:600">Capture</text>
+<text x="366.0" y="67" class="s" fill="#585F6C" text-anchor="middle" style="font-size:13.5px;font-weight:400">Output</text>
+<text x="458.0" y="67" class="s" fill="#585F6C" text-anchor="middle" style="font-size:13.5px;font-weight:400">Shortcuts</text>
+<text x="34" y="132" class="f" fill="#1C2230" text-anchor="start" style="font-size:28px;font-weight:460;letter-spacing:-0.3px">Area capture</text>
+<text x="36" y="160" class="m" fill="#666C77" text-anchor="start" style="font-size:9.5px;font-weight:500;letter-spacing:1.1px">SCREEN FRAME</text>
+<rect x="34.0" y="172" width="181" height="84" rx="9" fill="#DCDCD4" />
+<rect x="48.0" y="194" width="68.78" height="35.28" rx="3" fill="#F9F9F6" />
+<rect x="99.16" y="208.96" width="65.16" height="33.6" rx="3" fill="#EAC9A6" />
+<rect x="40.0" y="178" width="169.0" height="72" rx="7" stroke="#FFFFFF" stroke-width="2.6" fill="none" stroke-linejoin="round"/>
+<path d="M104.5 172 H144.5 V177 a3 3 0 0 1 -3 3 H107.5 a3 3 0 0 1 -3 -3 Z" fill="#16181D" />
+<text x="124.5" y="282" class="s" fill="#585F6C" text-anchor="middle" style="font-size:13.5px;font-weight:400">Straight</text>
+<rect x="226.0" y="168.5" width="188" height="91" rx="13.5" fill="none" stroke="#1C2230" stroke-width="1.8" />
+<rect x="229.5" y="172" width="181" height="84" rx="9" fill="#DCDCD4" />
+<rect x="243.5" y="194" width="68.78" height="35.28" rx="3" fill="#F9F9F6" />
+<rect x="294.65999999999997" y="208.96" width="65.16" height="33.6" rx="3" fill="#EAC9A6" />
+<path d="M235.5 185 a7 7 0 0 1 7 -7 H296.0 C299.0 178 299.0 184 303.0 184 H337.0 C341.0 184 341.0 178 344.0 178 H397.5 a7 7 0 0 1 7 7 V243 a7 7 0 0 1 -7 7 H242.5 a7 7 0 0 1 -7 -7 Z" stroke="#FFFFFF" stroke-width="2.6" fill="none" stroke-linejoin="round"/>
+<path d="M300.0 172 H340.0 V177 a3 3 0 0 1 -3 3 H303.0 a3 3 0 0 1 -3 -3 Z" fill="#16181D" />
+<text x="320.0" y="282" class="s" fill="#1C2230" text-anchor="middle" style="font-size:13.5px;font-weight:600">Around the notch</text>
+<rect x="425.0" y="172" width="181" height="84" rx="9" fill="#DCDCD4" />
+<rect x="439.0" y="194" width="68.78" height="35.28" rx="3" fill="#F9F9F6" />
+<rect x="490.15999999999997" y="208.96" width="65.16" height="33.6" rx="3" fill="#EAC9A6" />
+<path d="M495.5 172 H535.5 V177 a3 3 0 0 1 -3 3 H498.5 a3 3 0 0 1 -3 -3 Z" fill="#16181D" />
+<text x="515.5" y="282" class="s" fill="#585F6C" text-anchor="middle" style="font-size:13.5px;font-weight:400">No frame</text>
+<rect x="34" y="304" width="572" height="138" rx="12" fill="#F9F9F6" stroke="#D5D6CE" stroke-width="1" />
+<text x="54" y="332" class="s" fill="#1C2230" text-anchor="start" style="font-size:14px;font-weight:400">Frame bottom corners</text>
+<rect x="430" y="313.0" width="156" height="28" rx="8" fill="#DADAD2" />
+<g filter="url(#settings-sh-s)">
+<rect x="432" y="315.0" width="76" height="24" rx="6.5" fill="#F9F9F6" />
+</g>
+<text x="470.0" y="331.5" class="s" fill="#1C2230" text-anchor="middle" style="font-size:13px;font-weight:500">Rounded</text>
+<text x="546.0" y="331.5" class="s" fill="#585F6C" text-anchor="middle" style="font-size:13px;font-weight:400">Square</text>
+<line x1="54" y1="350" x2="586" y2="350" stroke="#E3E3DC" stroke-width="1" />
+<text x="54" y="378" class="s" fill="#1C2230" text-anchor="start" style="font-size:14px;font-weight:400">Magnifier while selecting</text>
+<rect x="548" y="362" width="38" height="22" rx="11.0" fill="#1C2230" />
+<circle cx="575.0" cy="373.0" r="8.5" fill="#F7F6F1" />
+<line x1="54" y1="396" x2="586" y2="396" stroke="#E3E3DC" stroke-width="1" />
+<text x="54" y="424" class="s" fill="#1C2230" text-anchor="start" style="font-size:14px;font-weight:400">Start sound</text>
+<rect x="548" y="408" width="38" height="22" rx="11.0" fill="#DADAD2" />
+<g filter="url(#settings-sh-s)">
+<circle cx="559.0" cy="419.0" r="8.5" fill="#FFFFFF" />
+</g>
+<text x="34" y="494" class="f" fill="#1C2230" text-anchor="start" style="font-size:28px;font-weight:460;letter-spacing:-0.3px">Screen recording</text>
+<rect x="34" y="512" width="572" height="92" rx="12" fill="#F9F9F6" stroke="#D5D6CE" stroke-width="1" />
+<text x="54" y="540" class="s" fill="#1C2230" text-anchor="start" style="font-size:14px;font-weight:400">Countdown before recording</text>
+<rect x="482" y="522.0" width="104" height="26" rx="7" fill="#F9F9F6" stroke="#D5D6CE" stroke-width="1" />
+<text x="493" y="539.6" class="s" fill="#1C2230" text-anchor="start" style="font-size:13.5px;font-weight:400">3 seconds</text>
+<path d="M566 533.5 l3.5 3.5 l3.5 -3.5" fill="none" stroke="#585F6C" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="54" y1="558" x2="586" y2="558" stroke="#E3E3DC" stroke-width="1" />
+<text x="54" y="586" class="s" fill="#1C2230" text-anchor="start" style="font-size:14px;font-weight:400">Show the pointer</text>
+<rect x="548" y="570" width="38" height="22" rx="11.0" fill="#1C2230" />
+<circle cx="575.0" cy="581.0" r="8.5" fill="#F7F6F1" />
+<text x="36" y="630" class="s" fill="#585F6C" text-anchor="start" style="font-size:12.5px;font-weight:400">The countdown runs inside the record button. Off starts recording</text>
+<text x="36" y="648" class="s" fill="#585F6C" text-anchor="start" style="font-size:12.5px;font-weight:400">as soon as you press it.</text>
+</svg>
