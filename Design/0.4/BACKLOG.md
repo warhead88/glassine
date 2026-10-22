@@ -15,6 +15,8 @@
       `Typography` ставит SOFT 100, WONK 0, opsz = размер; без шрифта — New York.
 - [x] Increase Contrast / Reduce Transparency → `showsPaperDetails = false`.
 - [x] Превью снимка и записи — марки (`QuickAccess/PreviewStampView.swift`), кнопки `PillButton` paper / stamp.
+- [x] Настройки (`Settings/SettingsKit.swift`): бумага, вкладки-таблетка, разделы с Fraunces, карточки строк
+      с нативными контролами, карточки-превью с кольцом акцента и нейтральными мини-сценами.
 - [ ] Экраны: перевести окна на `Color.paper`/`.card`/`.ink`, заголовки на `.textStyle(ThemeTokens.title)`;
       `OptionCard` и прочие места с `Color.accentColor` — на `theme.accent`.
 - [ ] Таймер записи: у Fraunces нет `tnum` — каждая цифра в `frame` фиксированной ширины (≈ 0,64 em, двоеточие 0,3 em).

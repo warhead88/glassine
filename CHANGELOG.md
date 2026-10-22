@@ -11,6 +11,7 @@ section is what the update window shows, so write it for users. Versions follow
 - Accent color in Settings → General → Appearance: Ink, Sage, Stamp, Ochre or your macOS accent
 
 ### Changed
+- Settings are set on paper: Fraunces section titles, cards of settings, the tabs as one pill
 - Previews look like stamps: the capture in a paper mat, dated like a postmark, with its size or format. On a small screen the stack closes older previews instead of running off the top
 
 ## [0.3.1] - 2026-10-22

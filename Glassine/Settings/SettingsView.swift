@@ -4,16 +4,49 @@ import SwiftUI
 
 struct SettingsView: View {
     let updater: Updater
+    @State private var tab = SettingsTab.initial
 
     var body: some View {
-        TabView {
-            GeneralSettings().tabItem { Label("General", systemImage: "gearshape") }
-            CaptureSettings().tabItem { Label("Capture", systemImage: "viewfinder") }
-            OutputSettings().tabItem { Label("Output", systemImage: "square.and.arrow.down") }
-            ShortcutSettings().tabItem { Label("Shortcuts", systemImage: "command") }
+        VStack(spacing: 14) {
+            SettingsTabs(tabs: SettingsTab.allCases, title: \.title, selection: $tab)
+            switch tab {
+            case .general: GeneralSettings()
+            case .capture: CaptureSettings()
+            case .output: OutputSettings()
+            case .shortcuts: ShortcutSettings()
+            }
         }
-        .frame(width: 600, height: 700)
+        .padding(.top, 4)
+        .frame(width: 620, height: 720)
+        .background(Color.paper)
         .environment(updater)
+    }
+}
+
+enum SettingsTab: String, CaseIterable, Identifiable {
+    case general, capture, output, shortcuts
+
+    var id: Self { self }
+
+    /// General; a debug build opens `--debug-settings <tab>` on that tab.
+    static var initial: SettingsTab {
+        #if DEBUG
+        let arguments = CommandLine.arguments
+        if let index = arguments.firstIndex(of: "--debug-settings"), index + 1 < arguments.count,
+           let tab = SettingsTab(rawValue: arguments[index + 1]) {
+            return tab
+        }
+        #endif
+        return .general
+    }
+
+    var title: String {
+        switch self {
+        case .general: "General"
+        case .capture: "Capture"
+        case .output: "Output"
+        case .shortcuts: "Shortcuts"
+        }
     }
 }
 
@@ -24,72 +57,74 @@ private struct GeneralSettings: View {
     @Environment(Updater.self) private var updater
 
     var body: some View {
-        Form {
-            Section {
-                OptionCards(title: "Menu bar icon", note: "Without the icon, use shortcuts — or open Glassine again from Spotlight to get here.",
+        @Bindable var updater = updater
+        SettingsPage {
+            SettingsSection(title: "Menu bar") {
+                OptionCards(title: "Menu bar icon",
+                            note: "Without the icon, use shortcuts — or open Glassine again from Spotlight to get here.",
                             options: [(false, "Hidden"), (true, "Shown")], selection: $showMenuBarIcon) { on in
                     MenuBarIconPreview(on: on)
                 }
-                Toggle("Launch at login", isOn: $launchAtLogin)
-                    .onChange(of: launchAtLogin) { _, enabled in setLaunchAtLogin(enabled) }
+                SettingsCard {
+                    SettingsRow("Launch at login", isOn: $launchAtLogin)
+                }
+                .onChange(of: launchAtLogin) { _, enabled in setLaunchAtLogin(enabled) }
             }
 
-            Section("Permissions") {
-                LabeledContent("Screen Recording:") {
-                    if hasScreenAccess {
-                        Label("Granted", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
-                    } else {
-                        Button(ScreenAccess.requestTitle, action: ScreenAccess.request)
+            SettingsSection(title: "Appearance") {
+                SettingsCard {
+                    SettingsRow(title: "Accent color", detail: "Buttons, switches and selection. Red stays for recording.") {
+                        AccentPicker()
                     }
                 }
             }
 
-            Section("Appearance") {
-                LabeledContent("Accent color") { AccentPicker() }
-            }
-
-            Section("Updates") {
-                @Bindable var updater = updater
-                Toggle("Check for updates automatically", isOn: $updater.automaticallyChecks)
-                LabeledContent("Version \(Updater.currentVersion)") {
-                    Button("Check for Updates…") { updater.checkForUpdates() }
-                }
-            }
-
-            Section("About") {
-                LabeledContent("Free software under the GNU GPL v3") {
-                    Button("Acknowledgements…") {
-                        if let url = Bundle.main.url(forResource: "Acknowledgements", withExtension: "txt") {
-                            NSWorkspace.shared.open(url)
+            SettingsSection(title: "Permissions") {
+                SettingsCard {
+                    SettingsRow(title: "Screen Recording") {
+                        if hasScreenAccess {
+                            Label("Granted", systemImage: "checkmark.circle.fill")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundStyle(Color.sageDeep)
+                        } else {
+                            Button(ScreenAccess.requestTitle, action: ScreenAccess.request)
                         }
                     }
                 }
             }
 
-            Section {
-                HStack {
-                    Text("Return here with the settings shortcut, or by opening Glassine again from Spotlight.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Button("Quit Glassine") { NSApp.terminate(nil) }
+            SettingsSection(title: "Updates") {
+                SettingsCard {
+                    SettingsRow("Check for updates automatically", isOn: $updater.automaticallyChecks)
+                    RowDivider()
+                    SettingsRow(title: "Version \(Updater.currentVersion)") {
+                        Button("Check for Updates…") { updater.checkForUpdates() }
+                    }
                 }
             }
 
-            Section {
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Uninstall Glassine")
-                        Text("Moves the app, its settings and caches to the Trash and removes its permissions.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+            SettingsSection(title: "About") {
+                SettingsCard {
+                    SettingsRow(title: "Free software under the GNU GPL v3") {
+                        Button("Acknowledgements…") {
+                            if let url = Bundle.main.url(forResource: "Acknowledgements", withExtension: "txt") {
+                                NSWorkspace.shared.open(url)
+                            }
+                        }
                     }
-                    Spacer()
-                    Button("Uninstall…", role: .destructive) { Uninstaller.confirmAndRun() }
+                    RowDivider()
+                    SettingsRow(title: "Quit Glassine",
+                                detail: "Return here with the settings shortcut, or by opening Glassine again from Spotlight.") {
+                        Button("Quit") { NSApp.terminate(nil) }
+                    }
+                    RowDivider()
+                    SettingsRow(title: "Uninstall Glassine",
+                                detail: "Moves the app, its settings and caches to the Trash and removes its permissions.") {
+                        Button("Uninstall…", role: .destructive) { Uninstaller.confirmAndRun() }
+                    }
                 }
             }
         }
-        .formStyle(.grouped)
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             hasScreenAccess = ScreenAccess.isGranted
             launchAtLogin = SMAppService.mainApp.status == .enabled
@@ -124,8 +159,8 @@ private struct CaptureSettings: View {
     private var frameIsOff: Bool { frameStyle == AreaFrameStyle.off.rawValue }
 
     var body: some View {
-        Form {
-            Section("Area Capture") {
+        SettingsPage {
+            SettingsSection(title: "Area capture") {
                 OptionCards(title: "Screen frame", note: "Displays without a notch always get the straight frame.",
                             options: AreaFrameStyle.allCases.map { ($0.rawValue, $0.title) }, selection: $frameStyle) { style in
                     FrameStylePreview(style: AreaFrameStyle(rawValue: style) ?? .notch,
@@ -145,70 +180,79 @@ private struct CaptureSettings: View {
                             options: [(true, "Magnifier"), (false, "Crosshair only")], selection: $showMagnifier) { on in
                     MagnifierPreview(on: on)
                 }
+                SettingsCard {
+                    SettingsRow(title: "Capture with timer", detail: "Time to open a menu or hover before the capture.") {
+                        Picker("Capture with timer", selection: $timerDelay) {
+                            Text("3 seconds").tag(3)
+                            Text("5 seconds").tag(5)
+                            Text("10 seconds").tag(10)
+                        }
+                        .labelsHidden()
+                        .fixedSize()
+                    }
+                }
             }
 
-            Section("Window Capture") {
+            SettingsSection(title: "Window capture") {
                 OptionCards(title: "Window shadow",
                             options: [(true, "With shadow"), (false, "No shadow")], selection: $windowShadow) { shadow in
                     WindowShadowPreview(shadow: shadow)
                 }
             }
 
-            Section("Color Picker") {
+            SettingsSection(title: "Screen recording",
+                            note: "The countdown runs inside the record button. Off starts recording as soon as you press it.") {
+                SettingsCard {
+                    SettingsRow(title: "Countdown before recording") {
+                        Picker("Countdown before recording", selection: $recordingCountdown) {
+                            Text("Off").tag(0)
+                            Text("3 seconds").tag(3)
+                            Text("5 seconds").tag(5)
+                            Text("10 seconds").tag(10)
+                        }
+                        .labelsHidden()
+                        .fixedSize()
+                    }
+                }
+            }
+
+            SettingsSection(title: "Color picker") {
                 OptionCards(title: "Copied format",
                             options: ColorFormat.allCases.map { ($0.rawValue, $0.rawValue.uppercased()) }, selection: $colorFormat) { format in
                     ColorFormatPreview(format: ColorFormat(rawValue: format) ?? .hex)
                 }
             }
 
-            Section {
-                Picker("Timer:", selection: $timerDelay) {
-                    Text("3 seconds").tag(3)
-                    Text("5 seconds").tag(5)
-                    Text("10 seconds").tag(10)
+            SettingsSection(title: "Sounds") {
+                SettingsCard {
+                    SettingsRow("When area capture starts", isOn: $startSound)
+                    RowDivider()
+                    SettingsRow("After capture", isOn: $afterCaptureSound)
                 }
             }
 
-            Section {
-                Picker("Countdown before recording:", selection: $recordingCountdown) {
-                    Text("Off").tag(0)
-                    Text("3 seconds").tag(3)
-                    Text("5 seconds").tag(5)
-                    Text("10 seconds").tag(10)
+            SettingsSection(title: "While capturing") {
+                SettingsCard {
+                    let tips = [("Drag", "Select an area"), ("Space", "Switch between area and window capture"),
+                                ("⇧ Shift", "Square selection"), ("⌥ Option", "Select from the center"),
+                                ("Space ⇢", "Hold while dragging to move the selection"), ("M", "Show or hide the magnifier"),
+                                ("C", "Copy the color under the pointer"), ("Esc", "Cancel")]
+                    ForEach(Array(tips.enumerated()), id: \.offset) { index, tip in
+                        if index > 0 { RowDivider() }
+                        HStack(spacing: 12) {
+                            Text(tip.0)
+                                .font(.system(size: 12, weight: .medium, design: .monospaced))
+                                .foregroundStyle(Color.ink)
+                                .frame(width: 84, alignment: .leading)
+                            Text(tip.1)
+                                .font(.system(size: 13))
+                                .foregroundStyle(Color.ink2)
+                            Spacer(minLength: 0)
+                        }
+                        .padding(.vertical, 8)
+                    }
                 }
-            } header: {
-                Text("Screen Recording")
-            } footer: {
-                Text("Counted down in the record button; Off starts recording as soon as you press it.")
-                    .font(.caption).foregroundStyle(.secondary)
             }
-
-            Section("Sounds") {
-                Toggle("When area capture starts", isOn: $startSound)
-                Toggle("After capture", isOn: $afterCaptureSound)
-            }
-
-            Section("Tips") {
-                VStack(alignment: .leading, spacing: 4) {
-                    tip("Drag", "select an area")
-                    tip("Space", "switch between area and window capture")
-                    tip("⇧ Shift", "square selection")
-                    tip("⌥ Option", "select from the center")
-                    tip("Space ⇢", "hold while dragging to move the selection")
-                    tip("M", "show or hide the magnifier")
-                    tip("C", "copy the color under the pointer")
-                    tip("Esc", "cancel")
-                }
-                .font(.callout)
-            }
-        }
-        .formStyle(.grouped)
-    }
-
-    private func tip(_ key: String, _ text: String) -> some View {
-        HStack(alignment: .firstTextBaseline) {
-            Text(key).fontWeight(.medium).frame(width: 80, alignment: .leading)
-            Text(text).foregroundStyle(.secondary)
         }
     }
 }
@@ -224,48 +268,62 @@ private struct OutputSettings: View {
     @AppStorage(PrefKey.saveAtStandardResolution) private var saveAtStandardResolution = false
 
     var body: some View {
-        Form {
-            Section("After Capture") {
-                Toggle("Copy to clipboard", isOn: $copyToClipboard)
-                Toggle("Save to folder", isOn: $saveToFile)
-                LabeledContent("Folder:") {
-                    HStack {
-                        Text((saveFolder as NSString).abbreviatingWithTildeInPath)
-                            .lineLimit(1)
-                            .truncationMode(.middle)
-                            .foregroundStyle(.secondary)
+        SettingsPage {
+            SettingsSection(title: "After capture") {
+                SettingsCard {
+                    SettingsRow("Copy to clipboard", isOn: $copyToClipboard)
+                    RowDivider()
+                    SettingsRow("Save to folder", isOn: $saveToFile)
+                    RowDivider()
+                    SettingsRow(title: "Folder", detail: (saveFolder as NSString).abbreviatingWithTildeInPath) {
                         Button("Choose…", action: chooseFolder)
                     }
+                    .disabled(!saveToFile)
                 }
-                .disabled(!saveToFile)
             }
 
-            Section("Preview") {
+            SettingsSection(title: "Preview") {
                 OptionCards(title: "After a capture", note: "Drag the preview into any app, or click it to edit.",
                             options: [(true, "Show preview"), (false, "No preview")], selection: $showQuickAccess) { on in
                     QuickAccessPreview(on: on)
                 }
-                Picker("Close preview:", selection: $quickAccessAutoClose) {
-                    Text("After 5 seconds").tag(5)
-                    Text("After 10 seconds").tag(10)
-                    Text("After 30 seconds").tag(30)
-                    Text("Never").tag(0)
+                SettingsCard {
+                    SettingsRow(title: "Close the preview") {
+                        Picker("Close the preview", selection: $quickAccessAutoClose) {
+                            Text("After 5 seconds").tag(5)
+                            Text("After 10 seconds").tag(10)
+                            Text("After 30 seconds").tag(30)
+                            Text("Never").tag(0)
+                        }
+                        .labelsHidden()
+                        .fixedSize()
+                    }
+                    .disabled(!showQuickAccess)
                 }
-                .disabled(!showQuickAccess)
             }
 
-            Section("Files") {
-                Picker("Format:", selection: $imageFormat) {
-                    ForEach(ImageFormat.allCases) { Text($0.title).tag($0.rawValue) }
+            SettingsSection(title: "Files") {
+                SettingsCard {
+                    SettingsRow(title: "Format") {
+                        Picker("Format", selection: $imageFormat) {
+                            ForEach(ImageFormat.allCases) { Text($0.title).tag($0.rawValue) }
+                        }
+                        .pickerStyle(.segmented)
+                        .labelsHidden()
+                        .fixedSize()
+                    }
+                    RowDivider()
+                    SettingsRow(title: "Name prefix", detail: exampleName) {
+                        TextField("Name prefix", text: $fileNamePrefix)
+                            .labelsHidden()
+                            .textFieldStyle(.roundedBorder)
+                            .frame(width: 160)
+                    }
+                    RowDivider()
+                    SettingsRow("Save Retina captures at standard resolution (1x)", isOn: $saveAtStandardResolution)
                 }
-                TextField("Name prefix:", text: $fileNamePrefix)
-                LabeledContent("Example:") {
-                    Text(exampleName).foregroundStyle(.secondary)
-                }
-                Toggle("Save Retina captures at standard resolution (1x)", isOn: $saveAtStandardResolution)
             }
         }
-        .formStyle(.grouped)
     }
 
     private var exampleName: String {
@@ -288,32 +346,32 @@ private struct OutputSettings: View {
 private struct ShortcutSettings: View {
     @State private var conflicts = SystemScreenshotShortcuts.conflicts
 
+    private static let shortcuts: [(String, KeyboardShortcuts.Name)] = [
+        ("Capture area", .captureArea), ("Capture window", .captureWindow), ("Capture screen", .captureScreen),
+        ("Repeat last area", .repeatLastArea), ("Capture with timer", .timedCapture),
+        ("Copy text from screen", .captureText), ("Pick color", .pickColor), ("Measure", .measure),
+        ("Record screen", .recordScreen), ("Pin from clipboard", .pinFromClipboard),
+        ("Show or hide pins", .togglePins), ("Open settings", .openSettings),
+    ]
+
     var body: some View {
-        Form {
-            if !conflicts.isEmpty {
-                Section { ShortcutConflictNote(conflicts: conflicts) }
-            }
-            Section {
-                KeyboardShortcuts.Recorder("Capture area:", name: .captureArea)
-                KeyboardShortcuts.Recorder("Capture window:", name: .captureWindow)
-                KeyboardShortcuts.Recorder("Capture screen:", name: .captureScreen)
-                KeyboardShortcuts.Recorder("Repeat last area:", name: .repeatLastArea)
-                KeyboardShortcuts.Recorder("Capture with timer:", name: .timedCapture)
-                KeyboardShortcuts.Recorder("Copy text from screen:", name: .captureText)
-                KeyboardShortcuts.Recorder("Pick color:", name: .pickColor)
-                KeyboardShortcuts.Recorder("Measure:", name: .measure)
-                KeyboardShortcuts.Recorder("Record screen (again to start, stop):", name: .recordScreen)
-                KeyboardShortcuts.Recorder("Pin from clipboard:", name: .pinFromClipboard)
-                KeyboardShortcuts.Recorder("Show/hide pins:", name: .togglePins)
-                KeyboardShortcuts.Recorder("Open settings:", name: .openSettings)
-            }
-            Section {
-                Text("Shortcuts use physical key positions: with a Russian layout, ⌥⇧⌘, is the Б key.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+        SettingsPage {
+            SettingsSection(title: "Shortcuts",
+                            note: "Shortcuts use physical key positions: with a Russian layout, ⌥⇧⌘, is the Б key. "
+                                + "Press the record shortcut again to start recording, and once more to stop.") {
+                if !conflicts.isEmpty {
+                    ShortcutConflictNote(conflicts: conflicts)
+                }
+                SettingsCard {
+                    ForEach(Array(Self.shortcuts.enumerated()), id: \.offset) { index, shortcut in
+                        if index > 0 { RowDivider() }
+                        SettingsRow(title: shortcut.0) {
+                            KeyboardShortcuts.Recorder(for: shortcut.1)
+                        }
+                    }
+                }
             }
         }
-        .formStyle(.grouped)
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             conflicts = SystemScreenshotShortcuts.conflicts
         }

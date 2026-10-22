@@ -15,8 +15,8 @@ TOKENS = os.path.join(ROOT, "Design", "0.4", "tokens.json")
 ASSETS = os.path.join(ROOT, "Glassine", "Resources", "Theme.xcassets")
 SWIFT = os.path.join(ROOT, "Glassine", "UI", "ThemeTokens.swift")
 
-# Scene-only tokens stay out of the app.
-SKIP = {"desk", "screen", "notch"}
+# Scene-only tokens stay out of the app (`screen` is the neutral desktop in Settings' mini renders).
+SKIP = {"desk", "notch"}
 # Token → asset name. `blue` would clash with Color.blue; the semantic blue is the Stamp of DECISIONS.md.
 RENAME = {"blue": "postmark", "blue_deep": "stamp"}
 

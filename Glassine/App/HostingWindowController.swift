@@ -6,11 +6,14 @@ import SwiftUI
 @MainActor
 final class HostingWindowController<Content: View> {
     private let title: String
+    private let paper: Bool
     private let makeContent: () -> Content
     private var window: NSWindow?
 
-    init(title: String, content: @escaping () -> Content) {
+    /// `paper`: the window, title bar included, takes the theme's paper (0.4 look).
+    init(title: String, paper: Bool = false, content: @escaping () -> Content) {
         self.title = title
+        self.paper = paper
         self.makeContent = content
     }
 
@@ -19,6 +22,10 @@ final class HostingWindowController<Content: View> {
             let window = NSWindow(contentViewController: NSHostingController(rootView: makeContent().themed()))
             window.title = title
             window.styleMask = [.titled, .closable]
+            if paper {
+                window.titlebarAppearsTransparent = true
+                window.backgroundColor = .paper
+            }
             window.isReleasedWhenClosed = false
             window.center()
             self.window = window

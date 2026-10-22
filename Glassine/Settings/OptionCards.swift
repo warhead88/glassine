@@ -12,8 +12,8 @@ struct OptionCards<Value: Hashable, Preview: View>: View {
     @ViewBuilder let preview: (Value) -> Preview
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(title)
+        VStack(alignment: .leading, spacing: 10) {
+            SettingsLabel(title)
             HStack(spacing: 12) {
                 ForEach(options, id: \.value) { option in
                     OptionCard(label: option.label, isSelected: selection == option.value) {
@@ -24,10 +24,9 @@ struct OptionCards<Value: Hashable, Preview: View>: View {
                 }
             }
             if let note {
-                Text(note).font(.caption).foregroundStyle(.secondary)
+                SettingsNote(note)
             }
         }
-        .padding(.vertical, 4)
     }
 }
 
@@ -37,23 +36,25 @@ struct OptionCard<Preview: View>: View {
     let action: () -> Void
     @ViewBuilder let preview: Preview
     @State private var isHovered = false
+    @Environment(Theme.self) private var theme
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 6) {
+            VStack(spacing: 7) {
                 preview
                     .frame(maxWidth: .infinity)
-                    .frame(height: 78)
+                    .frame(height: 80)
                     .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .strokeBorder(isSelected ? Color.accentColor : Color.primary.opacity(isHovered ? 0.3 : 0.12),
-                                          lineWidth: isSelected ? 2.5 : 1)
-                    )
+                    .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .strokeBorder(isHovered && !isSelected ? Color.ink3 : Color.border))
+                    // The selection ring sits just outside the render, like the scene's; its room is
+                    // kept on every card so they line up.
+                    .padding(3)
+                    .overlay(RoundedRectangle(cornerRadius: 13, style: .continuous)
+                        .strokeBorder(isSelected ? theme.accent : .clear, lineWidth: 2))
                 Text(label)
-                    .font(.callout)
-                    .fontWeight(isSelected ? .semibold : .regular)
-                    .foregroundStyle(isSelected ? .primary : .secondary)
+                    .font(.system(size: 13, weight: isSelected ? .semibold : .regular))
+                    .foregroundStyle(isSelected ? Color.ink : Color.ink2)
             }
             .contentShape(Rectangle())
         }
@@ -65,7 +66,7 @@ struct OptionCard<Preview: View>: View {
 
 // MARK: - Mini renders
 
-/// A tiny desktop: wallpaper with two windows. The base for most previews.
+/// A tiny desktop: a neutral screen with a window and a peach card. The base for most previews.
 struct MiniDesktop: View {
     var dimmed = false
 
@@ -73,11 +74,13 @@ struct MiniDesktop: View {
         GeometryReader { geo in
             let w = geo.size.width, h = geo.size.height
             ZStack(alignment: .topLeading) {
-                LinearGradient(colors: [Color(red: 0.25, green: 0.33, blue: 0.62), Color(red: 0.55, green: 0.32, blue: 0.6)],
-                               startPoint: .topLeading, endPoint: .bottomTrailing)
-                MiniWindow().frame(width: w * 0.46, height: h * 0.52).offset(x: w * 0.08, y: h * 0.26)
-                MiniWindow().frame(width: w * 0.4, height: h * 0.46).offset(x: w * 0.5, y: h * 0.38)
-                if dimmed { Color.black.opacity(0.4) }
+                Color.screen
+                MiniWindow().frame(width: w * 0.42, height: h * 0.44).offset(x: w * 0.09, y: h * 0.26)
+                RoundedRectangle(cornerRadius: 3, style: .continuous)
+                    .fill(Color.peach)
+                    .frame(width: w * 0.38, height: h * 0.40)
+                    .offset(x: w * 0.38, y: h * 0.46)
+                if dimmed { Color.black.opacity(0.35) }
             }
         }
     }
@@ -92,16 +95,16 @@ struct MiniWindow: View {
             }
             .padding(.horizontal, 4)
             .frame(height: 9)
-            .background(Color(white: 0.9))
+            .background(Color.key)
             VStack(alignment: .leading, spacing: 3) {
                 ForEach(0..<3, id: \.self) { i in
-                    RoundedRectangle(cornerRadius: 1).fill(Color(white: 0.75)).frame(width: [34, 24, 30][i], height: 2.5)
+                    RoundedRectangle(cornerRadius: 1).fill(Color.rule).frame(width: [34, 24, 30][i], height: 2.5)
                 }
                 Spacer(minLength: 0)
             }
             .padding(5)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .background(Color.white)
+            .background(Color.card)
         }
         .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
     }
@@ -140,9 +143,8 @@ struct FrameCornerPreview: View {
             let screen = CGRect(x: bezel, y: -60, width: geo.size.width + 60, height: geo.size.height - bezel + 60)
             ZStack(alignment: .topLeading) {
                 Color(white: 0.1)
-                LinearGradient(colors: [Color(red: 0.25, green: 0.33, blue: 0.62), Color(red: 0.55, green: 0.32, blue: 0.6)],
-                               startPoint: .topLeading, endPoint: .bottomTrailing)
-                    .overlay(Color.black.opacity(0.4))
+                Color.screen
+                    .overlay(Color.black.opacity(0.35))
                     .frame(width: screen.width, height: screen.height)
                     .offset(x: screen.minX, y: screen.minY)
                 Canvas { context, _ in
@@ -216,7 +218,7 @@ struct MagnifierPreview: View {
                             for col in 0..<7 {
                                 let shade = 0.3 + 0.08 * Double((row * 3 + col * 5) % 7)
                                 context.fill(Path(CGRect(x: CGFloat(col) * cell, y: CGFloat(row) * cell, width: cell, height: cell)),
-                                             with: .color(Color(red: shade * 0.7, green: shade * 0.8, blue: shade * 1.4)))
+                                             with: .color(Color(red: shade * 1.05, green: shade * 1.18, blue: shade * 1.0)))
                             }
                         }
                         context.stroke(Path(CGRect(x: 3 * cell, y: 3 * cell, width: cell, height: cell)), with: .color(.white), lineWidth: 1)
@@ -225,7 +227,7 @@ struct MagnifierPreview: View {
                     .clipShape(RoundedRectangle(cornerRadius: 4))
                     .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(.white.opacity(0.85), lineWidth: 1))
                     .offset(x: c.x + 8, y: c.y + 6)
-                    Text("#4A63B2")
+                    Text("#869B80")
                         .font(.system(size: 6, weight: .semibold).monospaced())
                         .foregroundStyle(.white)
                         .padding(.horizontal, 2)
@@ -280,27 +282,40 @@ struct ColorFormatPreview: View {
                 .padding(.horizontal, 6)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.primary.opacity(0.05))
+        .foregroundStyle(Color.ink)
+        .background(Color.key)
     }
 }
 
-/// The floating preview after a capture, or nothing.
+/// The stamp-like preview after a capture, or nothing.
 struct QuickAccessPreview: View {
     let on: Bool
 
     var body: some View {
-        GeometryReader { geo in
-            ZStack(alignment: .bottomTrailing) {
-                MiniDesktop()
-                if on {
-                    MiniDesktop()
-                        .frame(width: geo.size.width * 0.3, height: geo.size.height * 0.3)
-                        .clipShape(RoundedRectangle(cornerRadius: 3))
-                        .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(.white.opacity(0.8), lineWidth: 1))
-                        .shadow(radius: 3)
-                        .padding(6)
-                }
+        ZStack(alignment: .bottomTrailing) {
+            MiniDesktop()
+            if on {
+                MiniStamp()
+                    .frame(width: 40, height: 36)
+                    .shadow(color: Color.shadow.opacity(0.25), radius: 2, y: 1)
+                    .padding(7)
             }
+        }
+    }
+}
+
+/// The preview stamp in miniature: perforated paper, a capture, a caption line.
+struct MiniStamp: View {
+    var body: some View {
+        Canvas { context, size in
+            let bounds = CGRect(origin: .zero, size: size)
+            var paper = Path(bounds)
+            for center in QuickAccessLayout.perforation(of: bounds, pitch: 4.4) {
+                paper.addEllipse(in: CGRect(x: center.x - 1.2, y: center.y - 1.2, width: 2.4, height: 2.4))
+            }
+            context.fill(paper, with: .color(.card), style: FillStyle(eoFill: true))
+            context.fill(Path(CGRect(x: 4, y: 4, width: size.width - 8, height: size.height - 13)), with: .color(.sage))
+            context.fill(Path(CGRect(x: 4, y: size.height - 6.5, width: size.width * 0.45, height: 2)), with: .color(.ink2))
         }
     }
 }

@@ -7,7 +7,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let pins = PinController()
     private let editor = EditorController()
     private let updater = Updater()
-    private lazy var settings = HostingWindowController(title: "Glassine Settings") { [unowned self] in
+    private lazy var settings = HostingWindowController(title: "Glassine Settings", paper: true) { [unowned self] in
         SettingsView(updater: updater)
     }
     private lazy var welcome: HostingWindowController<WelcomeView> = HostingWindowController(
@@ -37,6 +37,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         #if DEBUG
         if CommandLine.arguments.contains("light") {
             NSApp.appearance = NSAppearance(named: .aqua) // with any --debug-… flag: check the light theme
+        }
+        if CommandLine.arguments.contains("--debug-settings") {
+            settings.show()
         }
         if CommandLine.arguments.contains("--debug-preview") {
             capture.showDebugPreviews()
