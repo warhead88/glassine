@@ -28,10 +28,11 @@
 
 ## Редактор в коде
 
-- [ ] Пресеты фона: Sleeve, Sage, Stamp, Peach, Ink вместо Ocean, Sunset, Mint, Graphite, Paper
-      (`BackgroundSettings.gradients`); старые сохранённые индексы переводить на ближайшие новые.
-- [ ] Панели на `card` с обводкой `border` и тенью средней; разделители — три точки.
-- [ ] Подсказка: карточка с названием, клавишей-капом справа, одна-две строки `ink2`.
+- [x] Пресеты фона: Sleeve, Sage, Stamp, Peach, Ink вместо Ocean, Sunset, Mint, Graphite, Paper
+      (`BackgroundSettings.gradients`); старые сохранённые переводятся на ближайшие (`migratedGradient`, версия 2).
+- [x] Панели на `card` с обводкой `border` и тенью средней (`paperPanel`); разделители — три точки.
+- [x] Подсказка: карточка с названием, клавишами-капами справа, одна-две строки `ink2`.
+- [x] Холст — системный нейтральный `underPageBackgroundColor`.
 
 ## Экраны, которых ещё нет в сценах
 

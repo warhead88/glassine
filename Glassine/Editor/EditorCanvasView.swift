@@ -106,8 +106,9 @@ final class EditorCanvasView: NSView, NSTextFieldDelegate, NSMenuItemValidation 
     // MARK: Drawing
 
     override func draw(_ dirtyRect: NSRect) {
-        NSGradient(starting: NSColor(white: 0.17, alpha: 1), ending: NSColor(white: 0.09, alpha: 1))?
-            .draw(in: bounds, angle: -90)
+        // Neutral, never paper: colors in the capture are judged against it (DECISIONS 4).
+        NSColor.underPageBackgroundColor.setFill()
+        bounds.fill()
 
         let canvas = liveCanvas
         let canvasInView = viewRect(canvas)

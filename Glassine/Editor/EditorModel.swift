@@ -264,7 +264,9 @@ enum EditorPrefs {
             case "none": b.fill = .none
             case "color":
                 if let c = d["color"] as? [Double], c.count == 3 { b.fill = .color(RGBA(red: c[0], green: c[1], blue: c[2])) }
-            case "gradient": b.fill = .gradient(min(max(d["gradient"] as? Int ?? 0, 0), BackgroundSettings.gradients.count - 1))
+            case "gradient":
+                b.fill = .gradient(BackgroundSettings.migratedGradient(d["gradient"] as? Int ?? 0,
+                                                                       from: d["gradients"] as? Int ?? 1))
             default: b.fill = .extend
             }
             return b
@@ -276,7 +278,10 @@ enum EditorPrefs {
             case .extend: d["fill"] = "extend"
             case .none: d["fill"] = "none"
             case .color(let c): d["fill"] = "color"; d["color"] = [c.red, c.green, c.blue].map(Double.init)
-            case .gradient(let i): d["fill"] = "gradient"; d["gradient"] = i
+            case .gradient(let i):
+                d["fill"] = "gradient"
+                d["gradient"] = i
+                d["gradients"] = BackgroundSettings.gradientsVersion
             }
             defaults.set(d, forKey: "editorBackground")
         }

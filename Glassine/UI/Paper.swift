@@ -149,3 +149,26 @@ struct StampInSleeve: View {
         .accessibilityHidden(true)
     }
 }
+
+extension View {
+    /// A floating panel of paper: the card color, a hairline and a soft shadow (editor bars,
+    /// tooltips, notices).
+    func paperPanel(in shape: some InsettableShape) -> some View {
+        background(shape.fill(Color.card))
+            .overlay(shape.strokeBorder(Color.border))
+            .shadow(color: Color.shadow.opacity(0.14), radius: 12, y: 8)
+            .shadow(color: Color.shadow.opacity(0.08), radius: 1, y: 1)
+    }
+}
+
+/// Three perforation dots between groups of controls.
+struct PerforationDivider: View {
+    var body: some View {
+        VStack(spacing: 4) {
+            ForEach(0..<3, id: \.self) { _ in
+                Circle().fill(Color.border).frame(width: 2.8, height: 2.8)
+            }
+        }
+        .accessibilityHidden(true)
+    }
+}

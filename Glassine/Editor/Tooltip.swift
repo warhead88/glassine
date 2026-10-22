@@ -96,37 +96,26 @@ private struct TooltipCard: View {
     let content: TooltipContent
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            HStack(alignment: .firstTextBaseline) {
-                Text(content.title).font(.callout.weight(.semibold))
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(alignment: .center) {
+                Text(content.title)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Color.ink)
                 Spacer(minLength: 12)
                 if let shortcut = content.shortcut {
-                    KeyCap(text: shortcut)
+                    KeyCaps(shortcut: shortcut)
                 }
             }
             Text(content.detail)
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                .font(.system(size: 12.5))
+                .foregroundStyle(Color.ink2)
                 .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .frame(width: 230, alignment: .leading)
-        .padding(.horizontal, 12)
-        .padding(.vertical, 9)
-        .glassPanel(in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-    }
-}
-
-private struct KeyCap: View {
-    let text: String
-
-    var body: some View {
-        Text(text)
-            .font(.caption.weight(.semibold).monospaced())
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .background(RoundedRectangle(cornerRadius: 5, style: .continuous).fill(Color.primary.opacity(0.1)))
-            .overlay(RoundedRectangle(cornerRadius: 5, style: .continuous).strokeBorder(Color.primary.opacity(0.2), lineWidth: 0.5))
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .paperPanel(in: RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
 }
 

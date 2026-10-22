@@ -26,14 +26,25 @@ struct BackgroundSettings: Equatable {
         RGBA(red: 0.11, green: 0.11, blue: 0.118),
     ]
 
-    /// Two-stop gradients, top-left to bottom-right.
+    /// Two-stop gradients, top-left to bottom-right, in the 0.4 palette (Design/0.4, DECISIONS 11).
     static let gradients: [(name: String, from: RGBA, to: RGBA)] = [
-        ("Ocean", RGBA(red: 0.31, green: 0.49, blue: 1), RGBA(red: 0.64, green: 0.36, blue: 1)),
-        ("Sunset", RGBA(red: 1, green: 0.54, blue: 0.24), RGBA(red: 1, green: 0.24, blue: 0.5)),
-        ("Mint", RGBA(red: 0.2, green: 0.83, blue: 0.6), RGBA(red: 0.05, green: 0.65, blue: 0.91)),
-        ("Graphite", RGBA(red: 0.23, green: 0.23, blue: 0.24), RGBA(red: 0.11, green: 0.11, blue: 0.12)),
-        ("Paper", RGBA(red: 0.96, green: 0.96, blue: 0.97), RGBA(red: 0.9, green: 0.9, blue: 0.92)),
+        ("Sleeve", RGBA(hex: 0xF7F7F3), RGBA(hex: 0xE2E3DC)),
+        ("Sage", RGBA(hex: 0xB9C7B2), RGBA(hex: 0x6F8869)),
+        ("Stamp", RGBA(hex: 0x9DB3CC), RGBA(hex: 0x5E7C9E)),
+        ("Peach", RGBA(hex: 0xF2D9BF), RGBA(hex: 0xD9A57C)),
+        ("Ink", RGBA(hex: 0x3A4254), RGBA(hex: 0x1C2230)),
     ]
+
+    /// Version of `gradients`, saved with the choice: 1 was Ocean, Sunset, Mint, Graphite, Paper.
+    static let gradientsVersion = 2
+
+    /// A gradient saved under an older version, as the nearest of today's.
+    static func migratedGradient(_ index: Int, from version: Int) -> Int {
+        let clamped = min(max(index, 0), gradients.count - 1)
+        guard version < gradientsVersion else { return clamped }
+        // Ocean → Stamp, Sunset → Peach, Mint → Sage, Graphite → Ink, Paper → Sleeve.
+        return [2, 3, 1, 4, 0][min(max(index, 0), 4)]
+    }
 }
 
 enum CanvasLayout {

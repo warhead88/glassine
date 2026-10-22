@@ -101,6 +101,18 @@ struct RGBA: Equatable, Hashable {
 
     var cgColor: CGColor { CGColor(srgbRed: red, green: green, blue: blue, alpha: alpha) }
 
+    /// From a 0xRRGGBB value, as in the design tokens.
+    init(hex: Int) {
+        self.init(red: CGFloat(hex >> 16 & 0xFF) / 255, green: CGFloat(hex >> 8 & 0xFF) / 255, blue: CGFloat(hex & 0xFF) / 255)
+    }
+
+    init(red: CGFloat, green: CGFloat, blue: CGFloat, alpha: CGFloat = 1) {
+        self.red = red
+        self.green = green
+        self.blue = blue
+        self.alpha = alpha
+    }
+
     static let palette: [RGBA] = [
         RGBA(red: 1, green: 0.231, blue: 0.188),      // red
         RGBA(red: 1, green: 0.584, blue: 0),          // orange

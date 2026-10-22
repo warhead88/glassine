@@ -12,7 +12,20 @@ struct EditorView: View {
     @Bindable var model: EditorModel
     let canvas: EditorCanvasView
     let actions: EditorActions
-    @State private var showsBackground = false
+    @State private var showsBackground = Self.debugShowsBackground
+    @Environment(Theme.self) private var theme
+
+    /// Debug (`--debug-editor background`): the background panel opens with the editor.
+    private static var debugShowsBackground: Bool {
+        #if DEBUG
+        CommandLine.arguments.contains("background")
+        #else
+        false
+        #endif
+    }
+
+    /// Padding, corners or a shadow are set: the background button shows it.
+    private var backgroundIsOn: Bool { model.background != BackgroundSettings(fill: model.background.fill) }
 
     private static let toolGroups: [[EditorTool]] = [
         [.select],
@@ -53,10 +66,10 @@ struct EditorView: View {
     // MARK: Toolbar
 
     private var toolbar: some View {
-        GlassGroup {
+        Group {
             HStack(spacing: 10) {
                 ForEach(Array(Self.toolGroups.enumerated()), id: \.offset) { index, group in
-                    if index > 0 { GlassDivider() }
+                    if index > 0 { PerforationDivider() }
                     HStack(spacing: 2) {
                         ForEach(group) { tool in
                             ToolButton(tool: tool, isSelected: model.tool == tool) { model.tool = tool }
@@ -66,29 +79,31 @@ struct EditorView: View {
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 6)
-            .glassPanel(in: Capsule())
+            .paperPanel(in: Capsule())
         }
     }
 
     /// Color and width, bottom left, close to where the eye is while drawing.
     private var styleBar: some View {
-        GlassGroup {
+        Group {
             HStack(spacing: 10) {
                 colors
-                GlassDivider()
+                PerforationDivider()
                 widthControl
-                GlassDivider()
+                PerforationDivider()
                 IconButton(symbol: "photo.artframe") { showsBackground.toggle() }
-                    .background(Circle().fill(Color.accentColor.opacity(model.background != BackgroundSettings(fill: model.background.fill) ? 0.3 : 0)))
+                    .background(Circle().fill(Color.key))
+                    .overlay(Circle().strokeBorder(theme.accent, lineWidth: backgroundIsOn ? 1.5 : 0))
                     .tooltip("Background", "Padding, rounded corners, shadow and a background that continues the screenshot.",
                              placement: .above)
                     .popover(isPresented: $showsBackground, arrowEdge: .top) {
                         BackgroundPanel(model: model)
+                            .presentationBackground(Color.card)
                     }
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .glassPanel(in: Capsule())
+            .paperPanel(in: Capsule())
         }
     }
 
@@ -119,8 +134,8 @@ struct EditorView: View {
             .controlSize(.small)
             .frame(width: 96)
             Text("\(Int(model.width.rounded()))")
-                .font(.caption.monospacedDigit())
-                .foregroundStyle(.secondary)
+                .font(.system(size: 12, weight: .medium).monospacedDigit())
+                .foregroundStyle(Color.ink2)
                 .frame(width: 18, alignment: .leading)
         }
         .tooltip("Line Width", "Thickness of new and selected marks. Text and steps scale with it.", placement: .above)
@@ -129,7 +144,7 @@ struct EditorView: View {
     // MARK: Actions
 
     private var actionBar: some View {
-        GlassGroup {
+        Group {
             HStack(spacing: 4) {
                 IconButton(symbol: "arrow.uturn.backward", action: model.undo)
                     .disabled(!model.canUndo)
@@ -138,11 +153,11 @@ struct EditorView: View {
                     .disabled(!model.canRedo)
                     .tooltip("Redo", "Bring back what you undid.", shortcut: "⇧⌘Z", placement: .above)
                 if model.crop != nil {
-                    GlassDivider()
+                    PerforationDivider()
                     IconButton(symbol: "crop.rotate") { model.setCrop(nil) }
                         .tooltip("Reset Crop", "Show the whole image again.", placement: .above)
                 }
-                GlassDivider()
+                PerforationDivider()
                 LabeledButton(symbol: "doc.on.doc", title: "Copy", action: actions.copy)
                     .tooltip("Copy", "Copy the edited image to the clipboard. Nothing is saved.", shortcut: "⌘C", placement: .above)
                 LabeledButton(symbol: "square.and.arrow.down", title: "Save", action: actions.save)
@@ -154,7 +169,7 @@ struct EditorView: View {
                     .tooltip("Done", doneDetail, shortcut: "⌘↩", placement: .above)
             }
             .padding(6)
-            .glassPanel(in: Capsule())
+            .paperPanel(in: Capsule())
         }
     }
 
@@ -178,7 +193,9 @@ private struct BackgroundPanel: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Background").font(.headline)
+            Text("Background")
+                .font(Font(Typography.fraunces(size: 20, weight: 460)))
+                .foregroundStyle(Color.ink)
 
             HStack(spacing: 8) {
                 FillSwatch(fill: .extend, current: model.background.fill, help: "Continue the screenshot's edge color") {
@@ -212,8 +229,8 @@ private struct BackgroundPanel: View {
                 .onChange(of: model.background.shadow) { model.endBackgroundChange() }
 
             Text("The background also grows by itself when arrows, text or drawings go past the edge.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                .font(.system(size: 12))
+                .foregroundStyle(Color.ink2)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(16)
@@ -227,13 +244,13 @@ private struct BackgroundPanel: View {
 
     private func slider(_ title: String, value: Binding<CGFloat>, in range: ClosedRange<CGFloat>) -> some View {
         HStack {
-            Text(title).frame(width: 64, alignment: .leading)
+            Text(title).foregroundStyle(Color.ink).frame(width: 64, alignment: .leading)
             Slider(value: value, in: range) { editing in
                 if !editing { model.endBackgroundChange() }
             }
             Text("\(Int(value.wrappedValue.rounded()))")
-                .font(.caption.monospacedDigit())
-                .foregroundStyle(.secondary)
+                .font(.system(size: 12).monospacedDigit())
+                .foregroundStyle(Color.ink2)
                 .frame(width: 28, alignment: .trailing)
         }
     }
@@ -281,18 +298,18 @@ private struct ToolButton: View {
     let isSelected: Bool
     let action: () -> Void
     @State private var isHovered = false
+    @Environment(Theme.self) private var theme
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: tool.symbol)
-                .font(.system(size: 14, weight: .medium))
+            icon
                 .frame(width: 32, height: 32)
-                .foregroundStyle(isSelected ? Accent.foreground : Color.primary)
+                .foregroundStyle(isSelected ? theme.onAccent : Color.ink2)
                 .background {
                     if isSelected {
-                        Circle().fill(Color.accentColor)
+                        Circle().fill(theme.accent)
                     } else if isHovered {
-                        Circle().fill(Color.primary.opacity(0.1))
+                        Circle().fill(Color.key)
                     }
                 }
                 .contentShape(Circle())
@@ -302,12 +319,23 @@ private struct ToolButton: View {
         .tooltip(tool.title, tool.detail, shortcut: tool.keyLabel, placement: .below)
         .animation(.snappy(duration: 0.15), value: isSelected)
     }
+
+    /// The text tool is a Fraunces T, the toolbar's one serif; the rest are SF Symbols.
+    @ViewBuilder
+    private var icon: some View {
+        if tool == .text {
+            Text("T").font(Font(Typography.fraunces(size: 18, weight: 500)))
+        } else {
+            Image(systemName: tool.symbol).font(.system(size: 14, weight: .medium))
+        }
+    }
 }
 
 private struct ColorSwatch: View {
     let color: RGBA
     let isSelected: Bool
     let action: () -> Void
+    @Environment(Theme.self) private var theme
 
     var body: some View {
         Button(action: action) {
@@ -316,7 +344,7 @@ private struct ColorSwatch: View {
                 .frame(width: 16, height: 16)
                 .overlay(Circle().strokeBorder(Color.primary.opacity(0.25), lineWidth: 0.5))
                 .padding(3)
-                .overlay(Circle().strokeBorder(isSelected ? Color.primary : .clear, lineWidth: 1.5))
+                .overlay(Circle().strokeBorder(isSelected ? theme.accent : .clear, lineWidth: 2))
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
@@ -334,8 +362,9 @@ private struct IconButton: View {
         Button(action: action) {
             Image(systemName: symbol)
                 .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(Color.ink2)
                 .frame(width: 32, height: 32)
-                .background(Circle().fill(Color.primary.opacity(isHovered && isEnabled ? 0.1 : 0)))
+                .background(Circle().fill(isHovered && isEnabled ? Color.key : .clear))
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
@@ -354,9 +383,10 @@ private struct LabeledButton: View {
         Button(action: action) {
             Label(title, systemImage: symbol)
                 .font(.system(size: 13, weight: .medium))
-                .padding(.horizontal, 10)
+                .foregroundStyle(Color.ink)
+                .padding(.horizontal, 11)
                 .frame(height: 32)
-                .background(Capsule().fill(Color.primary.opacity(isHovered ? 0.12 : 0.06)))
+                .background(Capsule().fill(isHovered ? Color.rule : Color.key))
                 .contentShape(Capsule())
         }
         .buttonStyle(.plain)
@@ -368,18 +398,9 @@ private struct DoneButton: View {
     let action: () -> Void
 
     var body: some View {
-        if #available(macOS 26.0, *) {
-            Button("Done", action: action)
-                .buttonStyle(.glassProminent)
-                .controlSize(.large)
-                .keyboardShortcut(.return, modifiers: .command)
-        } else {
-            Button("Done", action: action)
-                .buttonStyle(.borderedProminent)
-                .buttonBorderShape(.capsule)
-                .controlSize(.large)
-                .keyboardShortcut(.return, modifiers: .command)
-        }
+        Button("Done", action: action)
+            .buttonStyle(.paperPrimary)
+            .keyboardShortcut(.return, modifiers: .command)
     }
 }
 
@@ -387,41 +408,16 @@ private struct StatusToast: View {
     let text: String
 
     var body: some View {
-        Label(text, systemImage: "checkmark.circle.fill")
-            .font(.callout.weight(.medium))
-            .padding(.horizontal, 14)
-            .padding(.vertical, 8)
-            .glassPanel(in: Capsule())
-    }
-}
-
-private struct GlassDivider: View {
-    var body: some View {
-        Rectangle()
-            .fill(Color.primary.opacity(0.15))
-            .frame(width: 1, height: 20)
-    }
-}
-
-/// Groups glass shapes so they blend together on macOS 26+.
-private struct GlassGroup<Content: View>: View {
-    @ViewBuilder let content: Content
-
-    var body: some View {
-        if #available(macOS 26.0, *) {
-            GlassEffectContainer { content }
-        } else {
-            content
+        HStack(spacing: 10) {
+            CheckBadge(size: 22)
+            Text(text)
+                .font(Font(Typography.fraunces(size: 15, weight: 480)))
+                .foregroundStyle(Color.ink)
         }
-    }
-}
-
-private enum Accent {
-    /// Icon color on the accent fill: dark on light accents (yellow), white otherwise.
-    static var foreground: Color {
-        guard let rgb = NSColor.controlAccentColor.usingColorSpace(.sRGB) else { return .white }
-        let luminance = 0.299 * rgb.redComponent + 0.587 * rgb.greenComponent + 0.114 * rgb.blueComponent
-        return luminance > 0.6 ? Color.black.opacity(0.85) : .white
+        .padding(.leading, 9)
+        .padding(.trailing, 16)
+        .padding(.vertical, 7)
+        .paperPanel(in: Capsule())
     }
 }
 

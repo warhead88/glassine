@@ -118,3 +118,24 @@ struct KeyCapTests {
         #expect(KeyCapParts.split("") == [])
     }
 }
+
+@Suite("Background presets")
+struct BackgroundPresetTests {
+    @Test func oldGradientsMoveToTheNearestNewOne() {
+        // Ocean, Sunset, Mint, Graphite, Paper → Stamp, Peach, Sage, Ink, Sleeve.
+        let names = BackgroundSettings.gradients.map(\.name)
+        #expect((0..<5).map { names[BackgroundSettings.migratedGradient($0, from: 1)] }
+            == ["Stamp", "Peach", "Sage", "Ink", "Sleeve"])
+    }
+
+    @Test func currentChoicesStayPut() {
+        for index in BackgroundSettings.gradients.indices {
+            #expect(BackgroundSettings.migratedGradient(index, from: BackgroundSettings.gradientsVersion) == index)
+        }
+        #expect(BackgroundSettings.migratedGradient(99, from: 2) == BackgroundSettings.gradients.count - 1)
+    }
+
+    @Test func hexColors() {
+        #expect(RGBA(hex: 0x1C2230) == RGBA(red: 0x1C / 255, green: 0x22 / 255, blue: 0x30 / 255))
+    }
+}
