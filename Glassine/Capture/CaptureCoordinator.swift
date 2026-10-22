@@ -35,7 +35,7 @@ final class CaptureCoordinator {
     /// Click the window under the pointer to capture it.
     func captureWindow() { startOverlay(.window) }
 
-    /// Select an area or click a window; its text (or QR code) goes to the clipboard.
+    /// Select an area or click a window; its text goes to the clipboard.
     func captureText() { startOverlay(.text) }
 
     /// Click anywhere to copy the color under the pointer.

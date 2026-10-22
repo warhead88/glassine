@@ -1,5 +1,4 @@
 import AppKit
-import CoreImage.CIFilterBuiltins
 import Testing
 @testable import Glassine
 
@@ -79,25 +78,11 @@ struct TextRecognizerTests {
     }
 
     @Test func readsEnglishAndRussianInOrder() async throws {
-        let result = try await TextRecognizer.recognize(try render(["Hello Glassine", "Привет мир"]))
-        let lines = result.text.split(separator: "\n").map(String.init)
-        #expect(lines == ["Hello Glassine", "Привет мир"])
-        #expect(result.codes.isEmpty)
-    }
-
-    @Test func readsQRCode() async throws {
-        let filter = CIFilter.qrCodeGenerator()
-        filter.message = Data("https://example.com/glassine".utf8)
-        let output = try #require(filter.outputImage?.transformed(by: CGAffineTransform(scaleX: 12, y: 12)))
-        let padded = output.composited(over: CIImage(color: .white).cropped(to: output.extent.insetBy(dx: -60, dy: -60)))
-        let image = try #require(CIContext().createCGImage(padded, from: padded.extent))
-
-        let result = try await TextRecognizer.recognize(image)
-        #expect(result.codes == ["https://example.com/glassine"])
+        let text = try await TextRecognizer.recognize(try render(["Hello Glassine", "Привет мир"]))
+        #expect(text.split(separator: "\n").map(String.init) == ["Hello Glassine", "Привет мир"])
     }
 
     @Test func blankImageHasNothing() async throws {
-        let result = try await TextRecognizer.recognize(try render([]))
-        #expect(result.isEmpty)
+        #expect(try await TextRecognizer.recognize(try render([])).isEmpty)
     }
 }

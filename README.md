@@ -28,7 +28,7 @@ floating preview — drag it straight into any app, or click it to annotate.
 | <kbd>⇧⌘4</kbd> | Capture an area — drag to select (<kbd>⇧</kbd> square, <kbd>⌥</kbd> from center, hold <kbd>Space</kbd> to move) |
 | <kbd>⇧⌘5</kbd> | Capture a window — click the highlighted one (<kbd>Space</kbd> switches area ↔ window) |
 | <kbd>⇧⌘3</kbd> | Capture the whole screen |
-| <kbd>⌥⇧⌘T</kbd> | Copy text from the screen (on-device OCR, Russian and English) and read QR codes |
+| <kbd>⌥⇧⌘T</kbd> | Copy text from the screen (on-device OCR, Russian and English) |
 | <kbd>⌥⇧⌘C</kbd> | Pick a color (HEX, RGB or HSL) |
 | <kbd>⌥⇧⌘M</kbd> | Measure distances in pixels and points |
 | <kbd>⌥⇧⌘P</kbd> | Show / hide pins |
@@ -50,7 +50,10 @@ Keep a capture floating above every window — as a reference while you design o
 ## Copy text from the screen
 
 Select any text — in an image, a video, a locked PDF — and it's on your clipboard. Recognition runs on
-your Mac with Vision; QR codes are read too, with a button to open links.
+your Mac with Vision.
+
+QR codes don't need a separate mode: every capture is checked for them, and if there are any the
+preview offers **Copy QR Link** — or a list to copy or open each one when there are several.
 
 ## Install
 

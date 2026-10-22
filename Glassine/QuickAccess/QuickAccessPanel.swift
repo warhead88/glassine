@@ -10,6 +10,7 @@ final class QuickAccessPanel: NSPanel {
     private let onClose: (QuickAccessPanel) -> Void
     private let onPin: (CapturedImage) -> Void
     private let onEdit: (CapturedImage) -> Void
+    private let onResize: (QuickAccessPanel) -> Void
     private var closeTask: Task<Void, Never>?
     private var isDismissing = false
 
@@ -18,13 +19,16 @@ final class QuickAccessPanel: NSPanel {
         autoClose: Duration?,
         onPin: @escaping (CapturedImage) -> Void,
         onEdit: @escaping (CapturedImage) -> Void,
+        onResize: @escaping (QuickAccessPanel) -> Void,
         onClose: @escaping (QuickAccessPanel) -> Void
     ) {
         self.capture = capture
         self.autoClose = autoClose
         self.onPin = onPin
         self.onEdit = onEdit
+        self.onResize = onResize
         self.onClose = onClose
+        self.preferredSize = QuickAccessLayout.thumbnailSize(for: capture.pointSize)
         super.init(
             contentRect: NSRect(origin: .zero, size: QuickAccessLayout.thumbnailSize(for: capture.pointSize)),
             styleMask: [.borderless, .nonactivatingPanel],
@@ -40,9 +44,22 @@ final class QuickAccessPanel: NSPanel {
         isReleasedWhenClosed = false
         becomesKeyOnlyIfNeeded = true
 
-        contentView = ThumbnailView(capture: capture, panel: self)
+        let thumbnail = ThumbnailView(capture: capture, panel: self)
+        contentView = thumbnail
         scheduleAutoClose()
+
+        // QR codes are found in the background (~10 ms); the preview grows a button if there are any.
+        Task { [weak self, image = capture.image] in
+            let codes = await BarcodeDetector.detect(image)
+            guard let self, !codes.isEmpty, !isDismissing else { return }
+            thumbnail.showCodes(codes)
+            preferredSize = QuickAccessLayout.thumbnailSize(for: capture.pointSize, hasQR: true)
+            onResize(self)
+        }
     }
+
+    /// The size the stack lays this preview out at; grows when QR codes are found.
+    private(set) var preferredSize: NSSize
 
     override var canBecomeKey: Bool { true }
 
@@ -101,6 +118,9 @@ private final class ThumbnailView: NSView, NSDraggingSource {
     private let overlay = NSView()
     private lazy var copyButton = PillButton(label: "Copy", target: self, action: #selector(copyImage))
     private lazy var saveButton = PillButton(label: "", target: self, action: #selector(saveOrReveal))
+    private lazy var qrButton = PillButton(label: "", target: self, action: #selector(qrAction))
+    private let qrBadge = NSImageView()
+    private var codes: [String] = []
     private lazy var closeButton = FirstMouseButton(
         image: NSImage(systemSymbolName: "xmark.circle.fill", accessibilityDescription: "Close")!,
         target: self, action: #selector(close)
@@ -150,7 +170,8 @@ private final class ThumbnailView: NSView, NSDraggingSource {
         overlay.autoresizingMask = [.width, .height]
         addSubview(overlay)
 
-        let stack = NSStackView(views: [copyButton, saveButton])
+        qrButton.isHidden = true
+        let stack = NSStackView(views: [copyButton, saveButton, qrButton])
         stack.orientation = .vertical
         stack.spacing = 6
         stack.translatesAutoresizingMaskIntoConstraints = false
@@ -169,6 +190,7 @@ private final class ThumbnailView: NSView, NSDraggingSource {
             stack.centerXAnchor.constraint(equalTo: overlay.centerXAnchor),
             stack.centerYAnchor.constraint(equalTo: overlay.centerYAnchor),
             copyButton.widthAnchor.constraint(equalTo: saveButton.widthAnchor),
+            qrButton.widthAnchor.constraint(greaterThanOrEqualTo: saveButton.widthAnchor),
             closeButton.topAnchor.constraint(equalTo: overlay.topAnchor, constant: 6),
             closeButton.leadingAnchor.constraint(equalTo: overlay.leadingAnchor, constant: 6),
             pinButton.topAnchor.constraint(equalTo: overlay.topAnchor, constant: 6),
@@ -307,6 +329,88 @@ private final class ThumbnailView: NSView, NSDraggingSource {
         saveButton.setLabel(saveTitle)
     }
 
+    // MARK: QR codes
+
+    /// Called once codes are found: the badge stays visible, the button shows on hover.
+    func showCodes(_ codes: [String]) {
+        self.codes = codes
+        qrButton.setLabel(qrTitle)
+        qrButton.isHidden = false
+
+        qrBadge.image = NSImage(systemSymbolName: "qrcode", accessibilityDescription: "QR code found")
+        qrBadge.symbolConfiguration = .init(pointSize: 11, weight: .semibold)
+        qrBadge.contentTintColor = .white
+        qrBadge.wantsLayer = true
+        qrBadge.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.6).cgColor
+        qrBadge.layer?.cornerRadius = 5
+        qrBadge.toolTip = codes.count == 1 ? "QR code found" : "\(codes.count) QR codes found"
+        qrBadge.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(qrBadge, positioned: .below, relativeTo: overlay)
+        NSLayoutConstraint.activate([
+            qrBadge.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 6),
+            qrBadge.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -6),
+            qrBadge.widthAnchor.constraint(equalToConstant: 20),
+            qrBadge.heightAnchor.constraint(equalToConstant: 20),
+        ])
+    }
+
+    private var qrTitle: String {
+        guard codes.count == 1 else { return "QR Codes (\(codes.count))…" }
+        return BarcodeDetector.link(codes[0]) != nil ? "Copy QR Link" : "Copy QR Text"
+    }
+
+    @objc private func qrAction() {
+        if codes.count == 1 {
+            copyCode(codes[0])
+        } else {
+            let menu = qrMenu()
+            menu.popUp(positioning: nil, at: NSPoint(x: 0, y: qrButton.bounds.height + 4), in: qrButton)
+        }
+    }
+
+    /// One item per code (copies it), Copy All, and Open for links.
+    private func qrMenu() -> NSMenu {
+        let menu = NSMenu()
+        for (index, code) in codes.enumerated() {
+            let item = menu.addItem(withTitle: BarcodeDetector.menuTitle(code), action: #selector(copyCodeItem(_:)), keyEquivalent: "")
+            item.tag = index
+            item.toolTip = code
+        }
+        if codes.count > 1 {
+            menu.addItem(.separator())
+            menu.addItem(withTitle: "Copy All", action: #selector(copyAllCodes), keyEquivalent: "")
+        }
+        let links = codes.enumerated().filter { BarcodeDetector.link($0.element) != nil }
+        if !links.isEmpty { menu.addItem(.separator()) }
+        for (index, code) in links {
+            let item = menu.addItem(withTitle: "Open \(BarcodeDetector.link(code)?.host ?? code)", action: #selector(openCodeItem(_:)), keyEquivalent: "")
+            item.tag = index
+        }
+        menu.items.forEach { $0.target = self }
+        return menu
+    }
+
+    @objc private func copyCodeItem(_ sender: NSMenuItem) { copyCode(codes[sender.tag]) }
+    @objc private func copyAllCodes() { copyCode(codes.joined(separator: "\n")) }
+
+    @objc private func openCodeItem(_ sender: NSMenuItem) {
+        if let url = BarcodeDetector.link(codes[sender.tag]) { NSWorkspace.shared.open(url) }
+    }
+
+    private func copyCode(_ text: String) {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
+        qrButton.setLabel("Copied")
+        resetQRTitle?.cancel()
+        resetQRTitle = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(1.2))
+            guard !Task.isCancelled, let self else { return }
+            qrButton.setLabel(qrTitle)
+        }
+    }
+
+    private var resetQRTitle: Task<Void, Never>?
+
     override func menu(for event: NSEvent) -> NSMenu? {
         let menu = NSMenu()
         menu.addItem(withTitle: "Copy", action: #selector(copyImage), keyEquivalent: "")
@@ -316,6 +420,10 @@ private final class ThumbnailView: NSView, NSDraggingSource {
         menu.addItem(withTitle: "Open in Preview", action: #selector(openFile), keyEquivalent: "")
         menu.addItem(withTitle: "Pin to Screen", action: #selector(pin), keyEquivalent: "")
         menu.addItem(withTitle: "Copy Text", action: #selector(copyText), keyEquivalent: "")
+        if !codes.isEmpty {
+            let qr = menu.addItem(withTitle: codes.count == 1 ? qrTitle : "QR Codes", action: codes.count == 1 ? #selector(qrAction) : nil, keyEquivalent: "")
+            if codes.count > 1 { qr.submenu = qrMenu() }
+        }
         menu.addItem(.separator())
         menu.addItem(withTitle: "Close", action: #selector(close), keyEquivalent: "")
         menu.items.forEach { $0.target = self }

@@ -19,7 +19,13 @@ final class QuickAccessController {
             capture: capture,
             autoClose: seconds > 0 ? .seconds(seconds) : nil,
             onPin: { [weak self] in self?.onPin($0) },
-            onEdit: { [weak self] in self?.onEdit($0) }
+            onEdit: { [weak self] in self?.onEdit($0) },
+            onResize: { [weak self] _ in
+                NSAnimationContext.runAnimationGroup { context in
+                    context.duration = 0.2
+                    self?.layout()
+                }
+            }
         ) { [weak self] closed in
             self?.remove(closed)
         }
@@ -66,7 +72,7 @@ final class QuickAccessController {
     private func targetFrames() -> [ObjectIdentifier: NSRect] {
         guard let visible = (screen ?? NSScreen.main)?.visibleFrame else { return [:] }
         let frames = QuickAccessLayout.stackFrames(
-            sizes: panels.map(\.frame.size), in: visible, margin: margin, spacing: spacing
+            sizes: panels.map(\.preferredSize), in: visible, margin: margin, spacing: spacing
         )
         return Dictionary(uniqueKeysWithValues: zip(panels.map(ObjectIdentifier.init), frames))
     }

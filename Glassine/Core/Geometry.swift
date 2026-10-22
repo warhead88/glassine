@@ -115,12 +115,15 @@ enum QuickAccessLayout {
     static let maxSize = CGSize(width: 220, height: 150)
     static let minSize = CGSize(width: 140, height: 90)
 
+    /// Tall enough for three buttons (Copy, Save, QR) clear of the corner buttons.
+    static let minHeightWithQR: CGFloat = 150
+
     /// Fits the capture into `maxSize`, never upscaling, but never smaller than the controls need.
-    static func thumbnailSize(for size: CGSize) -> CGSize {
+    static func thumbnailSize(for size: CGSize, hasQR: Bool = false) -> CGSize {
         let fit = min(maxSize.width / max(size.width, 1), maxSize.height / max(size.height, 1), 1)
         return CGSize(
             width: max((size.width * fit).rounded(), minSize.width),
-            height: max((size.height * fit).rounded(), minSize.height)
+            height: max((size.height * fit).rounded(), hasQR ? minHeightWithQR : minSize.height)
         )
     }
 
