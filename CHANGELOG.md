@@ -5,7 +5,7 @@ sections **Added**, **Changed**, **Fixed**, **Removed** (and **Security** when n
 section is what the update window shows, so write it for users. Versions follow
 [Semantic Versioning](https://semver.org).
 
-## [Unreleased]
+## [0.3.1] - 2026-10-22
 
 ### Fixed
 - An app's audio track stayed silent when the app's window wasn't on screen (minimized, hidden or on another Space). If an app really isn't running, Glassine now says so instead of recording silence
